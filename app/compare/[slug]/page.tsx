@@ -46,7 +46,7 @@ export default async function ComparisonDetailPage({ params }: { params: Promise
       <main>
         <section className="bg-slate-950 text-white">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-            <p className="text-sm font-bold text-lime-300">SEO comparison</p>
+            <p className="text-sm font-bold text-lime-300">Vehicle comparison</p>
             <h1 className="mt-2 text-4xl font-black tracking-tight">{comparison.page.title}</h1>
             <p className="mt-4 max-w-3xl text-lg leading-8 text-emerald-50">{comparison.page.intro}</p>
           </div>
@@ -97,7 +97,7 @@ export default async function ComparisonDetailPage({ params }: { params: Promise
           </div>
 
           <section className="mt-6 rounded-lg border border-emerald-100 bg-white p-5 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Admin verdict</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Buying verdict</p>
             <h2 className="mt-1 text-2xl font-black text-slate-950">Which one should you choose?</h2>
             <p className="mt-3 text-sm leading-7 text-slate-600">{comparison.page.verdict}</p>
           </section>

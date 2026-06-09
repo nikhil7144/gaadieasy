@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LockKeyhole, Mail } from "lucide-react";
+import { BrandLockup } from "@/components/shared/BrandLockup";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export function AdminLoginForm() {
@@ -40,10 +41,11 @@ export function AdminLoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <BrandLockup href="/" size="sidebar" />
       <div className="rounded-full bg-lime-100 px-3 py-1 text-xs font-black uppercase text-emerald-800">
         Admin access
       </div>
-      <h1 className="mt-4 text-3xl font-black text-slate-950">Sign in to AutoPrice admin</h1>
+      <h1 className="mt-4 text-3xl font-black text-slate-950">Sign in to admin</h1>
       <p className="mt-2 text-sm text-slate-500">
         Use the platform admin account to manage vehicle pricing, dealers, SEO pages, media and leads.
       </p>

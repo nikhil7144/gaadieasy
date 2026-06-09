@@ -51,12 +51,27 @@ export default async function Home({
   );
   const activeTypeLabel = selectedData.tab.label;
   const heroModel = selectedModels[0] ?? data.models[0];
+  const defaultCitySlug = data.cities[0]?.slug ?? "bangalore";
   const heroPromotion = data.heroPromotions.find(
     (promotion) =>
       promotion.active &&
       promotion.categoryKey === selectedType &&
       (promotion.placement ?? "homepage_hero") === "homepage_hero",
   );
+  const heroStats = [
+    {
+      value: heroPromotion?.stat1Value ?? `${data.brands.length}+`,
+      label: heroPromotion?.stat1Label ?? "Brands",
+    },
+    {
+      value: heroPromotion?.stat2Value ?? `${data.cities.length}`,
+      label: heroPromotion?.stat2Label ?? "Cities",
+    },
+    {
+      value: heroPromotion?.stat3Value ?? `${selectedModels.length || data.models.length}+`,
+      label: heroPromotion?.stat3Label ?? "Models",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -67,13 +82,13 @@ export default async function Home({
           <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1.1fr_.9fr] lg:py-20">
             <div>
               <p className="inline-flex rounded-full bg-lime-300 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-950">
-                {activeTypeLabel} on-road pricing
+                {heroPromotion?.eyebrow ?? `${activeTypeLabel} on-road pricing`}
               </p>
               <h1 className="mt-5 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-6xl">
-                Know the real {activeTypeLabel.toLowerCase()} price before visiting the showroom.
+                {heroPromotion?.headline ?? `Know the real ${activeTypeLabel.toLowerCase()} price before visiting the showroom.`}
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-emerald-50">
-                Compare variants, taxes, RTO charges, insurance estimates and dealer offers for {activeTypeLabel.toLowerCase()} in one clean buyer journey.
+                {heroPromotion?.supportingCopy ?? `Compare variants, taxes, RTO charges, insurance estimates and dealer offers for ${activeTypeLabel.toLowerCase()} in one clean buyer journey.`}
               </p>
               <div className="mt-8">
                 <PricingExplorer
@@ -97,31 +112,32 @@ export default async function Home({
                   alt={heroPromotion?.title ?? `${activeTypeLabel} discovery`}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <p className="inline-flex rounded-full bg-lime-300 px-3 py-1 text-xs font-black text-slate-950">
-                    Admin promoted
-                  </p>
+                  <div className="absolute bottom-4 left-4 right-4">
+                  {heroPromotion?.eyebrow ? (
+                    <p className="inline-flex rounded-full bg-lime-300 px-3 py-1 text-xs font-black text-slate-950">
+                      {heroPromotion.eyebrow}
+                    </p>
+                  ) : null}
                   <h2 className="mt-3 text-2xl font-black text-white">
                     {heroPromotion?.title ?? `${activeTypeLabel} featured model`}
                   </h2>
                   {heroPromotion?.subtitle ? (
                     <p className="mt-1 text-sm leading-6 text-emerald-50">{heroPromotion.subtitle}</p>
                   ) : null}
+                  {heroPromotion?.ctaLabel ? (
+                    <span className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-black text-slate-950">
+                      {heroPromotion.ctaLabel}
+                    </span>
+                  ) : null}
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-lg bg-white/10 p-3">
-                  <div className="text-2xl font-black text-lime-300">{data.brands.length}+</div>
-                  <div className="text-xs text-emerald-50">Brands</div>
-                </div>
-                <div className="rounded-lg bg-white/10 p-3">
-                  <div className="text-2xl font-black text-lime-300">{data.cities.length}</div>
-                  <div className="text-xs text-emerald-50">Cities</div>
-                </div>
-                <div className="rounded-lg bg-white/10 p-3">
-                  <div className="text-2xl font-black text-lime-300">API</div>
-                  <div className="text-xs text-emerald-50">First</div>
-                </div>
+                {heroStats.map((stat) => (
+                  <div className="rounded-lg bg-white/10 p-3" key={`${stat.label}-${stat.value}`}>
+                    <div className="text-2xl font-black text-lime-300">{stat.value}</div>
+                    <div className="text-xs text-emerald-50">{stat.label}</div>
+                  </div>
+                ))}
               </div>
             </a>
           </div>
@@ -144,10 +160,10 @@ export default async function Home({
               <p className="text-sm font-bold text-emerald-700">Browse by brand</p>
               <h2 className="mt-1 text-3xl font-black text-slate-950">{activeTypeLabel} brands</h2>
             </div>
-            <Link className="hidden text-sm font-bold text-emerald-700 md:block" href="/compare">Compare vehicles</Link>
+            <Link className="hidden text-sm font-bold text-emerald-700 md:block" href={`/discover?type=${selectedType}&city=${defaultCitySlug}`}>View all</Link>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-            {(selectedBrands.length ? selectedBrands : data.brands).map((brand) => (
+            {(selectedBrands.length ? selectedBrands : data.brands).slice(0, 6).map((brand) => (
               <a
                 className="group rounded-lg border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:-translate-y-1 hover:border-emerald-300 hover:shadow-md"
                 href={`/brands/${brand.slug}`}
@@ -169,10 +185,10 @@ export default async function Home({
               <p className="text-sm font-bold text-emerald-700">Popular models</p>
               <h2 className="mt-1 text-3xl font-black text-slate-950">Featured {activeTypeLabel.toLowerCase()} price checks</h2>
             </div>
-            <a className="hidden text-sm font-bold text-emerald-700 md:block" href="/on-road-price">Open pricing engine</a>
+            <a className="hidden text-sm font-bold text-emerald-700 md:block" href={`/discover?type=${selectedType}&city=${defaultCitySlug}`}>View all</a>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {(selectedModels.length ? selectedModels : data.models).map((model) => {
+            {(selectedModels.length ? selectedModels : data.models).slice(0, 6).map((model) => {
               const firstVariant = model.variants[0];
               return (
                 <a className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg" href={modelPriceHref(model)} key={model.id}>
@@ -236,7 +252,7 @@ export default async function Home({
 
         <section className="bg-white py-12">
           <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-3">
-            {["Tax transparency", "Verified dealer routing", "SEO-first city pages"].map((title, index) => (
+            {["Tax transparency", "Verified dealer routing", "City-wise price pages"].map((title, index) => (
               <div className="rounded-lg border border-emerald-100 p-5" key={title}>
                 <div className="grid h-10 w-10 place-items-center rounded-lg bg-lime-300 font-black text-slate-950">{index + 1}</div>
                 <h3 className="mt-4 text-xl font-black text-slate-950">{title}</h3>
@@ -244,8 +260,8 @@ export default async function Home({
                   {index === 0
                     ? "Every public price includes a readable breakdown for road tax, RTO, insurance and fees."
                     : index === 1
-                      ? "Leads stay visible to admin and route to matched active dealers by brand and city."
-                      : "Admin-built pages reuse live vehicle and pricing data for model, city, EV and price searches."}
+                      ? "Enquiries are matched with active dealers by brand and city so buyers hear back faster."
+                      : "Explore city-specific price pages for popular models, EVs, budgets and buying comparisons."}
                 </p>
               </div>
             ))}

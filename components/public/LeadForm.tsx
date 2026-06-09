@@ -42,7 +42,7 @@ export function LeadForm({ pricing, source = "pricing_page" }: LeadFormProps) {
         {pricing.dealer ? (
           <p className="mt-1 text-sm text-slate-600">Matched with {pricing.dealer.name} in {pricing.city.name}.</p>
         ) : (
-          <p className="mt-1 text-sm text-slate-600">No dealer mapped yet. Admin will handle this lead.</p>
+          <p className="mt-1 text-sm text-slate-600">No dealer is live for this city yet. We will still connect you with the right team.</p>
         )}
       </div>
       <div className="mt-4 grid gap-3">

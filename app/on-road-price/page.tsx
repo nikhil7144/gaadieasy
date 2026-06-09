@@ -261,7 +261,7 @@ export default async function OnRoadPricePage({
                         </div>
                       </div>
                       <div className="mt-2 text-[11px] font-bold uppercase tracking-wide text-emerald-700">
-                        Admin-created dealer offer
+                        Available in this city
                       </div>
                     </div>
                   ))}

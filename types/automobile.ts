@@ -80,9 +80,17 @@ export type HeroPromotion = {
   id: string;
   placement?: "homepage_hero" | "mini_home_banner";
   eyebrow?: string;
+  headline?: string;
+  supportingCopy?: string;
   title: string;
   subtitle?: string;
   ctaLabel?: string;
+  stat1Label?: string;
+  stat1Value?: string;
+  stat2Label?: string;
+  stat2Value?: string;
+  stat3Label?: string;
+  stat3Value?: string;
   imageUrl: string;
   categoryKey: "cars" | "bikes" | "scooters" | "ev" | "commercial" | "ev-commercial" | "passenger-ev";
   brandId?: string;

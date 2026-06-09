@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLockup } from "@/components/shared/BrandLockup";
 
 const vehicleTypes = [
   ["Cars", "/?type=cars#vehicle-home"],
@@ -14,13 +15,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-emerald-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-lime-400 font-black text-slate-950">A</span>
-          <span>
-            <span className="block text-base font-bold text-slate-950">AutoPrice</span>
-            <span className="block text-xs text-slate-500">On-road pricing platform</span>
-          </span>
-        </Link>
+        <BrandLockup href="/" showTagline />
         <nav className="order-3 flex w-full gap-2 overflow-x-auto md:order-none md:w-auto">
           {vehicleTypes.map(([label, href]) => (
             <Link
@@ -36,8 +31,6 @@ export function SiteHeader() {
           <Link href="/on-road-price">On-road price</Link>
           <Link href="/seo/hyundai-creta-on-road-price-in-bangalore">City pages</Link>
           <Link href="/compare">Compare</Link>
-          <Link href="/admin">Admin</Link>
-          <Link href="/dealer">Dealer</Link>
         </nav>
         <Link
           href="/on-road-price"

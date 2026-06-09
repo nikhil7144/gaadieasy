@@ -20,9 +20,17 @@ export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotio
   const [placement, setPlacement] = useState<"homepage_hero" | "mini_home_banner">("mini_home_banner");
   const [categoryKey, setCategoryKey] = useState<HeroPromotion["categoryKey"]>("cars");
   const [eyebrow, setEyebrow] = useState("");
+  const [headline, setHeadline] = useState("");
+  const [supportingCopy, setSupportingCopy] = useState("");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [ctaLabel, setCtaLabel] = useState("");
+  const [stat1Label, setStat1Label] = useState("");
+  const [stat1Value, setStat1Value] = useState("");
+  const [stat2Label, setStat2Label] = useState("");
+  const [stat2Value, setStat2Value] = useState("");
+  const [stat3Label, setStat3Label] = useState("");
+  const [stat3Value, setStat3Value] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [targetUrl, setTargetUrl] = useState("");
   const [error, setError] = useState("");
@@ -39,17 +47,33 @@ export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotio
         placement,
         categoryKey,
         eyebrow,
+        headline,
+        supportingCopy,
         title,
         subtitle,
         ctaLabel,
+        stat1Label,
+        stat1Value,
+        stat2Label,
+        stat2Value,
+        stat3Label,
+        stat3Value,
         imageUrl,
         targetUrl,
         active: true,
       });
       setEyebrow("");
+      setHeadline("");
+      setSupportingCopy("");
       setTitle("");
       setSubtitle("");
       setCtaLabel("");
+      setStat1Label("");
+      setStat1Value("");
+      setStat2Label("");
+      setStat2Value("");
+      setStat3Label("");
+      setStat3Value("");
       setImageUrl("");
       setTargetUrl("");
       router.refresh();
@@ -94,9 +118,19 @@ export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotio
               ))}
             </select>
             <input className={adminFieldClass} value={eyebrow} onChange={(event) => setEyebrow(event.target.value)} placeholder="Eyebrow / label" />
+            <input className={adminFieldClass} value={headline} onChange={(event) => setHeadline(event.target.value)} placeholder="Homepage hero bold headline" />
+            <textarea className={`${adminFieldClass} min-h-20 py-3`} value={supportingCopy} onChange={(event) => setSupportingCopy(event.target.value)} placeholder="Homepage hero supporting line" />
             <input className={adminFieldClass} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Banner title" required />
             <textarea className={`${adminFieldClass} min-h-24 py-3`} value={subtitle} onChange={(event) => setSubtitle(event.target.value)} placeholder="Supporting copy" />
             <input className={adminFieldClass} value={ctaLabel} onChange={(event) => setCtaLabel(event.target.value)} placeholder="CTA label, e.g. Explore now" />
+            <div className="grid gap-3 md:grid-cols-2">
+              <input className={adminFieldClass} value={stat1Label} onChange={(event) => setStat1Label(event.target.value)} placeholder="Stat 1 label, e.g. Price" />
+              <input className={adminFieldClass} value={stat1Value} onChange={(event) => setStat1Value(event.target.value)} placeholder="Stat 1 value, e.g. INR 2.59 L" />
+              <input className={adminFieldClass} value={stat2Label} onChange={(event) => setStat2Label(event.target.value)} placeholder="Stat 2 label, e.g. CC" />
+              <input className={adminFieldClass} value={stat2Value} onChange={(event) => setStat2Value(event.target.value)} placeholder="Stat 2 value, e.g. 398 cc" />
+              <input className={adminFieldClass} value={stat3Label} onChange={(event) => setStat3Label(event.target.value)} placeholder="Stat 3 label, e.g. Power" />
+              <input className={adminFieldClass} value={stat3Value} onChange={(event) => setStat3Value(event.target.value)} placeholder="Stat 3 value, e.g. 40 PS" />
+            </div>
             <input className={adminFieldClass} value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="Banner image URL" required />
             <input className={adminFieldClass} value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} placeholder="Target URL, e.g. /on-road-price?brand=..." required />
             {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</p> : null}
@@ -124,8 +158,23 @@ export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotio
                     </span>
                   </div>
                   {banner.eyebrow ? <div className="mt-3 text-xs font-bold uppercase tracking-wide text-emerald-700">{banner.eyebrow}</div> : null}
+                  {banner.headline ? <div className="mt-1 text-sm font-bold text-slate-700">{banner.headline}</div> : null}
                   <div className="mt-1 text-lg font-black text-slate-950">{banner.title}</div>
                   {banner.subtitle ? <p className="mt-2 text-sm leading-6 text-slate-600">{banner.subtitle}</p> : null}
+                  {(banner.stat1Label || banner.stat2Label || banner.stat3Label) ? (
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                      {[
+                        [banner.stat1Value, banner.stat1Label],
+                        [banner.stat2Value, banner.stat2Label],
+                        [banner.stat3Value, banner.stat3Label],
+                      ].map(([value, label], index) => (
+                        <div className="rounded-md bg-slate-50 p-2" key={`${banner.id}-stat-${index}`}>
+                          <div className="text-sm font-black text-slate-950">{value || "-"}</div>
+                          <div className="text-[11px] font-bold text-slate-500">{label || "-"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="mt-3 text-xs font-bold text-slate-500">{banner.targetUrl}</div>
                   <button
                     className="mt-4 rounded-full border border-slate-200 px-4 py-2 text-xs font-black text-slate-800 hover:border-emerald-300 hover:bg-emerald-50"

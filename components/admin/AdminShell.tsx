@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
+import { BrandLockup } from "@/components/shared/BrandLockup";
 
 const nav = [
   ["Dashboard", "/admin"],
@@ -20,7 +20,10 @@ export function AdminShell({ children, userEmail }: { children: React.ReactNode;
   return (
     <div className="min-h-screen bg-slate-100">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white p-4 md:block">
-        <Link href="/" className="text-xl font-black text-slate-950">AutoPrice Admin</Link>
+        <div>
+          <BrandLockup href="/" size="sidebar" />
+          <div className="mt-2 text-sm font-black text-slate-950">Admin workspace</div>
+        </div>
         <nav className="mt-8 space-y-1">
           {nav.map(([label, href]) => (
             <a className="block rounded-md px-3 py-2 text-sm font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-800" href={href} key={href}>

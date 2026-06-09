@@ -568,12 +568,11 @@ function SearchableQuickFilters({
   );
 }
 
-function BrowseByTabs({ citySlug, title, tabs }: { citySlug: string; title: string; tabs: BrowseTab[] }) {
+function BrowseByTabs({ citySlug, title, typeKey, tabs }: { citySlug: string; title: string; typeKey: string; tabs: BrowseTab[] }) {
   const [activeTabLabel, setActiveTabLabel] = useState(tabs[0]?.label ?? "");
-  const [expanded, setExpanded] = useState(false);
   const activeTab = tabs.find((tab) => tab.label === activeTabLabel) ?? tabs[0];
-  const visibleItems = expanded ? activeTab.items : activeTab.items.slice(0, 8);
-  const hiddenCount = Math.max(activeTab.items.length - visibleItems.length, 0);
+  const visibleItems = activeTab.items.slice(0, 6);
+  const viewAllHref = `/discover?type=${typeKey}&city=${citySlug}`;
 
   return (
     <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -601,7 +600,6 @@ function BrowseByTabs({ citySlug, title, tabs }: { citySlug: string; title: stri
             }`}
             onClick={() => {
               setActiveTabLabel(tab.label);
-              setExpanded(false);
             }}
             type="button"
             key={tab.label}
@@ -634,22 +632,12 @@ function BrowseByTabs({ citySlug, title, tabs }: { citySlug: string; title: stri
             </a>
           ))}
         </div>
-        {hiddenCount || expanded ? (
-          <button
-            className="block w-full bg-slate-50 px-5 py-4 text-center text-sm font-black text-emerald-700 hover:bg-emerald-50"
-            onClick={() => setExpanded((value) => !value)}
-            type="button"
-          >
-            {expanded ? "Show Less" : `View More ${activeTab.label}${hiddenCount ? ` (${hiddenCount})` : ""}`}
-          </button>
-        ) : (
-          <a
-            className="block bg-slate-50 px-5 py-4 text-center text-sm font-black text-emerald-700"
-            href={activeTab.items[0] ? browseHref(activeTab.items[0].href, citySlug) : `/discover?type=cars&city=${citySlug}`}
-          >
-            View More {activeTab.label}
-          </a>
-        )}
+        <a
+          className="block bg-slate-50 px-5 py-4 text-center text-sm font-black text-emerald-700 hover:bg-emerald-50"
+          href={viewAllHref}
+        >
+          View all
+        </a>
         </div>
       </div>
     </div>
@@ -795,6 +783,7 @@ export function HomeVehicleDiscovery({
   const browseTabs = useMemo(() => {
     const brandItems = brands
       .filter((brand) => brand.active)
+      .slice(0, 6)
       .map((brand) => ({
         label: brand.name,
         subtitle: "Models and prices",
@@ -804,8 +793,6 @@ export function HomeVehicleDiscovery({
 
     return activeTab.browseTabs.map((tab) => (tab.label === "Brand" && brandItems.length ? { ...tab, items: brandItems } : tab));
   }, [activeTab, brands]);
-  const allTypeModels = typeModels;
-  const hiddenModelCount = Math.max(allTypeModels.length - visibleModels.length, 0);
   const activeBanner = heroPromotions.find(
     (promotion) =>
       promotion.active &&
@@ -861,7 +848,7 @@ export function HomeVehicleDiscovery({
 
       <CommercialTruckFinder activeType={activeTab.key} citySlug={citySlug} models={typeModels} />
 
-      <BrowseByTabs citySlug={citySlug} title={activeTab.label} tabs={browseTabs} />
+      <BrowseByTabs citySlug={citySlug} title={activeTab.label} typeKey={activeTab.key} tabs={browseTabs} />
 
       {evModels.length ? (
         <div className="mt-6 overflow-hidden rounded-lg border border-lime-200 bg-white shadow-sm">
@@ -883,8 +870,8 @@ export function HomeVehicleDiscovery({
               <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Low running cost</p>
               <h4 className="text-xl font-black text-slate-950">EV picks for this category</h4>
             </div>
-            <a className="rounded-full bg-slate-950 px-4 py-2 text-xs font-black text-white" href={`/?type=${activeTab.key}#ev-${activeTab.key}`}>
-              View EV
+            <a className="rounded-full bg-slate-950 px-4 py-2 text-xs font-black text-white" href={`/discover?type=${activeTab.key}&city=${citySlug}&filters=electric`}>
+              View all
             </a>
           </div>
           <div id={`ev-${activeTab.key}`} className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -919,11 +906,9 @@ export function HomeVehicleDiscovery({
           <p className="text-sm font-bold text-emerald-700">Models</p>
           <h3 className="text-2xl font-black text-slate-950">{activeTab.label} models</h3>
         </div>
-        {hiddenModelCount ? (
-          <a className="text-sm font-black text-emerald-700" href={`/discover?type=${activeTab.key}&city=${citySlug}`}>
-            View all {allTypeModels.length}
-          </a>
-        ) : null}
+        <a className="text-sm font-black text-emerald-700" href={`/discover?type=${activeTab.key}&city=${citySlug}`}>
+          View all
+        </a>
       </div>
       <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {visibleModels.map((model) => {

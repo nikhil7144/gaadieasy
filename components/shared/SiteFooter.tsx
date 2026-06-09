@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLockup } from "@/components/shared/BrandLockup";
 import { brands as seedBrands, cities } from "@/lib/data";
 import { getFooterComparisons } from "@/lib/services/comparisons";
 import { getSeoPagesForNavigation } from "@/lib/services/seo";
@@ -19,7 +20,7 @@ export function SiteFooter({
     <footer className="bg-slate-950 text-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.3fr_1fr_1fr_1fr_1fr]">
         <div>
-          <div className="text-xl font-black">AutoPrice</div>
+          <BrandLockup href="/" size="footer" />
           <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">
             Check real on-road vehicle prices in your city and connect with verified dealers instantly.
           </p>

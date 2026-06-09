@@ -61,7 +61,7 @@ export function VehicleColorGallery({ colors, colorHexMap, media, photoPageHref 
     <section id="colors" className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Admin-added color photos</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Color gallery</p>
           <h2 className="mt-1 text-xl font-black text-slate-950">Colors and images</h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">

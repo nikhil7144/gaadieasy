@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { DealerOffersManager } from "@/components/dealer/DealerOffersManager";
 import { DealerUserManager } from "@/components/dealer/DealerUserManager";
+import { BrandLockup } from "@/components/shared/BrandLockup";
 import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
 import { getDealerAccessContext } from "@/lib/services/dealer-auth";
 import { getDealerOffersForContext } from "@/lib/services/dealer-offers";
@@ -30,9 +31,7 @@ export async function DealerDashboard() {
       <header className="border-b border-slate-200 bg-white px-4 py-4">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
           <div>
-            <Link className="text-sm font-bold text-emerald-700" href="/">
-              AutoPrice
-            </Link>
+            <BrandLockup href="/" size="sidebar" />
             <h1 className="mt-1 text-2xl font-black text-slate-950">{context.business.name}</h1>
             <p className="text-sm text-slate-600">
               {roleLabel}

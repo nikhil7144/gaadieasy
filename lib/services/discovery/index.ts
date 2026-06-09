@@ -11,7 +11,7 @@ export type DiscoveryType =
 
 export type DiscoveryFilter = { label: string; slug: string };
 export type TruckFinderGroup = {
-  key: "loaderSize" | "truckType" | "application" | "tonnage" | "fuel" | "bodyType";
+  key: "loaderSize" | "truckType" | "application" | "tonnage" | "fuel" | "bodyType" | "more";
   label: string;
   filters: DiscoveryFilter[];
 };
@@ -39,6 +39,11 @@ export type DiscoveryDataSet = {
   variants: VehicleVariant[];
   cities?: City[];
 };
+
+function numberFromText(value?: string) {
+  const match = value?.replaceAll(",", "").match(/\d+(\.\d+)?/);
+  return match ? Number(match[0]) : undefined;
+}
 
 const commercialTruckFinderGroups: TruckFinderGroup[] = [
   {
@@ -129,12 +134,17 @@ export const discoveryTabs: DiscoveryTab[] = [
     includedCategorySlugs: ["cars"],
     evCategorySlugs: ["ev-vehicles"],
     filters: [
+      { label: "Under 8 lakh", slug: "under-8-lakh" },
+      { label: "8-15 lakh", slug: "8-15-lakh" },
+      { label: "15-25 lakh", slug: "15-25-lakh" },
+      { label: "Above 25 lakh", slug: "above-25-lakh" },
       { label: "SUV", slug: "suv" },
       { label: "Hatchback", slug: "hatchback" },
       { label: "Sedan", slug: "sedan" },
       { label: "Automatic", slug: "automatic" },
       { label: "Manual", slug: "manual" },
       { label: "5 seater", slug: "5-seater" },
+      { label: "6 seater", slug: "6-seater" },
       { label: "7 seater", slug: "7-seater" },
       { label: "Diesel", slug: "diesel" },
       { label: "Petrol", slug: "petrol" },
@@ -150,15 +160,23 @@ export const discoveryTabs: DiscoveryTab[] = [
     includedCategorySlugs: ["bikes"],
     evCategorySlugs: ["ev-vehicles"],
     filters: [
+      { label: "Under 1 lakh", slug: "under-1-lakh" },
+      { label: "1-2 lakh", slug: "1-2-lakh" },
+      { label: "2-5 lakh", slug: "2-5-lakh" },
+      { label: "Above 5 lakh", slug: "above-5-lakh" },
       { label: "Cruiser", slug: "cruiser" },
       { label: "Commuter", slug: "commuter" },
       { label: "Sports", slug: "sports" },
       { label: "Naked sports", slug: "naked-sports" },
       { label: "Under 125cc", slug: "under-125cc" },
       { label: "Under 250cc", slug: "under-250cc" },
+      { label: "250-500cc", slug: "250-500cc" },
       { label: "Above 500cc", slug: "above-500cc" },
       { label: "Above 650cc", slug: "above-650cc" },
       { label: "Above 900cc", slug: "above-900cc" },
+      { label: "Under 20 PS", slug: "under-20-ps" },
+      { label: "20-40 PS", slug: "20-40-ps" },
+      { label: "Above 40 PS", slug: "above-40-ps" },
       { label: "Super bikes", slug: "super-bikes" },
       { label: "Electric", slug: "electric" },
       { label: "Dealer offers", slug: "dealer-offers" },
@@ -315,6 +333,26 @@ function commercialText(model: DiscoveryModel) {
     .toLowerCase();
 }
 
+function variantPowerNumber(model: DiscoveryModel) {
+  const variant = model.variants[0];
+  const engine = variant?.specifications?.engine as Record<string, unknown> | undefined;
+  const bike = variant?.specifications?.bike as Record<string, unknown> | undefined;
+  const commercial = variant?.specifications?.commercial as Record<string, unknown> | undefined;
+
+  const candidates = [
+    typeof engine?.maxPower === "string" ? engine.maxPower : undefined,
+    typeof bike?.power === "string" ? bike.power : undefined,
+    typeof commercial?.power === "string" ? commercial.power : undefined,
+  ];
+
+  for (const value of candidates) {
+    const parsed = numberFromText(value);
+    if (typeof parsed === "number") return parsed;
+  }
+
+  return undefined;
+}
+
 function inferredLoaderSize(model: DiscoveryModel) {
   if (model.loaderSize) return model.loaderSize.toLowerCase();
 
@@ -450,6 +488,8 @@ export function matchesDiscoveryFilter(model: DiscoveryModel, filter: DiscoveryF
   const label = filter.label.toLowerCase();
   const slug = filter.slug.toLowerCase();
   const engineCc = engineNumber(variant?.engineCapacity);
+  const power = variantPowerNumber(model);
+  const price = variant?.exShowroomPrice ?? 0;
 
   if (slug === "dealer-offers") return true;
   if (slug === "small-loader") return inferredLoaderSize(model) === "small";
@@ -459,13 +499,26 @@ export function matchesDiscoveryFilter(model: DiscoveryModel, filter: DiscoveryF
   if (slug === "automatic" || slug === "manual") return variant?.transmission.toLowerCase() === slug;
   if (["electric", "diesel", "petrol", "cng", "lng"].includes(slug)) return variant?.fuelType.toLowerCase() === slug || text.includes(slug);
   if (slug === "5-seater") return variant?.seatingCapacity === 5;
+  if (slug === "6-seater") return variant?.seatingCapacity === 6;
   if (slug === "7-seater") return variant?.seatingCapacity === 7;
+  if (slug === "under-8-lakh") return price > 0 && price < 800000;
+  if (slug === "8-15-lakh") return price >= 800000 && price <= 1500000;
+  if (slug === "15-25-lakh") return price > 1500000 && price <= 2500000;
+  if (slug === "above-25-lakh") return price > 2500000;
+  if (slug === "under-1-lakh") return price > 0 && price < 100000;
+  if (slug === "1-2-lakh") return price >= 100000 && price <= 200000;
+  if (slug === "2-5-lakh") return price > 200000 && price <= 500000;
+  if (slug === "above-5-lakh") return price > 500000;
   if (slug === "under-125cc") return typeof engineCc === "number" && engineCc < 125;
   if (slug === "under-250cc") return typeof engineCc === "number" && engineCc < 250;
   if (slug === "200cc-plus") return typeof engineCc === "number" && engineCc >= 200;
+  if (slug === "250-500cc") return typeof engineCc === "number" && engineCc >= 250 && engineCc < 500;
   if (slug === "above-500cc") return typeof engineCc === "number" && engineCc >= 500;
   if (slug === "above-650cc") return typeof engineCc === "number" && engineCc >= 650;
   if (slug === "above-900cc") return typeof engineCc === "number" && engineCc >= 900;
+  if (slug === "under-20-ps") return typeof power === "number" && power < 20;
+  if (slug === "20-40-ps") return typeof power === "number" && power >= 20 && power <= 40;
+  if (slug === "above-40-ps") return typeof power === "number" && power > 40;
 
   return text.includes(label) || text.includes(slugText(slug));
 }
@@ -486,11 +539,8 @@ export function filterDiscoveryModels(models: DiscoveryModel[], tab: DiscoveryTa
 
   if (!selectedFilters.length) return sortDiscoveryModels(typeModels, tab);
 
-  const exactMatches = typeModels.filter((model) => selectedFilters.every((filter) => matchesDiscoveryFilter(model, filter)));
-  if (exactMatches.length) return sortDiscoveryModels(exactMatches, tab);
-
   return sortDiscoveryModels(
-    typeModels.filter((model) => selectedFilters.some((filter) => matchesDiscoveryFilter(model, filter))),
+    typeModels.filter((model) => selectedFilters.every((filter) => matchesDiscoveryFilter(model, filter))),
     tab,
   );
 }

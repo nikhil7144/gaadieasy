@@ -59,9 +59,17 @@ function mapHeroPromotion(row: DbRow): HeroPromotion {
     id: String(row.id),
     placement: typeof row.placement === "string" ? (row.placement as HeroPromotion["placement"]) : "homepage_hero",
     eyebrow: typeof row.eyebrow === "string" ? row.eyebrow : undefined,
+    headline: typeof row.headline === "string" ? row.headline : undefined,
+    supportingCopy: typeof row.supporting_copy === "string" ? row.supporting_copy : undefined,
     title: String(row.title),
     subtitle: typeof row.subtitle === "string" ? row.subtitle : undefined,
     ctaLabel: typeof row.cta_label === "string" ? row.cta_label : undefined,
+    stat1Label: typeof row.stat_1_label === "string" ? row.stat_1_label : undefined,
+    stat1Value: typeof row.stat_1_value === "string" ? row.stat_1_value : undefined,
+    stat2Label: typeof row.stat_2_label === "string" ? row.stat_2_label : undefined,
+    stat2Value: typeof row.stat_2_value === "string" ? row.stat_2_value : undefined,
+    stat3Label: typeof row.stat_3_label === "string" ? row.stat_3_label : undefined,
+    stat3Value: typeof row.stat_3_value === "string" ? row.stat_3_value : undefined,
     imageUrl: String(row.image_url),
     categoryKey: String(row.category_key) as HeroPromotion["categoryKey"],
     brandId: typeof row.brand_id === "string" ? row.brand_id : undefined,
@@ -910,9 +918,17 @@ export async function createHomepageBanner(input: {
   placement: "homepage_hero" | "mini_home_banner";
   categoryKey: HeroPromotion["categoryKey"];
   eyebrow?: string;
+  headline?: string;
+  supportingCopy?: string;
   title: string;
   subtitle?: string;
   ctaLabel?: string;
+  stat1Label?: string;
+  stat1Value?: string;
+  stat2Label?: string;
+  stat2Value?: string;
+  stat3Label?: string;
+  stat3Value?: string;
   imageUrl: string;
   targetUrl: string;
   active: boolean;
@@ -924,9 +940,17 @@ export async function createHomepageBanner(input: {
       placement: input.placement,
       category_key: input.categoryKey,
       eyebrow: optionalText(input.eyebrow),
+      headline: optionalText(input.headline),
+      supporting_copy: optionalText(input.supportingCopy),
       title: input.title,
       subtitle: optionalText(input.subtitle),
       cta_label: optionalText(input.ctaLabel),
+      stat_1_label: optionalText(input.stat1Label),
+      stat_1_value: optionalText(input.stat1Value),
+      stat_2_label: optionalText(input.stat2Label),
+      stat_2_value: optionalText(input.stat2Value),
+      stat_3_label: optionalText(input.stat3Label),
+      stat_3_value: optionalText(input.stat3Value),
       image_url: input.imageUrl,
       target_url: input.targetUrl,
       active: input.active,
@@ -946,9 +970,17 @@ export async function updateHomepageBanner(input: {
   placement?: "homepage_hero" | "mini_home_banner";
   categoryKey?: HeroPromotion["categoryKey"];
   eyebrow?: string;
+  headline?: string;
+  supportingCopy?: string;
   title?: string;
   subtitle?: string;
   ctaLabel?: string;
+  stat1Label?: string;
+  stat1Value?: string;
+  stat2Label?: string;
+  stat2Value?: string;
+  stat3Label?: string;
+  stat3Value?: string;
   imageUrl?: string;
   targetUrl?: string;
   active?: boolean;
@@ -959,9 +991,17 @@ export async function updateHomepageBanner(input: {
   if (input.placement !== undefined) patch.placement = input.placement;
   if (input.categoryKey !== undefined) patch.category_key = input.categoryKey;
   if (input.eyebrow !== undefined) patch.eyebrow = optionalText(input.eyebrow);
+  if (input.headline !== undefined) patch.headline = optionalText(input.headline);
+  if (input.supportingCopy !== undefined) patch.supporting_copy = optionalText(input.supportingCopy);
   if (input.title !== undefined) patch.title = input.title;
   if (input.subtitle !== undefined) patch.subtitle = optionalText(input.subtitle);
   if (input.ctaLabel !== undefined) patch.cta_label = optionalText(input.ctaLabel);
+  if (input.stat1Label !== undefined) patch.stat_1_label = optionalText(input.stat1Label);
+  if (input.stat1Value !== undefined) patch.stat_1_value = optionalText(input.stat1Value);
+  if (input.stat2Label !== undefined) patch.stat_2_label = optionalText(input.stat2Label);
+  if (input.stat2Value !== undefined) patch.stat_2_value = optionalText(input.stat2Value);
+  if (input.stat3Label !== undefined) patch.stat_3_label = optionalText(input.stat3Label);
+  if (input.stat3Value !== undefined) patch.stat_3_value = optionalText(input.stat3Value);
   if (input.imageUrl !== undefined) patch.image_url = input.imageUrl;
   if (input.targetUrl !== undefined) patch.target_url = input.targetUrl;
   if (input.active !== undefined) patch.active = input.active;
