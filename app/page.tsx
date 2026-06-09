@@ -1,65 +1,269 @@
-import Image from "next/image";
+import Link from "next/link";
+import { BrandLogo } from "@/components/public/BrandLogo";
+import { SiteFooter } from "@/components/shared/SiteFooter";
+import { SiteHeader } from "@/components/shared/SiteHeader";
+import { HomeVehicleDiscovery, HomepageQuickFilterSections } from "@/components/public/HomeVehicleDiscovery";
+import { PricingExplorer } from "@/components/public/PricingExplorer";
+import { VehicleImage } from "@/components/public/VehicleImage";
+import { getHomepageComparisons } from "@/lib/services/comparisons";
+import { getDiscoveryDatasetForType, getDiscoveryTab } from "@/lib/services/discovery";
+import { getPublicHomepageDataForApi } from "@/lib/services/public-data";
+import { getSeoPagesForNavigation } from "@/lib/services/seo";
+import { formatShortPrice } from "@/lib/utils/format";
+import type { Brand, VehicleModel, VehicleVariant } from "@/types/automobile";
 
-export default function Home() {
+type HomeModel = VehicleModel & {
+  brand?: Brand;
+  variants?: VehicleVariant[];
+};
+
+function modelPriceHref(model?: HomeModel, citySlug = "bangalore") {
+  if (!model) return "/on-road-price";
+
+  const params = new URLSearchParams({ model: model.slug, city: citySlug });
+  const variant = model.variants?.find((item) => item.isDefault) ?? model.variants?.[0];
+
+  if (model.brand?.slug) params.set("brand", model.brand.slug);
+  if (variant?.slug) params.set("variant", variant.slug);
+
+  return `/on-road-price?${params.toString()}`;
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
+  const params = await searchParams;
+  const selectedType = getDiscoveryTab(params.type).key;
+  const data = await getPublicHomepageDataForApi();
+  const selectedData = getDiscoveryDatasetForType(data, selectedType);
+  const seoPages = getSeoPagesForNavigation();
+  const homepageComparisons = getHomepageComparisons();
+  const selectedCategoryIds = data.categories
+    .filter((category) => selectedData.tab.includedCategorySlugs.includes(category.slug))
+    .map((category) => category.id);
+  const selectedModels = selectedData.models;
+  const selectedBrands = selectedData.brands;
+  const selectedBrandSlugs = new Set(selectedBrands.map((brand) => brand.slug));
+  const comparisons = homepageComparisons.filter((comparison) =>
+    comparison.vehicles.every((vehicle) => selectedBrandSlugs.has(vehicle.brand.slug)),
+  );
+  const activeTypeLabel = selectedData.tab.label;
+  const heroModel = selectedModels[0] ?? data.models[0];
+  const heroPromotion = data.heroPromotions.find(
+    (promotion) =>
+      promotion.active &&
+      promotion.categoryKey === selectedType &&
+      (promotion.placement ?? "homepage_hero") === "homepage_hero",
+  );
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
+    <div className="min-h-screen bg-slate-50">
+      <SiteHeader />
+      <main>
+        <section className="relative overflow-hidden bg-slate-950">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#84cc16_0,transparent_34%),linear-gradient(135deg,#022c22,#0f172a_60%)] opacity-90" />
+          <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1.1fr_.9fr] lg:py-20">
+            <div>
+              <p className="inline-flex rounded-full bg-lime-300 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-950">
+                {activeTypeLabel} on-road pricing
+              </p>
+              <h1 className="mt-5 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-6xl">
+                Know the real {activeTypeLabel.toLowerCase()} price before visiting the showroom.
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-emerald-50">
+                Compare variants, taxes, RTO charges, insurance estimates and dealer offers for {activeTypeLabel.toLowerCase()} in one clean buyer journey.
+              </p>
+              <div className="mt-8">
+                <PricingExplorer
+                  brands={selectedBrands.length ? selectedBrands : data.brands}
+                  cities={data.cities}
+                  models={selectedModels.length ? selectedModels : data.models}
+                  variants={data.variants}
+                  categoryIds={selectedCategoryIds}
+                />
+              </div>
+            </div>
             <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              className="group rounded-lg border border-white/10 bg-white/10 p-4 text-white shadow-2xl backdrop-blur transition hover:-translate-y-1 hover:border-lime-300"
+              href={heroPromotion?.targetUrl ?? modelPriceHref(heroModel)}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-slate-800">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  src={heroPromotion?.imageUrl ?? heroModel?.imageUrl}
+                  alt={heroPromotion?.title ?? `${activeTypeLabel} discovery`}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <p className="inline-flex rounded-full bg-lime-300 px-3 py-1 text-xs font-black text-slate-950">
+                    Admin promoted
+                  </p>
+                  <h2 className="mt-3 text-2xl font-black text-white">
+                    {heroPromotion?.title ?? `${activeTypeLabel} featured model`}
+                  </h2>
+                  {heroPromotion?.subtitle ? (
+                    <p className="mt-1 text-sm leading-6 text-emerald-50">{heroPromotion.subtitle}</p>
+                  ) : null}
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-lg bg-white/10 p-3">
+                  <div className="text-2xl font-black text-lime-300">{data.brands.length}+</div>
+                  <div className="text-xs text-emerald-50">Brands</div>
+                </div>
+                <div className="rounded-lg bg-white/10 p-3">
+                  <div className="text-2xl font-black text-lime-300">{data.cities.length}</div>
+                  <div className="text-xs text-emerald-50">Cities</div>
+                </div>
+                <div className="rounded-lg bg-white/10 p-3">
+                  <div className="text-2xl font-black text-lime-300">API</div>
+                  <div className="text-xs text-emerald-50">First</div>
+                </div>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <div id="vehicle-home">
+          <HomeVehicleDiscovery
+            categories={data.categories}
+            brands={selectedBrands.length ? selectedBrands : data.brands}
+            models={selectedModels.length ? selectedModels : data.models}
+            cities={data.cities}
+            heroPromotions={data.heroPromotions}
+            selectedType={selectedType}
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-emerald-700">Browse by brand</p>
+              <h2 className="mt-1 text-3xl font-black text-slate-950">{activeTypeLabel} brands</h2>
+            </div>
+            <Link className="hidden text-sm font-bold text-emerald-700 md:block" href="/compare">Compare vehicles</Link>
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+            {(selectedBrands.length ? selectedBrands : data.brands).map((brand) => (
+              <a
+                className="group rounded-lg border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:-translate-y-1 hover:border-emerald-300 hover:shadow-md"
+                href={`/brands/${brand.slug}`}
+                key={brand.id}
+              >
+                <div className="mx-auto grid h-16 place-items-center">
+                  <BrandLogo className="h-14 w-28" name={brand.name} logoUrl={brand.logoUrl} />
+                </div>
+                <div className="mt-3 text-sm font-black text-slate-950">{brand.name}</div>
+                <div className="mt-1 text-xs font-semibold text-slate-500">View prices</div>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-emerald-700">Popular models</p>
+              <h2 className="mt-1 text-3xl font-black text-slate-950">Featured {activeTypeLabel.toLowerCase()} price checks</h2>
+            </div>
+            <a className="hidden text-sm font-bold text-emerald-700 md:block" href="/on-road-price">Open pricing engine</a>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {(selectedModels.length ? selectedModels : data.models).map((model) => {
+              const firstVariant = model.variants[0];
+              return (
+                <a className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg" href={modelPriceHref(model)} key={model.id}>
+                  <div className="aspect-[4/3] bg-slate-100">
+                    <VehicleImage className="h-full w-full object-cover" src={model.imageUrl} alt={model.name} />
+                  </div>
+                  <div className="p-4">
+                    <div className="text-xs font-bold text-emerald-700">{model.brand?.name} {model.launchLabel ? `- ${model.launchLabel}` : ""}</div>
+                    <h3 className="mt-1 text-lg font-black text-slate-950">{model.name}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{model.bodyType} starting from {formatShortPrice(firstVariant?.exShowroomPrice ?? 0)} ex-showroom.</p>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+
+        <HomepageQuickFilterSections models={selectedModels} selectedType={selectedType} />
+
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-emerald-700">Popular comparisons</p>
+              <h2 className="mt-1 text-3xl font-black text-slate-950">Compare vehicles before you enquire</h2>
+            </div>
+            <Link className="text-sm font-black text-emerald-700" href="/compare">Open comparison tool</Link>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {comparisons.map((comparison) => {
+              const [firstVehicle, secondVehicle] = comparison.vehicles;
+              if (!firstVehicle || !secondVehicle) return null;
+
+              return (
+              <Link className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg" href={`/compare/${comparison.page.slug}`} key={comparison.page.id}>
+                <div className="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                    <div className="overflow-hidden rounded-lg bg-slate-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img className="aspect-[4/3] w-full object-cover" src={firstVehicle.model.imageUrl} alt={firstVehicle.model.name} />
+                      <div className="p-3">
+                        <div className="text-xs font-bold text-emerald-700">{firstVehicle.brand.name}</div>
+                        <div className="font-black text-slate-950">{firstVehicle.model.name}</div>
+                      </div>
+                    </div>
+                    <div className="mx-auto rounded-full bg-lime-300 px-3 py-2 text-sm font-black text-slate-950">VS</div>
+                    <div className="overflow-hidden rounded-lg bg-slate-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img className="aspect-[4/3] w-full object-cover" src={secondVehicle.model.imageUrl} alt={secondVehicle.model.name} />
+                      <div className="p-3">
+                        <div className="text-xs font-bold text-emerald-700">{secondVehicle.brand.name}</div>
+                        <div className="font-black text-slate-950">{secondVehicle.model.name}</div>
+                      </div>
+                    </div>
+                </div>
+                <h3 className="mt-4 text-xl font-black text-slate-950">{comparison.page.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{comparison.page.intro}</p>
+              </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="bg-white py-12">
+          <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-3">
+            {["Tax transparency", "Verified dealer routing", "SEO-first city pages"].map((title, index) => (
+              <div className="rounded-lg border border-emerald-100 p-5" key={title}>
+                <div className="grid h-10 w-10 place-items-center rounded-lg bg-lime-300 font-black text-slate-950">{index + 1}</div>
+                <h3 className="mt-4 text-xl font-black text-slate-950">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {index === 0
+                    ? "Every public price includes a readable breakdown for road tax, RTO, insurance and fees."
+                    : index === 1
+                      ? "Leads stay visible to admin and route to matched active dealers by brand and city."
+                      : "Admin-built pages reuse live vehicle and pricing data for model, city, EV and price searches."}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+          <h2 className="text-2xl font-black text-slate-950">Popular city searches</h2>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {seoPages.map((page) => (
+              <a className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-bold text-emerald-800" href={`/seo/${page.slug}`} key={page.id}>
+                {page.title}
+              </a>
+            ))}
+          </div>
+        </section>
       </main>
+      <SiteFooter brandsOverride={selectedBrands} comparisonsOverride={comparisons.map((comparison) => comparison.page)} />
     </div>
   );
 }
