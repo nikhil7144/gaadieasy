@@ -25,7 +25,7 @@ export function CityPriceSelector({ cities, currentCitySlug, brandSlug, modelSlu
   }
 
   return (
-    <label className="block min-w-44">
+    <label className="block min-w-0 sm:min-w-44">
       <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-emerald-700">Change city</span>
       <select
         value={currentCitySlug}

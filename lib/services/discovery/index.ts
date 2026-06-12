@@ -416,22 +416,54 @@ function isCommercialCategorySlug(slug?: string) {
   return slug === "commercial-vehicles" || slug === "ev-commercial-vehicles";
 }
 
+function isPassengerEvModel(model: DiscoveryModel) {
+  const categorySlug = model.category?.slug;
+  const text = modelSearchText(model);
+
+  return (
+    categorySlug === "passenger-ev-vehicles" ||
+    text.includes("e-rickshaw") ||
+    text.includes("erickshaw") ||
+    text.includes("e auto") ||
+    text.includes("e-auto") ||
+    text.includes("electric auto")
+  );
+}
+
+function isScooterModel(model: DiscoveryModel) {
+  const categorySlug = model.category?.slug;
+  const text = modelSearchText(model);
+
+  return categorySlug === "scooters" || text.includes("scooter");
+}
+
 export function modelBelongsToDiscoveryType(model: DiscoveryModel, tab: DiscoveryTab) {
   const categorySlug = model.category?.slug;
   const modelPrimary = categorySlug ? tab.primaryCategorySlugs.includes(categorySlug) : false;
   const modelIncluded = categorySlug ? tab.includedCategorySlugs.includes(categorySlug) : false;
   const modelIsElectric = hasElectricVariant(model);
+  const modelIsPassengerEv = isPassengerEvModel(model);
+  const modelIsScooter = isScooterModel(model);
+  const modelIsCommercial = isCommercialCategorySlug(categorySlug);
 
   if (tab.key === "ev") {
-    return modelPrimary || (modelIsElectric && !isCommercialCategorySlug(categorySlug));
+    return modelIsElectric && !modelIsCommercial && !modelIsPassengerEv;
   }
 
   if (tab.key === "ev-commercial") {
-    return modelPrimary || (modelIsElectric && modelIncluded);
+    return modelIsElectric && modelIsCommercial && !modelIsPassengerEv;
   }
 
   if (tab.key === "commercial") {
     return modelIncluded;
+  }
+
+  if (tab.key === "scooters") {
+    return modelIsScooter && !modelIsCommercial && !modelIsPassengerEv;
+  }
+
+  if (tab.key === "passenger-ev") {
+    return modelIsElectric && modelIsPassengerEv;
   }
 
   return modelPrimary;

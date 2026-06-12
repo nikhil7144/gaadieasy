@@ -4,10 +4,12 @@ import {
   cities,
   dealerBrandMappings,
   dealers,
+  gstRules,
   heroPromotions,
   insuranceRules,
   models,
   offers,
+  registrationFeeRules,
   rtoCharges,
   rtoOffices,
   states,
@@ -15,13 +17,208 @@ import {
   variants,
 } from "@/lib/data";
 import { getVehicleDataSet, type VehicleDataSet } from "@/lib/repositories/vehicle-data";
-import type { PricingResult, StateTaxRule } from "@/types/automobile";
+import type { PricingResult, PricingVehicleClass, StateTaxRule } from "@/types/automobile";
 
 type PricingQuery = {
   brand?: string;
   model?: string;
   variant?: string;
   city?: string;
+};
+
+type RoadTaxFallbackRule = {
+  minPrice: number;
+  maxPrice?: number;
+  percent: number;
+};
+
+const EXACT_CAR_ROAD_TAX_RULES: Record<string, RoadTaxFallbackRule[]> = {
+  "andhra-pradesh": [
+    { minPrice: 0, maxPrice: 1000000, percent: 12 },
+    { minPrice: 1000001, percent: 14 },
+  ],
+  assam: [
+    { minPrice: 0, maxPrice: 500000, percent: 6 },
+    { minPrice: 500001, maxPrice: 2000000, percent: 10 },
+    { minPrice: 2000001, percent: 14 },
+  ],
+  bihar: [
+    { minPrice: 0, maxPrice: 500000, percent: 9 },
+    { minPrice: 500001, maxPrice: 2000000, percent: 10 },
+    { minPrice: 2000001, percent: 12 },
+  ],
+  chhattisgarh: [
+    { minPrice: 0, maxPrice: 500000, percent: 5 },
+    { minPrice: 500001, percent: 6 },
+  ],
+  goa: [
+    { minPrice: 0, maxPrice: 1000000, percent: 9 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 12 },
+    { minPrice: 2000001, percent: 15 },
+  ],
+  gujarat: [{ minPrice: 0, percent: 6 }],
+  haryana: [
+    { minPrice: 0, maxPrice: 500000, percent: 5 },
+    { minPrice: 500001, maxPrice: 2000000, percent: 8 },
+    { minPrice: 2000001, percent: 10 },
+  ],
+  "himachal-pradesh": [
+    { minPrice: 0, maxPrice: 1000000, percent: 6 },
+    { minPrice: 1000001, percent: 7 },
+  ],
+  jharkhand: [
+    { minPrice: 0, maxPrice: 1000000, percent: 6 },
+    { minPrice: 1000001, percent: 15 },
+  ],
+  karnataka: [
+    { minPrice: 0, maxPrice: 500000, percent: 13 },
+    { minPrice: 500001, maxPrice: 1000000, percent: 14 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 17 },
+    { minPrice: 2000001, percent: 18 },
+  ],
+  kerala: [
+    { minPrice: 0, maxPrice: 500000, percent: 10 },
+    { minPrice: 500001, maxPrice: 1000000, percent: 13 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 17 },
+    { minPrice: 2000001, percent: 22 },
+  ],
+  "madhya-pradesh-petrol": [
+    { minPrice: 0, maxPrice: 1000000, percent: 8 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 10 },
+    { minPrice: 2000001, percent: 14 },
+  ],
+  "madhya-pradesh-cng": [
+    { minPrice: 0, maxPrice: 1000000, percent: 8 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 10 },
+    { minPrice: 2000001, percent: 14 },
+  ],
+  "madhya-pradesh-diesel": [
+    { minPrice: 0, maxPrice: 1000000, percent: 10 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 12 },
+    { minPrice: 2000001, percent: 16 },
+  ],
+  "maharashtra-petrol": [
+    { minPrice: 0, maxPrice: 1000000, percent: 11 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 12 },
+    { minPrice: 2000001, percent: 13 },
+  ],
+  "maharashtra-diesel": [
+    { minPrice: 0, maxPrice: 1000000, percent: 13 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 14 },
+    { minPrice: 2000001, percent: 15 },
+  ],
+  "maharashtra-cng": [
+    { minPrice: 0, maxPrice: 1000000, percent: 8 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 9 },
+    { minPrice: 2000001, percent: 10 },
+  ],
+  "maharashtra-lpg": [
+    { minPrice: 0, maxPrice: 1000000, percent: 8 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 9 },
+    { minPrice: 2000001, percent: 10 },
+  ],
+  manipur: [
+    { minPrice: 0, maxPrice: 500000, percent: 5 },
+    { minPrice: 500001, maxPrice: 1000000, percent: 6 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 7 },
+    { minPrice: 2000001, percent: 8 },
+  ],
+  meghalaya: [
+    { minPrice: 0, maxPrice: 500000, percent: 6 },
+    { minPrice: 500001, maxPrice: 1000000, percent: 6 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 8 },
+    { minPrice: 2000001, percent: 10 },
+  ],
+  nagaland: [{ minPrice: 0, percent: 6 }],
+  odisha: [
+    { minPrice: 0, maxPrice: 500000, percent: 6 },
+    { minPrice: 500001, maxPrice: 1000000, percent: 8 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 10 },
+    { minPrice: 2000001, percent: 20 },
+  ],
+  punjab: [
+    { minPrice: 0, maxPrice: 1000000, percent: 10 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 12 },
+    { minPrice: 2000001, percent: 13 },
+  ],
+  "tamil-nadu": [
+    { minPrice: 0, maxPrice: 500000, percent: 12 },
+    { minPrice: 500001, maxPrice: 1000000, percent: 13 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 18 },
+    { minPrice: 2000001, percent: 20 },
+  ],
+  telangana: [
+    { minPrice: 0, maxPrice: 500000, percent: 13 },
+    { minPrice: 500001, maxPrice: 1000000, percent: 14 },
+    { minPrice: 1000001, maxPrice: 2000000, percent: 18 },
+    { minPrice: 2000001, percent: 21 },
+  ],
+  "uttar-pradesh": [
+    { minPrice: 0, maxPrice: 1000000, percent: 9 },
+    { minPrice: 1000001, percent: 11 },
+  ],
+  uttarakhand: [
+    { minPrice: 0, maxPrice: 1000000, percent: 6 },
+    { minPrice: 1000001, percent: 8 },
+  ],
+  "west-bengal": [
+    { minPrice: 0, maxPrice: 1000000, percent: 5.5 },
+    { minPrice: 1000001, percent: 10 },
+  ],
+  "delhi-petrol": [
+    { minPrice: 0, maxPrice: 600000, percent: 4 },
+    { minPrice: 600001, maxPrice: 1000000, percent: 7 },
+    { minPrice: 1000001, percent: 10 },
+  ],
+  "delhi-cng": [
+    { minPrice: 0, maxPrice: 600000, percent: 4 },
+    { minPrice: 600001, maxPrice: 1000000, percent: 7 },
+    { minPrice: 1000001, percent: 10 },
+  ],
+  "delhi-diesel": [
+    { minPrice: 0, maxPrice: 600000, percent: 5 },
+    { minPrice: 600001, maxPrice: 1000000, percent: 8.75 },
+    { minPrice: 1000001, percent: 12.5 },
+  ],
+  chandigarh: [
+    { minPrice: 0, maxPrice: 1000000, percent: 10 },
+    { minPrice: 1000001, percent: 12 },
+  ],
+  puducherry: [
+    { minPrice: 0, maxPrice: 1000000, percent: 4 },
+    { minPrice: 1000001, percent: 7 },
+  ],
+  ladakh: [
+    { minPrice: 0, maxPrice: 1000000, percent: 6 },
+    { minPrice: 1000001, percent: 9 },
+  ],
+};
+
+const BIKE_ROAD_TAX_RULES: Record<string, RoadTaxFallbackRule[]> = {
+  karnataka: [
+    { minPrice: 0, maxPrice: 100000, percent: 10 },
+    { minPrice: 100001, maxPrice: 200000, percent: 12 },
+    { minPrice: 200001, percent: 18 },
+  ],
+  maharashtra: [
+    { minPrice: 0, maxPrice: 100000, percent: 10 },
+    { minPrice: 100001, percent: 12 },
+  ],
+  delhi: [
+    { minPrice: 0, maxPrice: 50000, percent: 4 },
+    { minPrice: 50001, maxPrice: 200000, percent: 6 },
+    { minPrice: 200001, percent: 8 },
+  ],
+  telangana: [
+    { minPrice: 0, maxPrice: 100000, percent: 10 },
+    { minPrice: 100001, maxPrice: 200000, percent: 12 },
+    { minPrice: 200001, percent: 14 },
+  ],
+  "tamil-nadu": [
+    { minPrice: 0, maxPrice: 100000, percent: 10 },
+    { minPrice: 100001, maxPrice: 200000, percent: 12 },
+    { minPrice: 200001, percent: 14 },
+  ],
 };
 
 function matchByIdOrSlug<T extends { id: string; slug?: string; name?: string }>(items: T[], value?: string) {
@@ -33,6 +230,103 @@ function matchByIdOrSlug<T extends { id: string; slug?: string; name?: string }>
       item.slug?.toLowerCase() === normalizedValue ||
       item.name?.toLowerCase() === normalizedValue,
   );
+}
+
+function normalizeStateName(value?: string) {
+  return (value ?? "")
+    .trim()
+    .toLowerCase()
+    .replaceAll("&", "and")
+    .replace(/[()]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function inferVehicleTaxKind(input: {
+  categorySlug?: string;
+  bodyType?: string;
+  fuelType: string;
+  engineCapacity?: string;
+  exShowroomPrice: number;
+  seatingCapacity?: number;
+  specs?: Record<string, unknown>;
+}): PricingVehicleClass {
+  const categorySlug = (input.categorySlug ?? "").toLowerCase();
+  const bodyType = (input.bodyType ?? "").toLowerCase();
+  const fuel = input.fuelType.toLowerCase();
+  const specText = JSON.stringify(input.specs ?? {}).toLowerCase();
+  const isElectric = fuel === "electric";
+  const isPassengerCommercial = bodyType.includes("bus") || specText.includes("bus") || specText.includes("passenger vehicle");
+
+  const isBikeLike =
+    categorySlug === "bikes" ||
+    categorySlug === "scooters" ||
+    bodyType.includes("bike") ||
+    bodyType.includes("scooter") ||
+    Boolean((input.specs as { bike?: unknown } | undefined)?.bike);
+
+  if (isBikeLike) {
+    if (isElectric || categorySlug === "ev-vehicles") return "ev_two_wheeler";
+    return categorySlug === "scooters" ? "scooter" : "bike";
+  }
+
+  const isCommercial =
+    categorySlug === "commercial-vehicles" ||
+    categorySlug === "ev-commercial-vehicles" ||
+    categorySlug === "passenger-ev-vehicles" ||
+    Boolean((input.specs as { commercial?: unknown } | undefined)?.commercial);
+
+  if (isCommercial) {
+    if (isElectric && isPassengerCommercial) return categorySlug === "passenger-ev-vehicles" ? "passenger_ev" : "ev_commercial_passenger";
+    if (isElectric) return categorySlug === "passenger-ev-vehicles" ? "loading_ev" : "ev_commercial_loading";
+    return isPassengerCommercial ? "commercial_passenger" : "commercial_loading";
+  }
+
+  if (isElectric) return "car";
+  return "car";
+}
+
+function gstPercentForVehicle(data: VehicleDataSet, vehicleClass: PricingVehicleClass) {
+  return data.gstRules.find((rule) => rule.active && rule.vehicleClass === vehicleClass)?.gstPercent;
+}
+
+function registrationRuleForVehicle(data: VehicleDataSet, vehicleClass: PricingVehicleClass) {
+  return data.registrationFeeRules.find((rule) => rule.active && rule.vehicleClass === vehicleClass);
+}
+
+function fallbackRoadTaxPercent(input: {
+  stateName: string;
+  fuelType: string;
+  taxKind: PricingVehicleClass;
+  exShowroomPrice: number;
+}) {
+  const stateKey = normalizeStateName(input.stateName);
+
+  if (
+    input.taxKind === "commercial_loading" ||
+    input.taxKind === "commercial_passenger" ||
+    input.taxKind === "ev_commercial_loading" ||
+    input.taxKind === "ev_commercial_passenger" ||
+    input.taxKind === "loading_ev" ||
+    input.taxKind === "passenger_ev"
+  ) {
+    return undefined;
+  }
+
+  if (input.taxKind === "bike" || input.taxKind === "scooter" || input.taxKind === "ev_two_wheeler") {
+    const bikeRules = BIKE_ROAD_TAX_RULES[stateKey];
+    if (!bikeRules) return undefined;
+    return bikeRules.find((rule) => input.exShowroomPrice >= rule.minPrice && (rule.maxPrice === undefined || input.exShowroomPrice <= rule.maxPrice))?.percent;
+  }
+
+  const fuel = input.fuelType.toLowerCase();
+  const stateFuelKey =
+    fuel === "diesel" || fuel === "cng" || fuel === "lpg" || fuel === "petrol"
+      ? `${stateKey}-${fuel}`
+      : stateKey;
+  const rules = EXACT_CAR_ROAD_TAX_RULES[stateFuelKey] ?? EXACT_CAR_ROAD_TAX_RULES[stateKey];
+  if (!rules) return undefined;
+  return rules.find((rule) => input.exShowroomPrice >= rule.minPrice && (rule.maxPrice === undefined || input.exShowroomPrice <= rule.maxPrice))?.percent;
 }
 
 function findTaxRule(input: {
@@ -160,24 +454,47 @@ export function calculateOnRoadPriceFromData(query: PricingQuery, data: VehicleD
       (!item.cityId || item.cityId === city.id),
   );
 
+  const taxKind = inferVehicleTaxKind({
+    categorySlug: category.slug,
+    bodyType: model.bodyType,
+    fuelType: variant.fuelType,
+    engineCapacity: variant.engineCapacity,
+    exShowroomPrice: variant.exShowroomPrice,
+    seatingCapacity: variant.seatingCapacity,
+    specs: variant.specifications as Record<string, unknown>,
+  });
+  const gstPercent = gstPercentForVehicle(data, taxKind) ?? (variant.fuelType === "Electric" ? 5 : 28);
+  const gstAmount = Math.round((variant.exShowroomPrice * gstPercent) / (100 + gstPercent));
+
   const selectedTaxRule = dbTaxRule ?? taxRule;
-  const baseTax = selectedTaxRule
-    ? variant.exShowroomPrice * (selectedTaxRule.roadTaxPercent / 100) + selectedTaxRule.fixedTaxAmount
-    : variant.exShowroomPrice * 0.12;
-  const evRelief = selectedTaxRule ? baseTax * (selectedTaxRule.evExemptionPercent / 100) : 0;
-  const luxuryCess = selectedTaxRule ? variant.exShowroomPrice * (selectedTaxRule.luxuryCessPercent / 100) : 0;
-  const roadTax = Math.round(baseTax - evRelief + luxuryCess);
+  let roadTax = 0;
+  if (selectedTaxRule) {
+    const baseTax = variant.exShowroomPrice * (selectedTaxRule.roadTaxPercent / 100) + selectedTaxRule.fixedTaxAmount;
+    const evRelief = baseTax * (selectedTaxRule.evExemptionPercent / 100);
+    const luxuryCess = variant.exShowroomPrice * (selectedTaxRule.luxuryCessPercent / 100);
+    roadTax = Math.round(baseTax - evRelief + luxuryCess);
+  } else {
+    const starterPercent = fallbackRoadTaxPercent({
+      stateName: state.name,
+      fuelType: variant.fuelType,
+      taxKind,
+      exShowroomPrice: variant.exShowroomPrice,
+    });
+    roadTax = starterPercent ? Math.round(variant.exShowroomPrice * (starterPercent / 100)) : 0;
+  }
+
   const insurance = Math.round(
     insuranceRule
       ? variant.exShowroomPrice * (insuranceRule.percentOfExShowroom / 100) + insuranceRule.fixedAmount
       : variant.exShowroomPrice * 0.035,
   );
-  const registrationFee = rtoCharge?.registrationFee ?? 15000;
-  const smartCardFee = rtoCharge?.smartCardFee ?? 600;
-  const numberPlateFee = rtoCharge?.numberPlateFee ?? 1200;
-  const hypothecationFee = rtoCharge?.hypothecationFee ?? 0;
-  const fastagFee = rtoCharge?.fastagFee ?? 600;
-  const handlingCharges = rtoCharge?.handlingCharges ?? 7500;
+  const registrationRule = registrationRuleForVehicle(data, taxKind);
+  const registrationFee = rtoCharge?.registrationFee ?? registrationRule?.registrationFee ?? 600;
+  const smartCardFee = rtoCharge?.smartCardFee ?? registrationRule?.smartCardFee ?? 200;
+  const numberPlateFee = rtoCharge?.numberPlateFee ?? registrationRule?.numberPlateFee ?? 1200;
+  const hypothecationFee = rtoCharge?.hypothecationFee ?? registrationRule?.hypothecationFee ?? 1500;
+  const fastagFee = rtoCharge?.fastagFee ?? registrationRule?.fastagFee ?? 0;
+  const handlingCharges = rtoCharge?.handlingCharges ?? registrationRule?.handlingCharges ?? 0;
   const offerDiscount = offer?.discountAmount ?? 0;
   const totalOnRoadPrice =
     variant.exShowroomPrice +
@@ -203,6 +520,8 @@ export function calculateOnRoadPriceFromData(query: PricingQuery, data: VehicleD
     dealerOffers,
     breakdown: {
       exShowroomPrice: variant.exShowroomPrice,
+      gstPercent,
+      gstAmount,
       roadTax,
       registrationFee,
       insurance,
@@ -230,6 +549,8 @@ export function calculateOnRoadPrice(query: PricingQuery): PricingResult {
     taxRules,
     rtoCharges,
     insuranceRules,
+    gstRules,
+    registrationFeeRules,
     dealerBusinesses: [],
     dealers,
     dealerUsers: [],

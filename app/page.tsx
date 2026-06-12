@@ -40,9 +40,6 @@ export default async function Home({
   const selectedData = getDiscoveryDatasetForType(data, selectedType);
   const seoPages = getSeoPagesForNavigation();
   const homepageComparisons = getHomepageComparisons();
-  const selectedCategoryIds = data.categories
-    .filter((category) => selectedData.tab.includedCategorySlugs.includes(category.slug))
-    .map((category) => category.id);
   const selectedModels = selectedData.models;
   const selectedBrands = selectedData.brands;
   const selectedBrandSlugs = new Set(selectedBrands.map((brand) => brand.slug));
@@ -68,7 +65,7 @@ export default async function Home({
       label: heroPromotion?.stat2Label ?? "Cities",
     },
     {
-      value: heroPromotion?.stat3Value ?? `${selectedModels.length || data.models.length}+`,
+      value: heroPromotion?.stat3Value ?? `${selectedModels.length}+`,
       label: heroPromotion?.stat3Label ?? "Models",
     },
   ];
@@ -92,11 +89,10 @@ export default async function Home({
               </p>
               <div className="mt-8">
                 <PricingExplorer
-                  brands={selectedBrands.length ? selectedBrands : data.brands}
+                  brands={selectedBrands}
                   cities={data.cities}
-                  models={selectedModels.length ? selectedModels : data.models}
+                  models={selectedModels}
                   variants={data.variants}
-                  categoryIds={selectedCategoryIds}
                 />
               </div>
             </div>
@@ -146,8 +142,8 @@ export default async function Home({
         <div id="vehicle-home">
           <HomeVehicleDiscovery
             categories={data.categories}
-            brands={selectedBrands.length ? selectedBrands : data.brands}
-            models={selectedModels.length ? selectedModels : data.models}
+            brands={selectedBrands}
+            models={selectedModels}
             cities={data.cities}
             heroPromotions={data.heroPromotions}
             selectedType={selectedType}
@@ -163,7 +159,7 @@ export default async function Home({
             <Link className="hidden text-sm font-bold text-emerald-700 md:block" href={`/discover?type=${selectedType}&city=${defaultCitySlug}`}>View all</Link>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-            {(selectedBrands.length ? selectedBrands : data.brands).slice(0, 6).map((brand) => (
+            {selectedBrands.slice(0, 6).map((brand) => (
               <a
                 className="group rounded-lg border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:-translate-y-1 hover:border-emerald-300 hover:shadow-md"
                 href={`/brands/${brand.slug}`}
@@ -188,7 +184,7 @@ export default async function Home({
             <a className="hidden text-sm font-bold text-emerald-700 md:block" href={`/discover?type=${selectedType}&city=${defaultCitySlug}`}>View all</a>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {(selectedModels.length ? selectedModels : data.models).slice(0, 6).map((model) => {
+            {selectedModels.slice(0, 6).map((model) => {
               const firstVariant = model.variants[0];
               return (
                 <a className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg" href={modelPriceHref(model)} key={model.id}>

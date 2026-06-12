@@ -4,9 +4,11 @@ import type {
   ComparisonPage,
   Dealer,
   DealerBrandMapping,
+  GstRule,
   HeroPromotion,
   InsuranceRule,
   Offer,
+  RegistrationFeeRule,
   RtoCharge,
   RtoOffice,
   SeoPage,
@@ -827,22 +829,84 @@ export const comparisonPages: ComparisonPage[] = [
 ];
 
 export const states: State[] = [
-  { id: "state-ka", name: "Karnataka", code: "KA" },
   { id: "state-mh", name: "Maharashtra", code: "MH" },
   { id: "state-dl", name: "Delhi", code: "DL" },
+  { id: "state-up", name: "Uttar Pradesh", code: "UP" },
+  { id: "state-hr", name: "Haryana", code: "HR" },
+  { id: "state-ka", name: "Karnataka", code: "KA" },
+  { id: "state-tn", name: "Tamil Nadu", code: "TN" },
+  { id: "state-ts", name: "Telangana", code: "TS" },
+  { id: "state-wb", name: "West Bengal", code: "WB" },
+  { id: "state-gj", name: "Gujarat", code: "GJ" },
+  { id: "state-rj", name: "Rajasthan", code: "RJ" },
+  { id: "state-br", name: "Bihar", code: "BR" },
+  { id: "state-jh", name: "Jharkhand", code: "JH" },
+  { id: "state-od", name: "Odisha", code: "OD" },
+  { id: "state-ch", name: "Chandigarh", code: "CH" },
+  { id: "state-mp", name: "Madhya Pradesh", code: "MP" },
+  { id: "state-kl", name: "Kerala", code: "KL" },
 ];
 
 export const cities: City[] = [
-  { id: "city-bengaluru", stateId: "state-ka", name: "Bengaluru", slug: "bangalore", defaultRtoId: "rto-ka-03" },
-  { id: "city-mumbai", stateId: "state-mh", name: "Mumbai", slug: "mumbai", defaultRtoId: "rto-mh-01" },
-  { id: "city-delhi", stateId: "state-dl", name: "Delhi", slug: "delhi", defaultRtoId: "rto-dl-01" },
+  { id: "city-mumbai", stateId: "state-mh", name: "Mumbai", slug: "mumbai", defaultRtoId: "rto-mh-01", tier: "Metro", isMetro: true, rtoStateCode: "MH" },
+  { id: "city-pune", stateId: "state-mh", name: "Pune", slug: "pune", defaultRtoId: "rto-mh-pune", tier: "Metro", isMetro: true, rtoStateCode: "MH" },
+  { id: "city-nagpur", stateId: "state-mh", name: "Nagpur", slug: "nagpur", defaultRtoId: "rto-mh-nagpur", tier: "Tier 1", isMetro: false, rtoStateCode: "MH" },
+  { id: "city-nashik", stateId: "state-mh", name: "Nashik", slug: "nashik", defaultRtoId: "rto-mh-nashik", tier: "Tier 1", isMetro: false, rtoStateCode: "MH" },
+  { id: "city-thane", stateId: "state-mh", name: "Thane", slug: "thane", defaultRtoId: "rto-mh-thane", tier: "Tier 1", isMetro: false, rtoStateCode: "MH" },
+  { id: "city-new-delhi", stateId: "state-dl", name: "New Delhi", slug: "new-delhi", defaultRtoId: "rto-dl-nd", tier: "Metro", isMetro: true, rtoStateCode: "DL" },
+  { id: "city-delhi", stateId: "state-dl", name: "Delhi", slug: "delhi", defaultRtoId: "rto-dl-01", tier: "Metro", isMetro: true, rtoStateCode: "DL" },
+  { id: "city-noida", stateId: "state-up", name: "Noida", slug: "noida", defaultRtoId: "rto-up-noida", tier: "Metro", isMetro: true, rtoStateCode: "UP" },
+  { id: "city-ghaziabad", stateId: "state-up", name: "Ghaziabad", slug: "ghaziabad", defaultRtoId: "rto-up-ghaziabad", tier: "Tier 1", isMetro: false, rtoStateCode: "UP" },
+  { id: "city-gurugram", stateId: "state-hr", name: "Gurugram", slug: "gurugram", defaultRtoId: "rto-hr-gurugram", tier: "Metro", isMetro: true, rtoStateCode: "HR" },
+  { id: "city-faridabad", stateId: "state-hr", name: "Faridabad", slug: "faridabad", defaultRtoId: "rto-hr-faridabad", tier: "Tier 1", isMetro: false, rtoStateCode: "HR" },
+  { id: "city-bengaluru", stateId: "state-ka", name: "Bengaluru", slug: "bangalore", defaultRtoId: "rto-ka-03", tier: "Metro", isMetro: true, rtoStateCode: "KA" },
+  { id: "city-mysuru", stateId: "state-ka", name: "Mysuru", slug: "mysuru", defaultRtoId: "rto-ka-mysuru", tier: "Tier 1", isMetro: false, rtoStateCode: "KA" },
+  { id: "city-hubballi-dharwad", stateId: "state-ka", name: "Hubballi-Dharwad", slug: "hubballi-dharwad", defaultRtoId: "rto-ka-hubballi", tier: "Tier 1", isMetro: false, rtoStateCode: "KA" },
+  { id: "city-mangaluru", stateId: "state-ka", name: "Mangaluru", slug: "mangaluru", defaultRtoId: "rto-ka-mangaluru", tier: "Tier 1", isMetro: false, rtoStateCode: "KA" },
+  { id: "city-chennai", stateId: "state-tn", name: "Chennai", slug: "chennai", defaultRtoId: "rto-tn-chennai", tier: "Metro", isMetro: true, rtoStateCode: "TN" },
+  { id: "city-coimbatore", stateId: "state-tn", name: "Coimbatore", slug: "coimbatore", defaultRtoId: "rto-tn-coimbatore", tier: "Tier 1", isMetro: false, rtoStateCode: "TN" },
+  { id: "city-madurai", stateId: "state-tn", name: "Madurai", slug: "madurai", defaultRtoId: "rto-tn-madurai", tier: "Tier 1", isMetro: false, rtoStateCode: "TN" },
+  { id: "city-tiruchirappalli", stateId: "state-tn", name: "Tiruchirappalli", slug: "tiruchirappalli", defaultRtoId: "rto-tn-trichy", tier: "Tier 1", isMetro: false, rtoStateCode: "TN" },
+  { id: "city-salem", stateId: "state-tn", name: "Salem", slug: "salem", defaultRtoId: "rto-tn-salem", tier: "Tier 1", isMetro: false, rtoStateCode: "TN" },
+  { id: "city-hyderabad", stateId: "state-ts", name: "Hyderabad", slug: "hyderabad", defaultRtoId: "rto-ts-hyderabad", tier: "Metro", isMetro: true, rtoStateCode: "TS" },
+  { id: "city-warangal", stateId: "state-ts", name: "Warangal", slug: "warangal", defaultRtoId: "rto-ts-warangal", tier: "Tier 1", isMetro: false, rtoStateCode: "TS" },
+  { id: "city-karimnagar", stateId: "state-ts", name: "Karimnagar", slug: "karimnagar", defaultRtoId: "rto-ts-karimnagar", tier: "Tier 1", isMetro: false, rtoStateCode: "TS" },
+  { id: "city-kolkata", stateId: "state-wb", name: "Kolkata", slug: "kolkata", defaultRtoId: "rto-wb-kolkata", tier: "Metro", isMetro: true, rtoStateCode: "WB" },
+  { id: "city-howrah", stateId: "state-wb", name: "Howrah", slug: "howrah", defaultRtoId: "rto-wb-howrah", tier: "Tier 1", isMetro: false, rtoStateCode: "WB" },
+  { id: "city-durgapur", stateId: "state-wb", name: "Durgapur", slug: "durgapur", defaultRtoId: "rto-wb-durgapur", tier: "Tier 1", isMetro: false, rtoStateCode: "WB" },
+  { id: "city-siliguri", stateId: "state-wb", name: "Siliguri", slug: "siliguri", defaultRtoId: "rto-wb-siliguri", tier: "Tier 1", isMetro: false, rtoStateCode: "WB" },
+  { id: "city-ahmedabad", stateId: "state-gj", name: "Ahmedabad", slug: "ahmedabad", defaultRtoId: "rto-gj-ahmedabad", tier: "Metro", isMetro: true, rtoStateCode: "GJ" },
+  { id: "city-surat", stateId: "state-gj", name: "Surat", slug: "surat", defaultRtoId: "rto-gj-surat", tier: "Tier 1", isMetro: false, rtoStateCode: "GJ" },
+  { id: "city-vadodara", stateId: "state-gj", name: "Vadodara", slug: "vadodara", defaultRtoId: "rto-gj-vadodara", tier: "Tier 1", isMetro: false, rtoStateCode: "GJ" },
+  { id: "city-rajkot", stateId: "state-gj", name: "Rajkot", slug: "rajkot", defaultRtoId: "rto-gj-rajkot", tier: "Tier 1", isMetro: false, rtoStateCode: "GJ" },
+  { id: "city-gandhinagar", stateId: "state-gj", name: "Gandhinagar", slug: "gandhinagar", defaultRtoId: "rto-gj-gandhinagar", tier: "Tier 1", isMetro: false, rtoStateCode: "GJ" },
+  { id: "city-jaipur", stateId: "state-rj", name: "Jaipur", slug: "jaipur", defaultRtoId: "rto-rj-jaipur", tier: "Tier 1", isMetro: false, rtoStateCode: "RJ" },
+  { id: "city-jodhpur", stateId: "state-rj", name: "Jodhpur", slug: "jodhpur", defaultRtoId: "rto-rj-jodhpur", tier: "Tier 1", isMetro: false, rtoStateCode: "RJ" },
+  { id: "city-udaipur", stateId: "state-rj", name: "Udaipur", slug: "udaipur", defaultRtoId: "rto-rj-udaipur", tier: "Tier 1", isMetro: false, rtoStateCode: "RJ" },
+  { id: "city-kota", stateId: "state-rj", name: "Kota", slug: "kota", defaultRtoId: "rto-rj-kota", tier: "Tier 1", isMetro: false, rtoStateCode: "RJ" },
+  { id: "city-lucknow", stateId: "state-up", name: "Lucknow", slug: "lucknow", defaultRtoId: "rto-up-lucknow", tier: "Tier 1", isMetro: false, rtoStateCode: "UP" },
+  { id: "city-kanpur", stateId: "state-up", name: "Kanpur", slug: "kanpur", defaultRtoId: "rto-up-kanpur", tier: "Tier 1", isMetro: false, rtoStateCode: "UP" },
+  { id: "city-agra", stateId: "state-up", name: "Agra", slug: "agra", defaultRtoId: "rto-up-agra", tier: "Tier 1", isMetro: false, rtoStateCode: "UP" },
+  { id: "city-varanasi", stateId: "state-up", name: "Varanasi", slug: "varanasi", defaultRtoId: "rto-up-varanasi", tier: "Tier 1", isMetro: false, rtoStateCode: "UP" },
+  { id: "city-prayagraj", stateId: "state-up", name: "Prayagraj", slug: "prayagraj", defaultRtoId: "rto-up-prayagraj", tier: "Tier 1", isMetro: false, rtoStateCode: "UP" },
+  { id: "city-patna", stateId: "state-br", name: "Patna", slug: "patna", defaultRtoId: "rto-br-patna", tier: "Tier 1", isMetro: false, rtoStateCode: "BR" },
+  { id: "city-ranchi", stateId: "state-jh", name: "Ranchi", slug: "ranchi", defaultRtoId: "rto-jh-ranchi", tier: "Tier 1", isMetro: false, rtoStateCode: "JH" },
+  { id: "city-bhubaneswar", stateId: "state-od", name: "Bhubaneswar", slug: "bhubaneswar", defaultRtoId: "rto-od-bhubaneswar", tier: "Tier 1", isMetro: false, rtoStateCode: "OD" },
+  { id: "city-cuttack", stateId: "state-od", name: "Cuttack", slug: "cuttack", defaultRtoId: "rto-od-cuttack", tier: "Tier 1", isMetro: false, rtoStateCode: "OD" },
+  { id: "city-chandigarh", stateId: "state-ch", name: "Chandigarh", slug: "chandigarh", defaultRtoId: "rto-ch-chandigarh", tier: "Tier 1", isMetro: false, rtoStateCode: "CH" },
+  { id: "city-bhopal", stateId: "state-mp", name: "Bhopal", slug: "bhopal", defaultRtoId: "rto-mp-bhopal", tier: "Tier 1", isMetro: false, rtoStateCode: "MP" },
+  { id: "city-indore", stateId: "state-mp", name: "Indore", slug: "indore", defaultRtoId: "rto-mp-indore", tier: "Tier 1", isMetro: false, rtoStateCode: "MP" },
+  { id: "city-kochi", stateId: "state-kl", name: "Kochi", slug: "kochi", defaultRtoId: "rto-kl-kochi", tier: "Tier 1", isMetro: false, rtoStateCode: "KL" },
+  { id: "city-thiruvananthapuram", stateId: "state-kl", name: "Thiruvananthapuram", slug: "thiruvananthapuram", defaultRtoId: "rto-kl-thiruvananthapuram", tier: "Tier 1", isMetro: false, rtoStateCode: "KL" },
 ];
 
-export const rtoOffices: RtoOffice[] = [
-  { id: "rto-ka-03", stateId: "state-ka", cityId: "city-bengaluru", code: "KA-03", name: "Bengaluru East RTO" },
-  { id: "rto-mh-01", stateId: "state-mh", cityId: "city-mumbai", code: "MH-01", name: "Mumbai Central RTO" },
-  { id: "rto-dl-01", stateId: "state-dl", cityId: "city-delhi", code: "DL-01", name: "Delhi North RTO" },
-];
+export const rtoOffices: RtoOffice[] = cities.map((city, index) => ({
+  id: city.defaultRtoId,
+  stateId: city.stateId,
+  cityId: city.id,
+  code: `${city.rtoStateCode ?? states.find((state) => state.id === city.stateId)?.code ?? "XX"}-${String(index + 1).padStart(2, "0")}`,
+  name: `${city.name} RTO`,
+}));
 
 export const taxRules: StateTaxRule[] = [
   { id: "tax-ka-car-low", stateId: "state-ka", categoryId: "cat-car", minPrice: 0, maxPrice: 1500000, roadTaxPercent: 14, fixedTaxAmount: 0, evExemptionPercent: 0, luxuryCessPercent: 0, active: true },
@@ -869,6 +933,32 @@ export const rtoCharges: RtoCharge[] = cities.map((city) => ({
 export const insuranceRules: InsuranceRule[] = [
   { id: "ins-car", categoryId: "cat-car", percentOfExShowroom: 3.2, fixedAmount: 15000, active: true },
   { id: "ins-ev", categoryId: "cat-ev", fuelType: "Electric", percentOfExShowroom: 2.4, fixedAmount: 4500, active: true },
+];
+
+export const gstRules: GstRule[] = [
+  { id: "gst-car", vehicleClass: "car", gstPercent: 28, active: true },
+  { id: "gst-bike", vehicleClass: "bike", gstPercent: 28, active: true },
+  { id: "gst-scooter", vehicleClass: "scooter", gstPercent: 28, active: true },
+  { id: "gst-ev-two-wheeler", vehicleClass: "ev_two_wheeler", gstPercent: 5, active: true },
+  { id: "gst-commercial-loading", vehicleClass: "commercial_loading", gstPercent: 28, active: true },
+  { id: "gst-commercial-passenger", vehicleClass: "commercial_passenger", gstPercent: 28, active: true },
+  { id: "gst-ev-commercial-loading", vehicleClass: "ev_commercial_loading", gstPercent: 5, active: true },
+  { id: "gst-ev-commercial-passenger", vehicleClass: "ev_commercial_passenger", gstPercent: 5, active: true },
+  { id: "gst-passenger-ev", vehicleClass: "passenger_ev", gstPercent: 5, active: true },
+  { id: "gst-loading-ev", vehicleClass: "loading_ev", gstPercent: 5, active: true },
+];
+
+export const registrationFeeRules: RegistrationFeeRule[] = [
+  { id: "reg-car", vehicleClass: "car", registrationFee: 600, smartCardFee: 200, numberPlateFee: 1200, hypothecationFee: 1500, fastagFee: 600, handlingCharges: 0, active: true },
+  { id: "reg-bike", vehicleClass: "bike", registrationFee: 300, smartCardFee: 200, numberPlateFee: 500, hypothecationFee: 1500, fastagFee: 0, handlingCharges: 0, active: true },
+  { id: "reg-scooter", vehicleClass: "scooter", registrationFee: 300, smartCardFee: 200, numberPlateFee: 500, hypothecationFee: 1500, fastagFee: 0, handlingCharges: 0, active: true },
+  { id: "reg-ev-two-wheeler", vehicleClass: "ev_two_wheeler", registrationFee: 300, smartCardFee: 200, numberPlateFee: 500, hypothecationFee: 1500, fastagFee: 0, handlingCharges: 0, active: true },
+  { id: "reg-commercial-loading", vehicleClass: "commercial_loading", registrationFee: 1000, smartCardFee: 300, numberPlateFee: 1200, hypothecationFee: 1500, fastagFee: 600, handlingCharges: 0, active: true },
+  { id: "reg-commercial-passenger", vehicleClass: "commercial_passenger", registrationFee: 1000, smartCardFee: 300, numberPlateFee: 1200, hypothecationFee: 1500, fastagFee: 600, handlingCharges: 0, active: true },
+  { id: "reg-ev-commercial-loading", vehicleClass: "ev_commercial_loading", registrationFee: 1000, smartCardFee: 300, numberPlateFee: 1200, hypothecationFee: 1500, fastagFee: 0, handlingCharges: 0, active: true },
+  { id: "reg-ev-commercial-passenger", vehicleClass: "ev_commercial_passenger", registrationFee: 1000, smartCardFee: 300, numberPlateFee: 1200, hypothecationFee: 1500, fastagFee: 0, handlingCharges: 0, active: true },
+  { id: "reg-passenger-ev", vehicleClass: "passenger_ev", registrationFee: 1000, smartCardFee: 300, numberPlateFee: 1200, hypothecationFee: 1500, fastagFee: 0, handlingCharges: 0, active: true },
+  { id: "reg-loading-ev", vehicleClass: "loading_ev", registrationFee: 1000, smartCardFee: 300, numberPlateFee: 1200, hypothecationFee: 1500, fastagFee: 0, handlingCharges: 0, active: true },
 ];
 
 export const dealers: Dealer[] = [

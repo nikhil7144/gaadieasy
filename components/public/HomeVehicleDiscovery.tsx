@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/public/BrandLogo";
 import { VehicleImage } from "@/components/public/VehicleImage";
-import { filterDiscoveryModels, getDiscoveryTab, matchesDiscoveryFilter } from "@/lib/services/discovery";
+import { filterDiscoveryModels, getDiscoveryTab, matchesDiscoveryFilter, modelBelongsToDiscoveryType } from "@/lib/services/discovery";
 import type { Brand, City, HeroPromotion, VehicleCategory, VehicleModel, VehicleVariant } from "@/types/automobile";
 import { formatShortPrice } from "@/lib/utils/format";
 
@@ -760,6 +760,7 @@ export function HomeVehicleDiscovery({
   selectedType = "cars",
 }: HomeVehicleDiscoveryProps) {
   const activeTab = tabs.find((tab) => tab.key === selectedType) ?? tabs[0];
+  const activeDiscoveryTab = getDiscoveryTab(activeTab.key);
   const activeEvCategoryIds = categories
     .filter((category) => evCategorySlugMap[activeTab.key]?.includes(category.slug) || activeTab.evCategoryIds.includes(category.id))
     .map((category) => category.id);
@@ -774,11 +775,12 @@ export function HomeVehicleDiscovery({
       typeModels
         .filter(
           (model) =>
-            activeEvCategoryIds.includes(model.categoryId) ||
-            model.variants.some((variant) => variant.active && variant.fuelType === "Electric"),
+            modelBelongsToDiscoveryType(model, activeDiscoveryTab) &&
+            (activeEvCategoryIds.includes(model.categoryId) ||
+              model.variants.some((variant) => variant.active && variant.fuelType === "Electric")),
         )
         .slice(0, 4),
-    [activeEvCategoryIds, typeModels],
+    [activeDiscoveryTab, activeEvCategoryIds, typeModels],
   );
   const browseTabs = useMemo(() => {
     const brandItems = brands

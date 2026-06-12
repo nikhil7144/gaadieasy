@@ -191,3 +191,29 @@ export const dealerShowroomLoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 });
+
+export const taxRuleSchema = z.object({
+  stateId: z.string().uuid(),
+  categoryId: z.string().uuid(),
+  fuelType: z.enum(["Petrol", "Diesel", "CNG", "Hybrid", "Electric"]).optional().or(z.literal("")),
+  minPrice: z.coerce.number().min(0),
+  maxPrice: z.coerce.number().min(0).optional(),
+  roadTaxPercent: z.coerce.number().min(0),
+  fixedTaxAmount: z.coerce.number().min(0).default(0),
+  evExemptionPercent: z.coerce.number().min(0).max(100).default(0),
+  luxuryCessPercent: z.coerce.number().min(0).max(100).default(0),
+  active: z.boolean().default(true),
+});
+
+export const rtoChargeSchema = z.object({
+  stateId: z.string().uuid(),
+  cityId: z.string().uuid(),
+  rtoId: z.string().uuid().optional().or(z.literal("")),
+  registrationFee: z.coerce.number().min(0),
+  smartCardFee: z.coerce.number().min(0).default(0),
+  numberPlateFee: z.coerce.number().min(0).default(0),
+  hypothecationFee: z.coerce.number().min(0).default(0),
+  fastagFee: z.coerce.number().min(0).default(0),
+  handlingCharges: z.coerce.number().min(0).default(0),
+  active: z.boolean().default(true),
+});

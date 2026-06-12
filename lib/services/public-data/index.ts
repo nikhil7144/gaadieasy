@@ -11,6 +11,17 @@ import {
 } from "@/lib/data";
 import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
 
+export type PublicSearchResult = {
+  id: string;
+  type: "brand" | "model";
+  name: string;
+  subtitle?: string;
+  slug: string;
+  href: string;
+  logoUrl?: string;
+  imageUrl?: string;
+};
+
 export function getPublicBrands() {
   return brands.filter((brand) => brand.active);
 }
@@ -164,4 +175,103 @@ export async function findDealerForBrandCityFromApi(brandId: string, cityId: str
   }
 
   return data.dealers.find((dealer) => dealer.id === mapping.dealerId && dealer.active && dealer.verified);
+}
+
+function scoreSearchMatch(candidate: string, query: string) {
+  const haystack = candidate.trim().toLowerCase();
+  const needle = query.trim().toLowerCase();
+
+  if (!haystack || !needle) return 0;
+  if (haystack === needle) return 500;
+  if (haystack.startsWith(needle)) return 300;
+
+  const wordMatch = haystack
+    .split(/[\s-]+/)
+    .find((token) => token.startsWith(needle));
+
+  if (wordMatch) return 220;
+  if (haystack.includes(needle)) return 140;
+
+  return 0;
+}
+
+export async function searchPublicCatalogForApi(query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (normalizedQuery.length < 2) {
+    return [] as PublicSearchResult[];
+  }
+
+  const data = await getVehicleDataSet();
+  const defaultCitySlug = data.cities[0]?.slug ?? "bangalore";
+  const activeBrands = data.brands.filter((brand) => brand.active);
+  const activeModels = data.models.filter((model) => model.active);
+
+  const brandResults = activeBrands.reduce<{ score: number; result: PublicSearchResult }[]>((items, brand) => {
+      const score = scoreSearchMatch(brand.name, normalizedQuery);
+      if (!score) return items;
+
+      const modelCount = activeModels.filter((model) => model.brandId === brand.id).length;
+
+      items.push({
+        score,
+        result: {
+          id: brand.id,
+          type: "brand" as const,
+          name: brand.name,
+          subtitle: modelCount ? `${modelCount} model${modelCount === 1 ? "" : "s"}` : "Browse models",
+          slug: brand.slug,
+          href: `/brands/${brand.slug}`,
+          logoUrl: brand.logoUrl,
+        },
+      });
+
+      return items;
+    }, []);
+
+  const modelResults = activeModels.reduce<{ score: number; result: PublicSearchResult }[]>((items, model) => {
+      const brand = activeBrands.find((item) => item.id === model.brandId);
+      if (!brand) return items;
+
+      const score = Math.max(
+        scoreSearchMatch(model.name, normalizedQuery),
+        scoreSearchMatch(`${brand.name} ${model.name}`, normalizedQuery),
+      );
+
+      if (!score) return items;
+
+      const defaultVariant =
+        data.variants.find((variant) => variant.active && variant.modelId === model.id && variant.isDefault) ??
+        data.variants.find((variant) => variant.active && variant.modelId === model.id);
+
+      const params = new URLSearchParams({
+        brand: brand.slug,
+        model: model.slug,
+        city: defaultCitySlug,
+      });
+
+      if (defaultVariant?.slug) {
+        params.set("variant", defaultVariant.slug);
+      }
+
+      items.push({
+        score,
+        result: {
+          id: model.id,
+          type: "model" as const,
+          name: model.name,
+          subtitle: brand.name,
+          slug: model.slug,
+          href: `/on-road-price?${params.toString()}`,
+          logoUrl: brand.logoUrl,
+          imageUrl: model.imageUrl,
+        },
+      });
+
+      return items;
+    }, []);
+
+  return [...modelResults, ...brandResults]
+    .sort((left, right) => right.score - left.score || left.result.name.localeCompare(right.result.name))
+    .map((item) => item.result)
+    .slice(0, 8);
 }

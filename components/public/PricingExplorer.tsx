@@ -27,52 +27,87 @@ export function PricingExplorer({
     () => models.filter((model) => !categoryIds?.length || categoryIds.includes(model.categoryId)),
     [categoryIds, models],
   );
-  const allowedBrandIds = new Set(filteredModels.map((model) => model.brandId));
-  const filteredBrands = brands.filter((brand) => allowedBrandIds.has(brand.id));
-  const [brandId, setBrandId] = useState(initialBrandId ?? filteredBrands[0]?.id ?? "brand-hyundai");
+  const filteredBrands = useMemo(() => {
+    const allowedBrandIds = new Set(filteredModels.map((model) => model.brandId));
+    return brands.filter((brand) => allowedBrandIds.has(brand.id));
+  }, [brands, filteredModels]);
+  const [brandChoice, setBrandChoice] = useState(initialBrandId ?? "");
+  const activeBrandId =
+    filteredBrands.find((brand) => brand.id === brandChoice)?.id ??
+    filteredBrands.find((brand) => brand.id === initialBrandId)?.id ??
+    filteredBrands[0]?.id ??
+    "";
   const brandModels = useMemo(
-    () => filteredModels.filter((model) => model.brandId === brandId),
-    [brandId, filteredModels],
+    () => filteredModels.filter((model) => model.brandId === activeBrandId),
+    [activeBrandId, filteredModels],
   );
-  const [modelId, setModelId] = useState(initialModelId ?? brandModels[0]?.id ?? "model-creta");
-  const [citySlug, setCitySlug] = useState(initialCitySlug ?? cities[0]?.slug ?? "bangalore");
-  const activeModelId = brandModels.some((model) => model.id === modelId) ? modelId : brandModels[0]?.id;
+  const [modelChoice, setModelChoice] = useState(initialModelId ?? "");
+  const activeModelId =
+    brandModels.find((model) => model.id === modelChoice)?.id ??
+    brandModels.find((model) => model.id === initialModelId)?.id ??
+    brandModels[0]?.id ??
+    "";
+  const [cityChoice, setCityChoice] = useState(initialCitySlug ?? "");
+  const activeCitySlug =
+    cities.find((city) => city.slug === cityChoice)?.slug ??
+    cities.find((city) => city.slug === initialCitySlug)?.slug ??
+    cities[0]?.slug ??
+    "";
   const modelVariants = variants.filter((variant) => variant.modelId === activeModelId);
   const activeModel = models.find((model) => model.id === activeModelId);
-  const activeBrand = brands.find((brand) => brand.id === brandId);
+  const activeBrand = brands.find((brand) => brand.id === activeBrandId);
   const activeVariant = modelVariants.find((variant) => variant.isDefault) ?? modelVariants[0];
-  const priceParams = new URLSearchParams({ city: citySlug });
+  const priceParams = new URLSearchParams({ city: activeCitySlug });
 
   if (activeBrand?.slug) priceParams.set("brand", activeBrand.slug);
   if (activeModel?.slug) priceParams.set("model", activeModel.slug);
   if (activeVariant?.slug) priceParams.set("variant", activeVariant.slug);
 
   return (
-    <section className="rounded-lg border border-emerald-100 bg-white p-4 shadow-sm md:p-5">
-      <div className="grid gap-3 md:grid-cols-4">
-        <select className="rounded-md border border-slate-200 px-3 py-3 text-sm" value={brandId} onChange={(event) => setBrandId(event.target.value)}>
+    <section className="overflow-hidden rounded-lg border border-emerald-100 bg-white p-4 shadow-sm md:p-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="min-w-0">
+        <select className="block min-w-0 w-full truncate rounded-md border border-slate-200 px-3 py-3 text-sm" value={activeBrandId} onChange={(event) => setBrandChoice(event.target.value)}>
+          {!filteredBrands.length ? <option value="">Brands coming soon</option> : null}
           {filteredBrands.map((brand) => <option value={brand.id} key={brand.id}>{brand.name}</option>)}
         </select>
-        <select className="rounded-md border border-slate-200 px-3 py-3 text-sm" value={activeModelId} onChange={(event) => setModelId(event.target.value)}>
+        </div>
+        <div className="min-w-0">
+        <select className="block min-w-0 w-full truncate rounded-md border border-slate-200 px-3 py-3 text-sm" value={activeModelId} onChange={(event) => setModelChoice(event.target.value)}>
+          {!brandModels.length ? <option value="">Select a model</option> : null}
           {brandModels.map((model) => <option value={model.id} key={model.id}>{model.name}</option>)}
         </select>
-        <select className="rounded-md border border-slate-200 px-3 py-3 text-sm" value={citySlug} onChange={(event) => setCitySlug(event.target.value)}>
+        </div>
+        <div className="min-w-0">
+        <select className="block min-w-0 w-full truncate rounded-md border border-slate-200 px-3 py-3 text-sm" value={activeCitySlug} onChange={(event) => setCityChoice(event.target.value)}>
+          {!cities.length ? <option value="">Cities coming soon</option> : null}
           {cities.map((city) => <option value={city.slug} key={city.id}>{city.name}</option>)}
         </select>
+        </div>
         <a
-          className="rounded-md bg-emerald-500 px-4 py-3 text-center text-sm font-black text-slate-950 hover:bg-lime-400"
+          className={`min-w-0 rounded-md px-4 py-3 text-center text-sm font-black text-slate-950 ${
+            activeBrand && activeModel && activeCitySlug
+              ? "bg-emerald-500 hover:bg-lime-400"
+              : "pointer-events-none bg-slate-200 text-slate-500"
+          }`}
           href={`/on-road-price?${priceParams.toString()}`}
+          aria-disabled={!activeBrand || !activeModel || !activeCitySlug}
         >
           Check on-road price
         </a>
       </div>
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-        {modelVariants.map((variant) => (
-          <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800" key={variant.id}>
-            {variant.name} from {formatShortPrice(variant.exShowroomPrice)}
+      {activeModel ? (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
+            {modelVariants.length} variant{modelVariants.length === 1 ? "" : "s"}
           </span>
-        ))}
-      </div>
+          {activeVariant ? (
+            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+              Starts {formatShortPrice(activeVariant.exShowroomPrice)}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -8,7 +8,9 @@ import type {
   DealerBusiness,
   DealerUser,
   HeroPromotion,
+  RtoCharge,
   SpecificationGroup,
+  StateTaxRule,
   VehicleModel,
   VehicleVariant,
 } from "@/types/automobile";
@@ -154,6 +156,38 @@ function mapDealerUser(row: DbRow): DealerUser {
     role: String(row.role) as DealerUser["role"],
     active: Boolean(row.active),
     createdAt: typeof row.created_at === "string" ? row.created_at : undefined,
+  };
+}
+
+function mapTaxRule(row: DbRow): StateTaxRule {
+  return {
+    id: String(row.id),
+    stateId: String(row.state_id),
+    categoryId: String(row.category_id),
+    fuelType: typeof row.fuel_type === "string" ? (row.fuel_type as StateTaxRule["fuelType"]) : undefined,
+    minPrice: Number(row.min_price ?? 0),
+    maxPrice: row.max_price === null || row.max_price === undefined ? undefined : Number(row.max_price),
+    roadTaxPercent: Number(row.road_tax_percent ?? 0),
+    fixedTaxAmount: Number(row.fixed_tax_amount ?? 0),
+    evExemptionPercent: Number(row.ev_exemption_percent ?? 0),
+    luxuryCessPercent: Number(row.luxury_cess_percent ?? 0),
+    active: Boolean(row.active),
+  };
+}
+
+function mapRtoCharge(row: DbRow): RtoCharge {
+  return {
+    id: String(row.id),
+    stateId: String(row.state_id),
+    cityId: String(row.city_id),
+    rtoId: String(row.rto_id ?? ""),
+    registrationFee: Number(row.registration_fee ?? 0),
+    smartCardFee: Number(row.smart_card_fee ?? 0),
+    numberPlateFee: Number(row.number_plate_fee ?? 0),
+    hypothecationFee: Number(row.hypothecation_fee ?? 0),
+    fastagFee: Number(row.fastag_fee ?? 0),
+    handlingCharges: Number(row.handling_charges ?? 0),
+    active: Boolean(row.active),
   };
 }
 
@@ -1012,4 +1046,142 @@ export async function updateHomepageBanner(input: {
   revalidatePath("/admin");
   revalidatePath("/admin/homepage-banners");
   return mapHeroPromotion(data as DbRow);
+}
+
+export async function createTaxRule(input: {
+  stateId: string;
+  categoryId: string;
+  fuelType?: string;
+  minPrice: number;
+  maxPrice?: number;
+  roadTaxPercent: number;
+  fixedTaxAmount: number;
+  evExemptionPercent: number;
+  luxuryCessPercent: number;
+  active: boolean;
+}) {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("state_tax_rules")
+    .insert({
+      state_id: input.stateId,
+      category_id: input.categoryId,
+      fuel_type: optionalText(input.fuelType),
+      min_price: input.minPrice,
+      max_price: input.maxPrice ?? null,
+      road_tax_percent: input.roadTaxPercent,
+      fixed_tax_amount: input.fixedTaxAmount,
+      ev_exemption_percent: input.evExemptionPercent,
+      luxury_cess_percent: input.luxuryCessPercent,
+      active: input.active,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  revalidatePath("/admin");
+  revalidatePath("/admin/tax-rules");
+  return mapTaxRule(data as DbRow);
+}
+
+export async function updateTaxRule(input: {
+  id: string;
+  stateId?: string;
+  categoryId?: string;
+  fuelType?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  roadTaxPercent?: number;
+  fixedTaxAmount?: number;
+  evExemptionPercent?: number;
+  luxuryCessPercent?: number;
+  active?: boolean;
+}) {
+  const supabase = getAdminClient();
+  const patch: DbRow = {};
+  if (input.stateId !== undefined) patch.state_id = input.stateId;
+  if (input.categoryId !== undefined) patch.category_id = input.categoryId;
+  if (input.fuelType !== undefined) patch.fuel_type = optionalText(input.fuelType);
+  if (input.minPrice !== undefined) patch.min_price = input.minPrice;
+  if (input.maxPrice !== undefined) patch.max_price = input.maxPrice;
+  if (input.roadTaxPercent !== undefined) patch.road_tax_percent = input.roadTaxPercent;
+  if (input.fixedTaxAmount !== undefined) patch.fixed_tax_amount = input.fixedTaxAmount;
+  if (input.evExemptionPercent !== undefined) patch.ev_exemption_percent = input.evExemptionPercent;
+  if (input.luxuryCessPercent !== undefined) patch.luxury_cess_percent = input.luxuryCessPercent;
+  if (input.active !== undefined) patch.active = input.active;
+
+  const { data, error } = await supabase.from("state_tax_rules").update(patch).eq("id", input.id).select("*").single();
+  if (error) throw error;
+  revalidatePath("/admin");
+  revalidatePath("/admin/tax-rules");
+  return mapTaxRule(data as DbRow);
+}
+
+export async function createRtoCharge(input: {
+  stateId: string;
+  cityId: string;
+  rtoId?: string;
+  registrationFee: number;
+  smartCardFee: number;
+  numberPlateFee: number;
+  hypothecationFee: number;
+  fastagFee: number;
+  handlingCharges: number;
+  active: boolean;
+}) {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("rto_charges")
+    .insert({
+      state_id: input.stateId,
+      city_id: input.cityId,
+      rto_id: optionalText(input.rtoId),
+      registration_fee: input.registrationFee,
+      smart_card_fee: input.smartCardFee,
+      number_plate_fee: input.numberPlateFee,
+      hypothecation_fee: input.hypothecationFee,
+      fastag_fee: input.fastagFee,
+      handling_charges: input.handlingCharges,
+      active: input.active,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  revalidatePath("/admin");
+  revalidatePath("/admin/rto-charges");
+  return mapRtoCharge(data as DbRow);
+}
+
+export async function updateRtoCharge(input: {
+  id: string;
+  stateId?: string;
+  cityId?: string;
+  rtoId?: string;
+  registrationFee?: number;
+  smartCardFee?: number;
+  numberPlateFee?: number;
+  hypothecationFee?: number;
+  fastagFee?: number;
+  handlingCharges?: number;
+  active?: boolean;
+}) {
+  const supabase = getAdminClient();
+  const patch: DbRow = {};
+  if (input.stateId !== undefined) patch.state_id = input.stateId;
+  if (input.cityId !== undefined) patch.city_id = input.cityId;
+  if (input.rtoId !== undefined) patch.rto_id = optionalText(input.rtoId);
+  if (input.registrationFee !== undefined) patch.registration_fee = input.registrationFee;
+  if (input.smartCardFee !== undefined) patch.smart_card_fee = input.smartCardFee;
+  if (input.numberPlateFee !== undefined) patch.number_plate_fee = input.numberPlateFee;
+  if (input.hypothecationFee !== undefined) patch.hypothecation_fee = input.hypothecationFee;
+  if (input.fastagFee !== undefined) patch.fastag_fee = input.fastagFee;
+  if (input.handlingCharges !== undefined) patch.handling_charges = input.handlingCharges;
+  if (input.active !== undefined) patch.active = input.active;
+
+  const { data, error } = await supabase.from("rto_charges").update(patch).eq("id", input.id).select("*").single();
+  if (error) throw error;
+  revalidatePath("/admin");
+  revalidatePath("/admin/rto-charges");
+  return mapRtoCharge(data as DbRow);
 }

@@ -24,7 +24,7 @@ export function BrandLockup({
     <span className={`inline-flex flex-col ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className={`${sizeClasses[size]} w-auto object-contain`} src="/gaadieasy-logo.png" alt="GaadiEasy" />
-      
+      {showTagline ? <span className="mt-1 text-xs font-medium text-slate-500">On-road pricing platform</span> : null}
     </span>
   );
 

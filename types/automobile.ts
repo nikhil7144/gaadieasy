@@ -152,7 +152,22 @@ export type City = {
   name: string;
   slug: string;
   defaultRtoId: string;
+  tier?: string;
+  isMetro?: boolean;
+  rtoStateCode?: string;
 };
+
+export type PricingVehicleClass =
+  | "car"
+  | "bike"
+  | "scooter"
+  | "ev_two_wheeler"
+  | "commercial_loading"
+  | "commercial_passenger"
+  | "ev_commercial_loading"
+  | "ev_commercial_passenger"
+  | "passenger_ev"
+  | "loading_ev";
 
 export type RtoOffice = {
   id: string;
@@ -196,6 +211,25 @@ export type InsuranceRule = {
   fuelType?: VehicleVariant["fuelType"];
   percentOfExShowroom: number;
   fixedAmount: number;
+  active: boolean;
+};
+
+export type GstRule = {
+  id: string;
+  vehicleClass: PricingVehicleClass;
+  gstPercent: number;
+  active: boolean;
+};
+
+export type RegistrationFeeRule = {
+  id: string;
+  vehicleClass: PricingVehicleClass;
+  registrationFee: number;
+  smartCardFee: number;
+  numberPlateFee: number;
+  hypothecationFee: number;
+  fastagFee: number;
+  handlingCharges: number;
   active: boolean;
 };
 
@@ -327,6 +361,8 @@ export type SeoPage = {
 
 export type PriceBreakdown = {
   exShowroomPrice: number;
+  gstPercent?: number;
+  gstAmount?: number;
   roadTax: number;
   registrationFee: number;
   insurance: number;

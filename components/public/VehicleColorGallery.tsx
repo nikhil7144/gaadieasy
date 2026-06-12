@@ -78,10 +78,10 @@ export function VehicleColorGallery({ colors, colorHexMap, media, photoPageHref 
           ) : null}
         </div>
       </div>
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+      <div className="mt-4 flex flex-wrap gap-2">
         {colorOptions.map((color) => (
           <button
-            className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm font-bold ${
+            className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-left text-sm font-bold ${
               activeColor === color ? "border-emerald-500 bg-emerald-50 text-emerald-800" : "border-slate-200 text-slate-700"
             }`}
             onClick={() => setSelectedColor(color)}
@@ -89,7 +89,7 @@ export function VehicleColorGallery({ colors, colorHexMap, media, photoPageHref 
             key={color}
           >
             <span className="h-4 w-4 rounded-full border border-slate-200" style={{ background: colorValue(color, colorHexMap) }} />
-            {color}
+            <span className="break-words">{color}</span>
           </button>
         ))}
       </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HeaderSearch } from "@/components/public/HeaderSearch";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 
 const vehicleTypes = [
@@ -14,9 +15,26 @@ const vehicleTypes = [
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-emerald-100 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <BrandLockup href="/" showTagline />
-        <nav className="order-3 flex w-full gap-2 overflow-x-auto md:order-none md:w-auto">
+      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="shrink-0">
+            <BrandLockup href="/" showTagline />
+          </div>
+          <div className="flex min-w-0 flex-1 items-center justify-center">
+            <HeaderSearch />
+          </div>
+          <nav className="hidden shrink-0 items-center gap-6 text-sm font-medium text-slate-600 lg:flex">
+            <Link className="transition hover:text-slate-950" href="/seo/hyundai-creta-on-road-price-in-bangalore">
+              City pages
+            </Link>
+            <Link className="transition hover:text-slate-950" href="/compare">
+              Compare
+            </Link>
+          </nav>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <nav className="flex min-w-0 flex-1 gap-2 overflow-x-auto">
           {vehicleTypes.map(([label, href]) => (
             <Link
               className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 transition hover:bg-lime-300 hover:text-slate-950"
@@ -26,18 +44,8 @@ export function SiteHeader() {
               {label}
             </Link>
           ))}
-        </nav>
-        <nav className="hidden items-center gap-5 text-sm font-medium text-slate-600 lg:flex">
-          <Link href="/on-road-price">On-road price</Link>
-          <Link href="/seo/hyundai-creta-on-road-price-in-bangalore">City pages</Link>
-          <Link href="/compare">Compare</Link>
-        </nav>
-        <Link
-          href="/on-road-price"
-          className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 shadow-sm shadow-emerald-200 transition hover:bg-lime-400"
-        >
-          Check price
-        </Link>
+          </nav>
+        </div>
       </div>
     </header>
   );

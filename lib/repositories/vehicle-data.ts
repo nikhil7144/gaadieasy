@@ -4,10 +4,12 @@ import {
   cities as seedCities,
   dealerBrandMappings as seedDealerBrandMappings,
   dealers as seedDealers,
+  gstRules as seedGstRules,
   heroPromotions as seedHeroPromotions,
   insuranceRules as seedInsuranceRules,
   models as seedModels,
   offers as seedOffers,
+  registrationFeeRules as seedRegistrationFeeRules,
   rtoCharges as seedRtoCharges,
   rtoOffices as seedRtoOffices,
   states as seedStates,
@@ -23,9 +25,11 @@ import type {
   DealerBusiness,
   DealerBrandMapping,
   DealerUser,
+  GstRule,
   InsuranceRule,
   Offer,
   HeroPromotion,
+  RegistrationFeeRule,
   RtoCharge,
   RtoOffice,
   State,
@@ -48,6 +52,8 @@ export type VehicleDataSet = {
   taxRules: StateTaxRule[];
   rtoCharges: RtoCharge[];
   insuranceRules: InsuranceRule[];
+  gstRules: GstRule[];
+  registrationFeeRules: RegistrationFeeRule[];
   dealerBusinesses: DealerBusiness[];
   dealers: Dealer[];
   dealerUsers: DealerUser[];
@@ -70,6 +76,8 @@ const seedDataSet: VehicleDataSet = {
   taxRules: seedTaxRules,
   rtoCharges: seedRtoCharges,
   insuranceRules: seedInsuranceRules,
+  gstRules: seedGstRules,
+  registrationFeeRules: seedRegistrationFeeRules,
   dealerBusinesses: [],
   dealers: seedDealers,
   dealerUsers: [],
@@ -234,6 +242,9 @@ function mapCity(row: DbRow): City {
     name: stringValue(row, "name"),
     slug: stringValue(row, "slug"),
     defaultRtoId: stringValue(row, "default_rto_id"),
+    tier: optionalString(row, "tier"),
+    isMetro: booleanValue(row, "is_metro"),
+    rtoStateCode: optionalString(row, "rto_state_code"),
   };
 }
 
@@ -286,6 +297,29 @@ function mapInsuranceRule(row: DbRow): InsuranceRule {
     fuelType: optionalString(row, "fuel_type") as InsuranceRule["fuelType"],
     percentOfExShowroom: numberValue(row, "percent_of_ex_showroom"),
     fixedAmount: numberValue(row, "fixed_amount"),
+    active: booleanValue(row, "active", true),
+  };
+}
+
+function mapGstRule(row: DbRow): GstRule {
+  return {
+    id: stringValue(row, "id"),
+    vehicleClass: stringValue(row, "vehicle_class") as GstRule["vehicleClass"],
+    gstPercent: numberValue(row, "gst_percent"),
+    active: booleanValue(row, "active", true),
+  };
+}
+
+function mapRegistrationFeeRule(row: DbRow): RegistrationFeeRule {
+  return {
+    id: stringValue(row, "id"),
+    vehicleClass: stringValue(row, "vehicle_class") as RegistrationFeeRule["vehicleClass"],
+    registrationFee: numberValue(row, "registration_fee"),
+    smartCardFee: numberValue(row, "smart_card_fee"),
+    numberPlateFee: numberValue(row, "number_plate_fee"),
+    hypothecationFee: numberValue(row, "hypothecation_fee"),
+    fastagFee: numberValue(row, "fastag_fee"),
+    handlingCharges: numberValue(row, "handling_charges"),
     active: booleanValue(row, "active", true),
   };
 }
@@ -380,6 +414,8 @@ export async function getVehicleDataSet(): Promise<VehicleDataSet> {
     taxRules,
     rtoCharges,
     insuranceRules,
+    gstRules,
+    registrationFeeRules,
     dealerBusinesses,
     dealers,
     dealerUsers,
@@ -398,6 +434,8 @@ export async function getVehicleDataSet(): Promise<VehicleDataSet> {
     readTable("state_tax_rules"),
     readTable("rto_charges"),
     readTable("insurance_rules"),
+    readTable("gst_rules"),
+    readTable("registration_fee_rules"),
     readTable("dealer_businesses"),
     readTable("dealers"),
     readTable("dealer_users"),
@@ -422,6 +460,8 @@ export async function getVehicleDataSet(): Promise<VehicleDataSet> {
     taxRules: taxRules?.map(mapTaxRule) ?? [],
     rtoCharges: rtoCharges?.map(mapRtoCharge) ?? [],
     insuranceRules: insuranceRules?.map(mapInsuranceRule) ?? [],
+    gstRules: gstRules?.map(mapGstRule) ?? seedGstRules,
+    registrationFeeRules: registrationFeeRules?.map(mapRegistrationFeeRule) ?? seedRegistrationFeeRules,
     dealerBusinesses: dealerBusinesses?.map(mapDealerBusiness) ?? [],
     dealers: dealers?.map(mapDealer) ?? [],
     dealerUsers: dealerUsers?.map(mapDealerUser) ?? [],

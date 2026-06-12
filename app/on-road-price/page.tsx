@@ -60,8 +60,12 @@ export default async function OnRoadPricePage({
       <main>
         <section className="relative overflow-hidden bg-slate-950 text-white">
           <div className="absolute inset-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="h-full w-full object-cover opacity-30" src={heroImage} alt={`${pricing.brand.name} ${pricing.model.name}`} />
+            {heroImage ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="h-full w-full object-cover opacity-30" src={heroImage} alt={`${pricing.brand.name} ${pricing.model.name}`} />
+              </>
+            ) : null}
             <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-emerald-950/60" />
           </div>
           <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[.92fr_1.08fr] lg:py-14">
@@ -157,7 +161,34 @@ export default async function OnRoadPricePage({
                 </div>
                 <span className="rounded-full bg-lime-300 px-3 py-1 text-xs font-black text-slate-950">{modelVariants.length} variants</span>
               </div>
-              <div className="mt-4 overflow-x-auto">
+              <div className="mt-4 space-y-3 md:hidden">
+                {variantPrices.map((item) => {
+                  const active = item.variant.id === pricing.variant.id;
+                  return (
+                    <a
+                      className={`block rounded-lg border p-3 text-sm ${active ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}
+                      href={`/on-road-price?brand=${pricing.brand.slug}&model=${pricing.model.slug}&variant=${item.variant.slug}&city=${pricing.city.slug}`}
+                      key={item.variant.id}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-black text-slate-950 break-words">{item.variant.name}</div>
+                          <div className="mt-1 text-slate-600">
+                            {item.variant.fuelType} · {item.variant.transmission}
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-white">
+                          {active ? "Selected" : "View"}
+                        </span>
+                      </div>
+                      <div className="mt-3 text-lg font-black text-slate-950">
+                        {formatShortPrice(item.breakdown.totalOnRoadPrice)}
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+              <div className="mt-4 hidden overflow-x-auto md:block">
                 <div className="min-w-[640px] divide-y divide-slate-100">
                   {variantPrices.map((item) => {
                     const active = item.variant.id === pricing.variant.id;
