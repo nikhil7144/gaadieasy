@@ -734,7 +734,7 @@ export function VehicleDiscoverClient({
                   <p className="mt-1 text-xs text-slate-400">Search and select one or more brands.</p>
                 </div>
                 <div className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-lime-300">
-                  {selectedBrands.length || brandList.length}
+                  {selectedBrands.length ? selectedBrands.length : "All"}
                 </div>
               </div>
               <div className="mt-4 rounded-lg border border-white/10 bg-slate-900 px-3 py-2">

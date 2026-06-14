@@ -333,8 +333,7 @@ function commercialText(model: DiscoveryModel) {
     .toLowerCase();
 }
 
-function variantPowerNumber(model: DiscoveryModel) {
-  const variant = model.variants[0];
+function variantPowerNumberFromVariant(variant?: VehicleVariant) {
   const engine = variant?.specifications?.engine as Record<string, unknown> | undefined;
   const bike = variant?.specifications?.bike as Record<string, unknown> | undefined;
   const commercial = variant?.specifications?.commercial as Record<string, unknown> | undefined;
@@ -351,6 +350,10 @@ function variantPowerNumber(model: DiscoveryModel) {
   }
 
   return undefined;
+}
+
+function variantPowerNumber(model: DiscoveryModel) {
+  return variantPowerNumberFromVariant(model.variants[0]);
 }
 
 function inferredLoaderSize(model: DiscoveryModel) {
@@ -515,42 +518,61 @@ export function modelSearchText(model: DiscoveryModel) {
 }
 
 export function matchesDiscoveryFilter(model: DiscoveryModel, filter: DiscoveryFilter) {
-  const variant = model.variants[0];
   const text = modelSearchText(model);
   const label = filter.label.toLowerCase();
   const slug = filter.slug.toLowerCase();
-  const engineCc = engineNumber(variant?.engineCapacity);
-  const power = variantPowerNumber(model);
-  const price = variant?.exShowroomPrice ?? 0;
+  const variants = model.variants ?? [];
 
   if (slug === "dealer-offers") return true;
   if (slug === "small-loader") return inferredLoaderSize(model) === "small";
   if (slug === "medium-loader") return inferredLoaderSize(model) === "medium";
   if (slug === "large-loader") return inferredLoaderSize(model) === "large";
   if (slug === "trucks") return text.includes("truck") || text.includes("haulage") || text.includes("tipper");
-  if (slug === "automatic" || slug === "manual") return variant?.transmission.toLowerCase() === slug;
-  if (["electric", "diesel", "petrol", "cng", "lng"].includes(slug)) return variant?.fuelType.toLowerCase() === slug || text.includes(slug);
-  if (slug === "5-seater") return variant?.seatingCapacity === 5;
-  if (slug === "6-seater") return variant?.seatingCapacity === 6;
-  if (slug === "7-seater") return variant?.seatingCapacity === 7;
-  if (slug === "under-8-lakh") return price > 0 && price < 800000;
-  if (slug === "8-15-lakh") return price >= 800000 && price <= 1500000;
-  if (slug === "15-25-lakh") return price > 1500000 && price <= 2500000;
-  if (slug === "above-25-lakh") return price > 2500000;
-  if (slug === "under-1-lakh") return price > 0 && price < 100000;
-  if (slug === "1-2-lakh") return price >= 100000 && price <= 200000;
-  if (slug === "2-5-lakh") return price > 200000 && price <= 500000;
-  if (slug === "above-5-lakh") return price > 500000;
-  if (slug === "under-125cc") return typeof engineCc === "number" && engineCc < 125;
-  if (slug === "under-250cc") return typeof engineCc === "number" && engineCc < 250;
-  if (slug === "200cc-plus") return typeof engineCc === "number" && engineCc >= 200;
-  if (slug === "250-500cc") return typeof engineCc === "number" && engineCc >= 250 && engineCc < 500;
-  if (slug === "above-500cc") return typeof engineCc === "number" && engineCc >= 500;
-  if (slug === "above-650cc") return typeof engineCc === "number" && engineCc >= 650;
-  if (slug === "above-900cc") return typeof engineCc === "number" && engineCc >= 900;
-  if (slug === "under-20-ps") return typeof power === "number" && power < 20;
-  if (slug === "20-40-ps") return typeof power === "number" && power >= 20 && power <= 40;
-  if (slug === "above-40-ps") return typeof power === "number" && power > 40;
+  if (slug === "automatic" || slug === "manual") {
+    return variants.some((variant) => variant?.transmission?.toLowerCase() === slug);
+  }
+  if (["electric", "diesel", "petrol", "cng", "lng"].includes(slug)) {
+    return variants.some((variant) => variant?.fuelType?.toLowerCase() === slug) || text.includes(slug);
+  }
+  if (slug === "5-seater") return variants.some((variant) => variant?.seatingCapacity === 5);
+  if (slug === "6-seater") return variants.some((variant) => variant?.seatingCapacity === 6);
+  if (slug === "7-seater") return variants.some((variant) => variant?.seatingCapacity === 7);
+
+  const priceMatches = variants.some((variant) => {
+    const price = variant?.exShowroomPrice ?? 0;
+    if (slug === "under-8-lakh") return price > 0 && price < 800000;
+    if (slug === "8-15-lakh") return price >= 800000 && price <= 1500000;
+    if (slug === "15-25-lakh") return price > 1500000 && price <= 2500000;
+    if (slug === "above-25-lakh") return price > 2500000;
+    if (slug === "under-1-lakh") return price > 0 && price < 100000;
+    if (slug === "1-2-lakh") return price >= 100000 && price <= 200000;
+    if (slug === "2-5-lakh") return price > 200000 && price <= 500000;
+    if (slug === "above-5-lakh") return price > 500000;
+    return false;
+  });
+  if (priceMatches) return true;
+
+  const engineCcMatches = variants.some((variant) => {
+    const engineCc = engineNumber(variant?.engineCapacity);
+    if (slug === "under-125cc") return typeof engineCc === "number" && engineCc < 125;
+    if (slug === "under-250cc") return typeof engineCc === "number" && engineCc < 250;
+    if (slug === "200cc-plus") return typeof engineCc === "number" && engineCc >= 200;
+    if (slug === "250-500cc") return typeof engineCc === "number" && engineCc >= 250 && engineCc < 500;
+    if (slug === "above-500cc") return typeof engineCc === "number" && engineCc >= 500;
+    if (slug === "above-650cc") return typeof engineCc === "number" && engineCc >= 650;
+    if (slug === "above-900cc") return typeof engineCc === "number" && engineCc >= 900;
+    return false;
+  });
+  if (engineCcMatches) return true;
+
+  const powerMatches = variants.some((variant) => {
+    const power = variantPowerNumberFromVariant(variant);
+    if (slug === "under-20-ps") return typeof power === "number" && power < 20;
+    if (slug === "20-40-ps") return typeof power === "number" && power >= 20 && power <= 40;
+    if (slug === "above-40-ps") return typeof power === "number" && power > 40;
+    return false;
+  });
+  if (powerMatches) return true;
 
   return text.includes(label) || text.includes(slugText(slug));
 }

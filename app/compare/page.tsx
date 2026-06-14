@@ -1,8 +1,17 @@
+import type { Metadata } from "next";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { brands, cities, models, variants } from "@/lib/data";
 import { calculateOnRoadPrice } from "@/lib/services/pricing";
 import { formatShortPrice } from "@/lib/utils/format";
+
+export const metadata: Metadata = {
+  title: "Vehicle comparison",
+  description: "Compare vehicle prices, specs, safety and ownership cost side by side before you buy.",
+  alternates: {
+    canonical: "/compare",
+  },
+};
 
 export default function ComparePage() {
   const city = cities[0];

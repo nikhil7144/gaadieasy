@@ -21,7 +21,9 @@ export function SiteHeader() {
             <BrandLockup href="/" showTagline />
           </div>
           <div className="flex min-w-0 flex-1 items-center justify-center">
-            <HeaderSearch />
+            <div className="w-full max-w-[760px]">
+              <HeaderSearch />
+            </div>
           </div>
           <nav className="hidden shrink-0 items-center gap-6 text-sm font-medium text-slate-600 lg:flex">
             <Link className="transition hover:text-slate-950" href="/seo/hyundai-creta-on-road-price-in-bangalore">
@@ -34,7 +36,7 @@ export function SiteHeader() {
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-3">
-          <nav className="flex min-w-0 flex-1 gap-2 overflow-x-auto">
+          <nav className="flex min-w-0 flex-1 flex-wrap gap-2 overflow-x-auto pb-1">
           {vehicleTypes.map(([label, href]) => (
             <Link
               className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 transition hover:bg-lime-300 hover:text-slate-950"

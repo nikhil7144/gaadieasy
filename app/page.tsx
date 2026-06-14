@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { BrandLogo } from "@/components/public/BrandLogo";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
+import { BrandShowcase } from "@/components/public/BrandShowcase";
 import { HomeVehicleDiscovery, HomepageQuickFilterSections } from "@/components/public/HomeVehicleDiscovery";
 import { PricingExplorer } from "@/components/public/PricingExplorer";
 import { VehicleImage } from "@/components/public/VehicleImage";
@@ -11,6 +13,14 @@ import { getPublicHomepageDataForApi } from "@/lib/services/public-data";
 import { getSeoPagesForNavigation } from "@/lib/services/seo";
 import { formatShortPrice } from "@/lib/utils/format";
 import type { Brand, VehicleModel, VehicleVariant } from "@/types/automobile";
+
+export const metadata: Metadata = {
+  title: "On-Road Vehicle Price Calculator",
+  description: "Compare cars, bikes, scooters, EVs and commercial vehicles with city-wise on-road pricing and dealer offers.",
+  alternates: {
+    canonical: "/",
+  },
+};
 
 type HomeModel = VehicleModel & {
   brand?: Brand;
@@ -55,6 +65,7 @@ export default async function Home({
       promotion.categoryKey === selectedType &&
       (promotion.placement ?? "homepage_hero") === "homepage_hero",
   );
+  const heroImageUrl = heroPromotion?.imageUrl?.trim() || heroModel?.imageUrl?.trim() || "";
   const heroStats = [
     {
       value: heroPromotion?.stat1Value ?? `${data.brands.length}+`,
@@ -101,12 +112,23 @@ export default async function Home({
               href={heroPromotion?.targetUrl ?? modelPriceHref(heroModel)}
             >
               <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-slate-800">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  src={heroPromotion?.imageUrl ?? heroModel?.imageUrl}
-                  alt={heroPromotion?.title ?? `${activeTypeLabel} discovery`}
-                />
+                {heroImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    src={heroImageUrl}
+                    alt={heroPromotion?.title ?? `${activeTypeLabel} discovery`}
+                  />
+                ) : (
+                  <div className="grid h-full w-full place-items-center bg-slate-900 text-center">
+                    <div className="px-4">
+                      <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-lime-300 text-xl font-black text-slate-950">
+                        {activeTypeLabel.slice(0, 1)}
+                      </div>
+                      <div className="mt-3 text-sm font-black text-emerald-50">Image pending</div>
+                    </div>
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4 right-4">
                   {heroPromotion?.eyebrow ? (
@@ -150,30 +172,11 @@ export default async function Home({
           />
         </div>
 
-        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-bold text-emerald-700">Browse by brand</p>
-              <h2 className="mt-1 text-3xl font-black text-slate-950">{activeTypeLabel} brands</h2>
-            </div>
-            <Link className="hidden text-sm font-bold text-emerald-700 md:block" href={`/discover?type=${selectedType}&city=${defaultCitySlug}`}>View all</Link>
-          </div>
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-            {selectedBrands.slice(0, 6).map((brand) => (
-              <a
-                className="group rounded-lg border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:-translate-y-1 hover:border-emerald-300 hover:shadow-md"
-                href={`/brands/${brand.slug}`}
-                key={brand.id}
-              >
-                <div className="mx-auto grid h-16 place-items-center">
-                  <BrandLogo className="h-14 w-28" name={brand.name} logoUrl={brand.logoUrl} />
-                </div>
-                <div className="mt-3 text-sm font-black text-slate-950">{brand.name}</div>
-                <div className="mt-1 text-xs font-semibold text-slate-500">View prices</div>
-              </a>
-            ))}
-          </div>
-        </section>
+        <BrandShowcase
+          brands={selectedBrands}
+          eyebrow="Browse by brand"
+          heading={`${activeTypeLabel} brands`}
+        />
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
           <div className="flex items-end justify-between gap-4">
@@ -221,8 +224,7 @@ export default async function Home({
               <Link className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg" href={`/compare/${comparison.page.slug}`} key={comparison.page.id}>
                 <div className="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
                     <div className="overflow-hidden rounded-lg bg-slate-100">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img className="aspect-[4/3] w-full object-cover" src={firstVehicle.model.imageUrl} alt={firstVehicle.model.name} />
+                      <VehicleImage className="aspect-[4/3] w-full object-cover" src={firstVehicle.model.imageUrl} alt={firstVehicle.model.name} />
                       <div className="p-3">
                         <div className="text-xs font-bold text-emerald-700">{firstVehicle.brand.name}</div>
                         <div className="font-black text-slate-950">{firstVehicle.model.name}</div>
@@ -230,8 +232,7 @@ export default async function Home({
                     </div>
                     <div className="mx-auto rounded-full bg-lime-300 px-3 py-2 text-sm font-black text-slate-950">VS</div>
                     <div className="overflow-hidden rounded-lg bg-slate-100">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img className="aspect-[4/3] w-full object-cover" src={secondVehicle.model.imageUrl} alt={secondVehicle.model.name} />
+                      <VehicleImage className="aspect-[4/3] w-full object-cover" src={secondVehicle.model.imageUrl} alt={secondVehicle.model.name} />
                       <div className="p-3">
                         <div className="text-xs font-bold text-emerald-700">{secondVehicle.brand.name}</div>
                         <div className="font-black text-slate-950">{secondVehicle.model.name}</div>

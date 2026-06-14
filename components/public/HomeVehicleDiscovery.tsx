@@ -492,51 +492,49 @@ function SearchableQuickFilters({
   const searchHref = `/discover?${searchParams.toString()}`;
 
   return (
-    <div className="mt-6 overflow-hidden rounded-lg border border-slate-800 bg-slate-950 shadow-sm">
-      <div className="grid gap-4 border-b border-white/10 px-5 py-4 lg:grid-cols-[1fr_auto] lg:items-center">
+    <div className="mt-6 rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-5">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-black uppercase tracking-wide text-lime-300">Quick filters</p>
+            <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Quick filters</p>
             {selectedFilterObjects.length ? (
-              <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-emerald-50">
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
                 {selectedFilterObjects.length} selected
               </span>
             ) : null}
           </div>
-          <h3 className="mt-1 text-xl font-black text-white">Choose filters</h3>
+          <h3 className="mt-1 text-lg font-black text-slate-950">Refine by what matters</h3>
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {selectedFilters.length ? (
             <button
-              className="rounded-full border border-white/15 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/10"
-              onClick={() => {
-                setSelectedFilters([]);
-              }}
+              className="rounded-full border border-slate-200 px-3.5 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              onClick={() => setSelectedFilters([])}
               type="button"
             >
               Reset
             </button>
           ) : null}
-          <Link
-            className="rounded-full bg-lime-300 px-5 py-2.5 text-sm font-black text-slate-950 shadow-sm transition hover:bg-lime-200 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500"
-            aria-disabled={!selectedFilters.length}
-            href={searchHref}
+          <button
+            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800"
+            onClick={() => setShowAllFilters((value) => !value)}
+            type="button"
           >
-            Search models
-          </Link>
+            {showAllFilters ? "Hide filters" : `Show filters${hiddenFilterCount ? ` (${hiddenFilterCount})` : ""}`}
+          </button>
         </div>
       </div>
 
-      <div className="px-5 py-4">
-        <div className="flex flex-wrap gap-2.5">
+      <div className="px-4 py-4 sm:px-5">
+        <div className="flex flex-wrap gap-2">
           {visibleFilters.map((filter) => {
             const selected = selectedFilters.includes(filter.slug);
             return (
               <button
-                className={`rounded-full px-4 py-2 text-sm font-black transition ${
+                className={`rounded-full border px-3.5 py-2 text-sm font-black transition ${
                   selected
-                    ? "bg-lime-300 text-slate-950 shadow-sm"
-                    : "bg-white/10 text-slate-100 hover:bg-white/15"
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
                 }`}
                 onClick={() =>
                   setSelectedFilters((current) =>
@@ -552,17 +550,19 @@ function SearchableQuickFilters({
               </button>
             );
           })}
-          {hiddenFilterCount || showAllFilters ? (
-            <button
-              className="rounded-full bg-white/10 px-4 py-2 text-sm font-black text-lime-300 hover:bg-white/15"
-              onClick={() => setShowAllFilters((value) => !value)}
-              type="button"
-            >
-              {showAllFilters ? "Show less" : `More filters (${hiddenFilterCount})`}
-            </button>
-          ) : null}
         </div>
 
+        {selectedFilters.length ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+            <p className="text-sm font-semibold text-slate-600">Ready to view matching models?</p>
+            <Link
+              className="inline-flex items-center rounded-full bg-lime-300 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-lime-200"
+              href={searchHref}
+            >
+              Search models
+            </Link>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -570,10 +570,11 @@ function SearchableQuickFilters({
 
 function BrowseByTabs({ citySlug, title, typeKey, tabs }: { citySlug: string; title: string; typeKey: string; tabs: BrowseTab[] }) {
   const [activeTabLabel, setActiveTabLabel] = useState(tabs[0]?.label ?? "");
-  const [showAllBrands, setShowAllBrands] = useState(false);
+  const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
   const activeTab = tabs.find((tab) => tab.label === activeTabLabel) ?? tabs[0];
   const isBrandTab = activeTab.label === "Brand";
-  const visibleItems = isBrandTab && showAllBrands ? activeTab.items : activeTab.items.slice(0, 6);
+  const previewCount = 10;
+  const visibleItems = activeTab.items.slice(0, previewCount);
   const viewAllHref = `/discover?type=${typeKey}&city=${citySlug}`;
   const hiddenCount = Math.max(activeTab.items.length - visibleItems.length, 0);
 
@@ -603,7 +604,7 @@ function BrowseByTabs({ citySlug, title, typeKey, tabs }: { citySlug: string; ti
             }`}
             onClick={() => {
               setActiveTabLabel(tab.label);
-              setShowAllBrands(false);
+              setIsBrandModalOpen(false);
             }}
             type="button"
             key={tab.label}
@@ -614,48 +615,87 @@ function BrowseByTabs({ citySlug, title, typeKey, tabs }: { citySlug: string; ti
       </div>
       <div className="p-5">
         <div className="overflow-hidden rounded-lg border border-slate-200">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          {visibleItems.map((item) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+            {visibleItems.map((item) => (
+              <a
+                className="group grid min-h-36 place-items-center border-b border-r border-slate-200 p-4 text-center transition hover:bg-emerald-50"
+                href={browseHref(item.href, citySlug)}
+                key={item.label}
+              >
+                <div>
+                  <div className="mb-3 grid h-16 place-items-center">
+                    <BrandLogo className="mx-auto h-14 w-28" name={item.label} logoUrl={item.logoUrl} />
+                  </div>
+                  <div className="text-base font-black leading-tight text-slate-950">{item.label}</div>
+                  {item.subtitle ? (
+                    <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">{item.subtitle}</div>
+                  ) : null}
+                  <div className="mt-2 text-xs font-black text-emerald-700 opacity-0 transition group-hover:opacity-100">
+                    View models
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+          {isBrandTab ? (
+            activeTab.items.length > previewCount ? (
+              <button
+                className="block w-full bg-slate-50 px-5 py-4 text-center text-sm font-black text-emerald-700 hover:bg-emerald-50"
+                onClick={() => setIsBrandModalOpen(true)}
+                type="button"
+              >
+                See more brands ({hiddenCount} more)
+              </button>
+            ) : null
+          ) : (
             <a
-              className="group grid min-h-36 place-items-center border-b border-r border-slate-200 p-4 text-center transition hover:bg-emerald-50"
-              href={browseHref(item.href, citySlug)}
-              key={item.label}
+              className="block bg-slate-50 px-5 py-4 text-center text-sm font-black text-emerald-700 hover:bg-emerald-50"
+              href={viewAllHref}
             >
-              <div>
-                <div className="mb-3 grid h-16 place-items-center">
-                  <BrandLogo className="mx-auto h-14 w-28" name={item.label} logoUrl={item.logoUrl} />
-                </div>
-                <div className="text-base font-black leading-tight text-slate-950">{item.label}</div>
-                {item.subtitle ? (
-                  <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">{item.subtitle}</div>
-                ) : null}
-                <div className="mt-2 text-xs font-black text-emerald-700 opacity-0 transition group-hover:opacity-100">
-                  View models
-                </div>
-              </div>
+              View all
             </a>
-          ))}
-        </div>
-        {isBrandTab ? (
-          activeTab.items.length > 6 ? (
-            <button
-              className="block w-full bg-slate-50 px-5 py-4 text-center text-sm font-black text-emerald-700 hover:bg-emerald-50"
-              onClick={() => setShowAllBrands((value) => !value)}
-              type="button"
-            >
-              {showAllBrands ? "Show fewer brands" : `View all brands (${hiddenCount} more)`}
-            </button>
-          ) : null
-        ) : (
-          <a
-            className="block bg-slate-50 px-5 py-4 text-center text-sm font-black text-emerald-700 hover:bg-emerald-50"
-            href={viewAllHref}
-          >
-            View all
-          </a>
-        )}
+          )}
         </div>
       </div>
+
+      {isBrandModalOpen && isBrandTab ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm" onClick={() => setIsBrandModalOpen(false)}>
+          <div className="w-full max-w-5xl rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl sm:p-6" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold text-emerald-700">Smart quick filters</p>
+                <h4 className="mt-1 text-2xl font-black text-slate-950">All {title.toLowerCase()} brands</h4>
+              </div>
+              <button className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950" onClick={() => setIsBrandModalOpen(false)} type="button" aria-label="Close brands list">
+                ×
+              </button>
+            </div>
+
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Browse every brand in this section and jump to the relevant price or discovery page.
+            </p>
+
+            <div className="mt-6 grid max-h-[60vh] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4">
+              {activeTab.items.map((item) => (
+                <a
+                  className="group rounded-lg border border-slate-200 bg-slate-50 p-4 text-center shadow-sm transition hover:-translate-y-1 hover:border-emerald-300 hover:bg-white"
+                  href={browseHref(item.href, citySlug)}
+                  key={item.label}
+                  onClick={() => setIsBrandModalOpen(false)}
+                >
+                  <div className="mb-3 grid h-16 place-items-center">
+                    <BrandLogo className="mx-auto h-14 w-28" name={item.label} logoUrl={item.logoUrl} />
+                  </div>
+                  <div className="text-base font-black leading-tight text-slate-950">{item.label}</div>
+                  {item.subtitle ? (
+                    <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">{item.subtitle}</div>
+                  ) : null}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

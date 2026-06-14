@@ -65,27 +65,30 @@ export function PricingExplorer({
 
   return (
     <section className="overflow-hidden rounded-lg border border-emerald-100 bg-white p-4 shadow-sm md:p-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         <div className="min-w-0">
-        <select className="block min-w-0 w-full truncate rounded-md border border-slate-200 px-3 py-3 text-sm" value={activeBrandId} onChange={(event) => setBrandChoice(event.target.value)}>
-          {!filteredBrands.length ? <option value="">Brands coming soon</option> : null}
-          {filteredBrands.map((brand) => <option value={brand.id} key={brand.id}>{brand.name}</option>)}
-        </select>
+          <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Brand</label>
+          <select className="block min-w-0 w-full truncate rounded-md border border-slate-200 px-3 py-3 text-sm" value={activeBrandId} onChange={(event) => setBrandChoice(event.target.value)}>
+            {!filteredBrands.length ? <option value="">Brands coming soon</option> : null}
+            {filteredBrands.map((brand) => <option value={brand.id} key={brand.id}>{brand.name}</option>)}
+          </select>
         </div>
         <div className="min-w-0">
-        <select className="block min-w-0 w-full truncate rounded-md border border-slate-200 px-3 py-3 text-sm" value={activeModelId} onChange={(event) => setModelChoice(event.target.value)}>
-          {!brandModels.length ? <option value="">Select a model</option> : null}
-          {brandModels.map((model) => <option value={model.id} key={model.id}>{model.name}</option>)}
-        </select>
+          <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Model</label>
+          <select className="block min-w-0 w-full truncate rounded-md border border-slate-200 px-3 py-3 text-sm" value={activeModelId} onChange={(event) => setModelChoice(event.target.value)}>
+            {!brandModels.length ? <option value="">Select a model</option> : null}
+            {brandModels.map((model) => <option value={model.id} key={model.id}>{model.name}</option>)}
+          </select>
         </div>
         <div className="min-w-0">
-        <select className="block min-w-0 w-full truncate rounded-md border border-slate-200 px-3 py-3 text-sm" value={activeCitySlug} onChange={(event) => setCityChoice(event.target.value)}>
-          {!cities.length ? <option value="">Cities coming soon</option> : null}
-          {cities.map((city) => <option value={city.slug} key={city.id}>{city.name}</option>)}
-        </select>
+          <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">City</label>
+          <select className="block min-w-0 w-full truncate rounded-md border border-slate-200 px-3 py-3 text-sm" value={activeCitySlug} onChange={(event) => setCityChoice(event.target.value)}>
+            {!cities.length ? <option value="">Cities coming soon</option> : null}
+            {cities.map((city) => <option value={city.slug} key={city.id}>{city.name}</option>)}
+          </select>
         </div>
         <a
-          className={`min-w-0 rounded-md px-4 py-3 text-center text-sm font-black text-slate-950 ${
+          className={`flex w-full items-center justify-center rounded-md px-4 py-3 text-center text-sm font-black text-slate-950 ${
             activeBrand && activeModel && activeCitySlug
               ? "bg-emerald-500 hover:bg-lime-400"
               : "pointer-events-none bg-slate-200 text-slate-500"

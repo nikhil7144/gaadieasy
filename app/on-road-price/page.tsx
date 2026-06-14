@@ -55,7 +55,7 @@ export default async function OnRoadPricePage({
       ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 pb-24 md:pb-0">
       <SiteHeader />
       <main>
         <section className="relative overflow-hidden bg-slate-950 text-white">

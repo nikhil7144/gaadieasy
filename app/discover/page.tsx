@@ -6,8 +6,11 @@ import { getDiscoveryDatasetForType } from "@/lib/services/discovery";
 import { getPublicDiscoveryDataForApi } from "@/lib/services/public-data";
 
 export const metadata: Metadata = {
-  title: "Discover vehicles by filters | AutoPrice",
+  title: "Discover vehicles by filters",
   description: "Filter cars, bikes and commercial vehicles by body type, fuel, seating, engine and offers before checking on-road price.",
+  alternates: {
+    canonical: "/discover",
+  },
 };
 
 export default async function DiscoverPage({
