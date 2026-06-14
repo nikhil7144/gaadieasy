@@ -570,9 +570,12 @@ function SearchableQuickFilters({
 
 function BrowseByTabs({ citySlug, title, typeKey, tabs }: { citySlug: string; title: string; typeKey: string; tabs: BrowseTab[] }) {
   const [activeTabLabel, setActiveTabLabel] = useState(tabs[0]?.label ?? "");
+  const [showAllBrands, setShowAllBrands] = useState(false);
   const activeTab = tabs.find((tab) => tab.label === activeTabLabel) ?? tabs[0];
-  const visibleItems = activeTab.items.slice(0, 6);
+  const isBrandTab = activeTab.label === "Brand";
+  const visibleItems = isBrandTab && showAllBrands ? activeTab.items : activeTab.items.slice(0, 6);
   const viewAllHref = `/discover?type=${typeKey}&city=${citySlug}`;
+  const hiddenCount = Math.max(activeTab.items.length - visibleItems.length, 0);
 
   return (
     <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -600,6 +603,7 @@ function BrowseByTabs({ citySlug, title, typeKey, tabs }: { citySlug: string; ti
             }`}
             onClick={() => {
               setActiveTabLabel(tab.label);
+              setShowAllBrands(false);
             }}
             type="button"
             key={tab.label}
@@ -632,12 +636,24 @@ function BrowseByTabs({ citySlug, title, typeKey, tabs }: { citySlug: string; ti
             </a>
           ))}
         </div>
-        <a
-          className="block bg-slate-50 px-5 py-4 text-center text-sm font-black text-emerald-700 hover:bg-emerald-50"
-          href={viewAllHref}
-        >
-          View all
-        </a>
+        {isBrandTab ? (
+          activeTab.items.length > 6 ? (
+            <button
+              className="block w-full bg-slate-50 px-5 py-4 text-center text-sm font-black text-emerald-700 hover:bg-emerald-50"
+              onClick={() => setShowAllBrands((value) => !value)}
+              type="button"
+            >
+              {showAllBrands ? "Show fewer brands" : `View all brands (${hiddenCount} more)`}
+            </button>
+          ) : null
+        ) : (
+          <a
+            className="block bg-slate-50 px-5 py-4 text-center text-sm font-black text-emerald-700 hover:bg-emerald-50"
+            href={viewAllHref}
+          >
+            View all
+          </a>
+        )}
         </div>
       </div>
     </div>
@@ -785,7 +801,7 @@ export function HomeVehicleDiscovery({
   const browseTabs = useMemo(() => {
     const brandItems = brands
       .filter((brand) => brand.active)
-      .slice(0, 6)
+      .sort((left, right) => Number(right.featured) - Number(left.featured) || left.name.localeCompare(right.name))
       .map((brand) => ({
         label: brand.name,
         subtitle: "Models and prices",

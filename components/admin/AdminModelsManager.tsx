@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileJson, Plus } from "lucide-react";
-import { adminFieldClass, parseFaqLines, postAdminJson, splitLines } from "@/components/admin/admin-form-utils";
+import { FileJson, Plus, Trash2 } from "lucide-react";
+import { adminFieldClass, deleteAdminJson, parseFaqLines, postAdminJson, splitLines } from "@/components/admin/admin-form-utils";
 import { slugify } from "@/lib/utils/format";
 import type { Brand, VehicleCategory, VehicleModel } from "@/types/automobile";
 
@@ -39,6 +39,8 @@ export function AdminModelsManager({
   const [importResult, setImportResult] = useState("");
   const [importError, setImportError] = useState("");
   const [importing, setImporting] = useState(false);
+  const [deletingModelId, setDeletingModelId] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,6 +107,25 @@ export function AdminModelsManager({
     }
   }
 
+  async function handleDeleteModel(model: VehicleModel) {
+    const confirmed = window.confirm(
+      `Delete ${model.name}?\n\nThis will delete the model, all its variants, media records and uploaded vehicle photos. This cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingModelId(model.id);
+    setDeleteError("");
+
+    try {
+      await deleteAdminJson("/api/admin/models", { id: model.id });
+      router.refresh();
+    } catch (caught) {
+      setDeleteError(caught instanceof Error ? caught.message : "Unable to delete model");
+    } finally {
+      setDeletingModelId("");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="grid gap-6 xl:grid-cols-[460px_1fr]">
@@ -157,18 +178,38 @@ export function AdminModelsManager({
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-xl font-black text-slate-950">Existing models</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase text-emerald-700">Model list</p>
+            <h2 className="text-xl font-black text-slate-950">Existing models</h2>
+          </div>
+          <p className="text-xs font-bold text-slate-500">{models.length} model{models.length === 1 ? "" : "s"}</p>
+        </div>
+        {deleteError ? <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{deleteError}</p> : null}
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {models.map((model) => (
-            <Link className="rounded-lg border border-slate-200 p-3 transition hover:border-emerald-200 hover:bg-emerald-50" href={`/admin/variants?modelId=${model.id}`} key={model.id}>
-              <div className="flex flex-wrap gap-2 text-xs font-black uppercase text-emerald-700">
-                <span>{model.bodyType}</span>
-                {model.loaderSize ? <span className="rounded-full bg-lime-100 px-2 text-lime-900">{model.loaderSize}</span> : null}
+            <article className="rounded-lg border border-slate-200 p-3 transition hover:border-emerald-200 hover:bg-emerald-50" key={model.id}>
+              <div className="flex items-start justify-between gap-3">
+                <Link className="min-w-0 flex-1" href={`/admin/variants?modelId=${model.id}`}>
+                  <div className="flex flex-wrap gap-2 text-xs font-black uppercase text-emerald-700">
+                    <span>{model.bodyType}</span>
+                    {model.loaderSize ? <span className="rounded-full bg-lime-100 px-2 text-lime-900">{model.loaderSize}</span> : null}
+                  </div>
+                  <div className="mt-1 font-black text-slate-950">{model.name}</div>
+                  <div className="mt-1 break-all text-xs font-bold text-slate-500">/{model.slug}</div>
+                  {model.faq?.length ? <div className="mt-2 text-xs font-bold text-emerald-700">{model.faq.length} FAQ items</div> : null}
+                </Link>
+                <button
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-wait disabled:opacity-60"
+                  disabled={deletingModelId === model.id}
+                  onClick={() => void handleDeleteModel(model)}
+                  type="button"
+                >
+                  <Trash2 size={14} />
+                  {deletingModelId === model.id ? "Deleting" : "Delete"}
+                </button>
               </div>
-              <div className="mt-1 font-black text-slate-950">{model.name}</div>
-              <div className="mt-1 text-xs font-bold text-slate-500">/{model.slug}</div>
-              {model.faq?.length ? <div className="mt-2 text-xs font-bold text-emerald-700">{model.faq.length} FAQ items</div> : null}
-            </Link>
+            </article>
           ))}
         </div>
       </div>

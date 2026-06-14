@@ -210,6 +210,21 @@ function fieldValue(group: Record<string, unknown>, key: string) {
   return typeof value === "string" && value ? value : undefined;
 }
 
+function vehicleMediaStoragePath(url?: string | null) {
+  if (!url) return null;
+  const marker = "/vehicle-media/";
+  const markerIndex = url.indexOf(marker);
+  if (markerIndex === -1) return null;
+  const rawPath = url.slice(markerIndex + marker.length).split("?")[0];
+  if (!rawPath) return null;
+
+  try {
+    return decodeURIComponent(rawPath);
+  } catch {
+    return rawPath;
+  }
+}
+
 function buildSpecificationGroups(specifications: Record<string, unknown>): SpecificationGroup[] {
   const engine = objectValue(specifications.engine);
   const dimensions = objectValue(specifications.dimensions);
@@ -702,6 +717,104 @@ export async function updateModel(input: Partial<Parameters<typeof createModel>[
   revalidatePath("/admin/models");
   revalidatePath("/admin/variants");
   return mapModel(data as DbRow);
+}
+
+export async function deleteModel(id: string) {
+  const supabase = getAdminClient();
+
+  const { data: model, error: modelError } = await supabase
+    .from("vehicle_models")
+    .select("id,image_url")
+    .eq("id", id)
+    .maybeSingle();
+  if (modelError) throw modelError;
+  if (!model) throw new Error("Model not found.");
+
+  const { count: leadCount, error: leadError } = await supabase
+    .from("vehicle_leads")
+    .select("id", { count: "exact", head: true })
+    .eq("model_id", id);
+
+  if (leadError) throw leadError;
+
+  if (leadCount) {
+    throw new Error(`Cannot delete this model because it is linked to ${leadCount} lead${leadCount === 1 ? "" : "s"}. Make it inactive instead, or remove linked leads first.`);
+  }
+
+  const { data: variants, error: variantsError } = await supabase
+    .from("vehicle_variants")
+    .select("id")
+    .eq("model_id", id);
+  if (variantsError) throw variantsError;
+
+  const variantIds = (variants ?? []).map((variant) => String(variant.id));
+
+  const { data: mediaRows, error: mediaFetchError } = await supabase
+    .from("vehicle_media")
+    .select("url")
+    .eq("model_id", id);
+  if (mediaFetchError) throw mediaFetchError;
+
+  const storagePaths = Array.from(
+    new Set(
+      [
+        vehicleMediaStoragePath(typeof model.image_url === "string" ? model.image_url : null),
+        ...(mediaRows ?? []).map((row) => vehicleMediaStoragePath(typeof row.url === "string" ? row.url : null)),
+      ].filter((path): path is string => Boolean(path)),
+    ),
+  );
+
+  if (storagePaths.length) {
+    const { error: storageError } = await supabase.storage.from("vehicle-media").remove(storagePaths);
+    if (storageError) throw storageError;
+  }
+
+  const comparisonDeleteFilters = [
+    `vehicle_1_model_id.eq.${id}`,
+    `vehicle_2_model_id.eq.${id}`,
+    `vehicle_3_model_id.eq.${id}`,
+    ...variantIds.flatMap((variantId) => [
+      `vehicle_1_variant_id.eq.${variantId}`,
+      `vehicle_2_variant_id.eq.${variantId}`,
+      `vehicle_3_variant_id.eq.${variantId}`,
+    ]),
+  ];
+
+  if (comparisonDeleteFilters.length) {
+    const { error: comparisonError } = await supabase
+      .from("comparison_pages")
+      .delete()
+      .or(comparisonDeleteFilters.join(","));
+    if (comparisonError) throw comparisonError;
+  }
+
+  const { error: offerError } = await supabase.from("offers").delete().eq("model_id", id);
+  if (offerError) throw offerError;
+
+  const { error: modelPromotionError } = await supabase.from("hero_promotions").delete().eq("model_id", id);
+  if (modelPromotionError) throw modelPromotionError;
+
+  if (variantIds.length) {
+    const { error: variantPromotionError } = await supabase.from("hero_promotions").delete().in("variant_id", variantIds);
+    if (variantPromotionError) throw variantPromotionError;
+  }
+
+  const { error: mediaError } = await supabase.from("vehicle_media").delete().eq("model_id", id);
+  if (mediaError) throw mediaError;
+
+  const { error: variantError } = await supabase.from("vehicle_variants").delete().eq("model_id", id);
+  if (variantError) throw variantError;
+
+  const { error } = await supabase.from("vehicle_models").delete().eq("id", id);
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/models");
+  revalidatePath("/admin/variants");
+  revalidatePath("/on-road-price");
+
+  return { id, deletedVariants: variantIds.length, deletedMedia: mediaRows?.length ?? 0 };
 }
 
 export async function createVariant(input: {
