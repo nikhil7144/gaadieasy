@@ -47,6 +47,7 @@ function mapModel(row: DbRow): VehicleModel {
     bodyType: String(row.body_type ?? ""),
     loaderSize: typeof row.loader_size === "string" ? (row.loader_size as VehicleModel["loaderSize"]) : undefined,
     imageUrl: String(row.image_url ?? ""),
+    launchLabel: typeof row.launch_label === "string" ? row.launch_label : undefined,
     overview: typeof row.overview === "string" ? row.overview : undefined,
     pros: Array.isArray(row.pros) ? (row.pros as string[]) : [],
     cons: Array.isArray(row.cons) ? (row.cons as string[]) : [],
@@ -654,6 +655,7 @@ export async function createModel(input: {
   name: string;
   slug?: string;
   bodyType: string;
+  launchLabel?: string;
   loaderSize?: VehicleModel["loaderSize"] | "";
   imageUrl?: string;
   overview?: string;
@@ -672,6 +674,7 @@ export async function createModel(input: {
       name: input.name,
       slug: input.slug?.trim() || slugify(input.name),
       body_type: input.bodyType,
+      launch_label: optionalText(input.launchLabel),
       loader_size: optionalText(input.loaderSize),
       image_url: optionalText(input.imageUrl),
       overview: optionalText(input.overview),
@@ -701,6 +704,7 @@ export async function updateModel(input: Partial<Parameters<typeof createModel>[
   if (input.name !== undefined) patch.name = input.name;
   if (input.slug !== undefined) patch.slug = input.slug.trim() || (input.name ? slugify(input.name) : undefined);
   if (input.bodyType !== undefined) patch.body_type = input.bodyType;
+  if (input.launchLabel !== undefined) patch.launch_label = optionalText(input.launchLabel);
   if (input.loaderSize !== undefined) patch.loader_size = optionalText(input.loaderSize);
   if (input.imageUrl !== undefined) patch.image_url = optionalText(input.imageUrl);
   if (input.overview !== undefined) patch.overview = optionalText(input.overview);
@@ -956,6 +960,7 @@ export async function createModelWithVariants(input: {
     name: string;
     slug?: string;
     bodyType: string;
+    launchLabel?: string;
     loaderSize?: VehicleModel["loaderSize"] | "";
     imageUrl?: string;
     overview?: string;
@@ -994,6 +999,7 @@ export async function createModelWithVariants(input: {
         name: input.model.name,
         slug: modelSlug,
         bodyType: input.model.bodyType,
+        launchLabel: input.model.launchLabel,
         loaderSize: input.model.loaderSize,
         imageUrl: input.model.imageUrl,
         overview: input.model.overview,
@@ -1009,6 +1015,7 @@ export async function createModelWithVariants(input: {
         name: input.model.name,
         slug: modelSlug,
         bodyType: input.model.bodyType,
+        launchLabel: input.model.launchLabel,
         loaderSize: input.model.loaderSize,
         imageUrl: input.model.imageUrl,
         overview: input.model.overview,

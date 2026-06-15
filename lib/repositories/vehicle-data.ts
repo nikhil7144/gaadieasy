@@ -162,6 +162,7 @@ function mapModel(row: DbRow): VehicleModel {
     bodyType: stringValue(row, "body_type"),
     loaderSize: optionalString(row, "loader_size") as VehicleModel["loaderSize"],
     imageUrl: stringValue(row, "image_url"),
+    launchLabel: optionalString(row, "launch_label"),
     overview: optionalString(row, "overview"),
     pros: jsonArray<string>(row, "pros"),
     cons: jsonArray<string>(row, "cons"),

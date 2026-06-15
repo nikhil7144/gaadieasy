@@ -587,14 +587,24 @@ export function sortDiscoveryModels(models: DiscoveryModel[], tab: DiscoveryTab)
   });
 }
 
-export function filterDiscoveryModels(models: DiscoveryModel[], tab: DiscoveryTab, filterSlugs: string[]) {
+export function filterDiscoveryModels(
+  models: DiscoveryModel[],
+  tab: DiscoveryTab,
+  filterSlugs: string[],
+  matchMode: "all" | "any" = "all",
+) {
   const typeModels = models.filter((model) => modelBelongsToDiscoveryType(model, tab));
   const selectedFilters = tab.filters.filter((filter) => filterSlugs.includes(filter.slug));
 
   if (!selectedFilters.length) return sortDiscoveryModels(typeModels, tab);
 
-  return sortDiscoveryModels(
-    typeModels.filter((model) => selectedFilters.every((filter) => matchesDiscoveryFilter(model, filter))),
-    tab,
-  );
+  const matchesSelectedFilters = (model: DiscoveryModel) => {
+    if (matchMode === "any") {
+      return selectedFilters.some((filter) => matchesDiscoveryFilter(model, filter));
+    }
+
+    return selectedFilters.every((filter) => matchesDiscoveryFilter(model, filter));
+  };
+
+  return sortDiscoveryModels(typeModels.filter(matchesSelectedFilters), tab);
 }

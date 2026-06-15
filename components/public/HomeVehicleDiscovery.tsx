@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/public/BrandLogo";
 import { VehicleImage } from "@/components/public/VehicleImage";
@@ -470,25 +470,40 @@ const evCategorySlugMap: Record<string, string[]> = {
   "passenger-ev": ["passenger-ev-vehicles"],
 };
 
+function slugifyValue(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 function SearchableQuickFilters({
   activeTab,
   citySlug,
+  models,
+  categories,
 }: {
   activeTab: (typeof tabs)[number];
   citySlug: string;
+  models: HomeModel[];
+  categories: VehicleCategory[];
 }) {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [showAllFilters, setShowAllFilters] = useState(false);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const discoveryTab = getDiscoveryTab(activeTab.key);
 
-  const selectedFilterObjects = activeTab.filters.filter((filter) => selectedFilters.includes(filter.slug));
-  const visibleFilters = showAllFilters ? activeTab.filters : activeTab.filters.slice(0, 12);
-  const hiddenFilterCount = Math.max(activeTab.filters.length - visibleFilters.length, 0);
+  useEffect(() => {
+    setSelectedFilters([]);
+  }, [activeTab.key]);
+
+  const filteredModels = useMemo(() => {
+    if (!selectedFilters.length) return models.slice(0, 8);
+    return filterDiscoveryModels(models, discoveryTab, selectedFilters, "any").slice(0, 8);
+  }, [discoveryTab, models, selectedFilters]);
+
   const searchParams = new URLSearchParams({ type: activeTab.key, city: citySlug });
-
-  if (selectedFilters.length) {
-    searchParams.set("filters", selectedFilters.join(","));
-  }
-
+  if (selectedFilters.length) searchParams.set("filters", selectedFilters.join(","));
   const searchHref = `/discover?${searchParams.toString()}`;
 
   return (
@@ -497,13 +512,12 @@ function SearchableQuickFilters({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Quick filters</p>
-            {selectedFilterObjects.length ? (
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-                {selectedFilterObjects.length} selected
-              </span>
+            {selectedFilters.length ? (
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">{selectedFilters.length} selected</span>
             ) : null}
           </div>
           <h3 className="mt-1 text-lg font-black text-slate-950">Refine by what matters</h3>
+          <p className="mt-1 text-sm text-slate-600">Pick a filter and the matching models appear right here.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {selectedFilters.length ? (
@@ -515,19 +529,15 @@ function SearchableQuickFilters({
               Reset
             </button>
           ) : null}
-          <button
-            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800"
-            onClick={() => setShowAllFilters((value) => !value)}
-            type="button"
-          >
-            {showAllFilters ? "Hide filters" : `Show filters${hiddenFilterCount ? ` (${hiddenFilterCount})` : ""}`}
-          </button>
+          <Link className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800" href={searchHref}>
+            View all
+          </Link>
         </div>
       </div>
 
       <div className="px-4 py-4 sm:px-5">
         <div className="flex flex-wrap gap-2">
-          {visibleFilters.map((filter) => {
+          {activeTab.filters.map((filter) => {
             const selected = selectedFilters.includes(filter.slug);
             return (
               <button
@@ -552,17 +562,67 @@ function SearchableQuickFilters({
           })}
         </div>
 
-        {selectedFilters.length ? (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-            <p className="text-sm font-semibold text-slate-600">Ready to view matching models?</p>
-            <Link
-              className="inline-flex items-center rounded-full bg-lime-300 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-lime-200"
-              href={searchHref}
+        <div className="mt-4">
+          <div className="relative">
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent" />
+            <div
+              className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth"
+              ref={scrollerRef}
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              Search models
-            </Link>
+              {filteredModels.length ? (
+                filteredModels.map((model) => {
+                  const variant = model.variants[0];
+                  const category = categories.find((item) => item.id === model.categoryId);
+                  const launchLabel = model.launchLabel?.trim();
+                  return (
+                    <a
+                      className="group min-w-[260px] max-w-[260px] snap-start overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                      href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`}
+                      key={model.id}
+                    >
+                      <div className="relative aspect-[16/10] bg-slate-100">
+                        <VehicleImage className="h-full w-full object-cover transition duration-500 group-hover:scale-105" src={model.imageUrl} alt={model.name} />
+                        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-emerald-800">{category?.name}</span>
+                        {launchLabel ? (
+                          <span className="absolute right-3 top-3 rounded-full bg-lime-300 px-3 py-1 text-[11px] font-black text-slate-950">{launchLabel}</span>
+                        ) : null}
+                      </div>
+                      <div className="p-4">
+                        <div className="text-xs font-bold text-emerald-700">{model.brand?.name}</div>
+                        <h4 className="mt-1 text-lg font-black text-slate-950">{model.name}</h4>
+                        <p className="mt-2 text-sm text-slate-600">
+                          {model.bodyType} {variant ? `from ${formatShortPrice(variant.exShowroomPrice)} ex-showroom` : ""}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {variant ? (
+                            <>
+                              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">{variant.fuelType}</span>
+                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{variant.transmission}</span>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    </a>
+                  );
+                })
+              ) : (
+                <div className="w-full rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm font-semibold text-slate-600">
+                  No matching models for this selection right now.
+                </div>
+              )}
+            </div>
           </div>
-        ) : null}
+          <div className="mt-4 flex justify-end gap-2">
+            <button className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:bg-slate-50" onClick={() => scrollerRef.current?.scrollBy({ left: -320, behavior: "smooth" })} type="button" aria-label="Scroll left">
+              ←
+            </button>
+            <button className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:bg-slate-50" onClick={() => scrollerRef.current?.scrollBy({ left: 320, behavior: "smooth" })} type="button" aria-label="Scroll right">
+              →
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -822,10 +882,38 @@ export function HomeVehicleDiscovery({
     .map((category) => category.id);
   const typeModels = models;
   const [citySlug, setCitySlug] = useState(cities[0]?.slug ?? "bangalore");
-  const visibleModels = useMemo(
-    () => typeModels.slice(0, 6),
-    [typeModels],
-  );
+  const [activeCarouselTab, setActiveCarouselTab] = useState("all");
+  const carouselRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setActiveCarouselTab("all");
+  }, [activeTab.key]);
+  useEffect(() => {
+    carouselRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+  }, [activeCarouselTab]);
+  const carouselTabs = useMemo<Array<{ key: string; label: string; filter: (model: HomeModel) => boolean }>>(() => {
+    const nextTabs: Array<{ key: string; label: string; filter: (model: HomeModel) => boolean }> = [{ key: "all", label: "All", filter: () => true }];
+
+    if (typeModels.some((model) => Boolean(model.launchLabel?.trim()))) {
+      nextTabs.push({ key: "new-launch", label: "New launch", filter: (model) => Boolean(model.launchLabel?.trim()) });
+    }
+
+    const bodyTypes = Array.from(new Set(typeModels.map((model) => model.bodyType.trim()).filter(Boolean))).slice(0, 3);
+    bodyTypes.forEach((bodyType) => {
+      nextTabs.push({
+        key: slugifyValue(bodyType),
+        label: bodyType,
+        filter: (model) => model.bodyType === bodyType,
+      });
+    });
+
+    return nextTabs;
+  }, [typeModels]);
+  const activeCarouselTabConfig = carouselTabs.find((tab) => tab.key === activeCarouselTab) ?? carouselTabs[0];
+  const filteredCarouselModels = useMemo(() => typeModels.filter(activeCarouselTabConfig.filter).slice(0, 8), [activeCarouselTabConfig, typeModels]);
+  const discoverHref = `/discover?type=${activeTab.key}&city=${citySlug}`;
+  const scrollCarousel = (direction: "left" | "right") => {
+    carouselRef.current?.scrollBy({ left: direction === "left" ? -320 : 320, behavior: "smooth" });
+  };
   const evModels = useMemo(
     () =>
       typeModels
@@ -902,7 +990,7 @@ export function HomeVehicleDiscovery({
         ) : null}
       </div>
 
-      <SearchableQuickFilters activeTab={activeTab} citySlug={citySlug} key={activeTab.key} />
+      <SearchableQuickFilters activeTab={activeTab} citySlug={citySlug} models={typeModels} categories={categories} key={activeTab.key} />
 
       <CommercialTruckFinder activeType={activeTab.key} citySlug={citySlug} models={typeModels} />
 
@@ -959,53 +1047,94 @@ export function HomeVehicleDiscovery({
         </div>
       ) : null}
 
-      <div className="mt-8 flex items-end justify-between gap-4">
+      <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-bold text-emerald-700">Models</p>
           <h3 className="text-2xl font-black text-slate-950">{activeTab.label} models</h3>
         </div>
-        <a className="text-sm font-black text-emerald-700" href={`/discover?type=${activeTab.key}&city=${citySlug}`}>
-          View all
+        <a className="text-sm font-black text-emerald-700" href={discoverHref}>
+          See all
         </a>
       </div>
-      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {visibleModels.map((model) => {
-          const variant = model.variants[0];
-          const category = categories.find((item) => item.id === model.categoryId);
+      <div className="mt-4 flex flex-wrap gap-2">
+        {carouselTabs.map((tab) => {
+          const selected = activeCarouselTabConfig.key === tab.key;
           return (
-            <a
-              className="group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-              href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`}
-              key={model.id}
+            <button
+              className={`rounded-full border px-3.5 py-2 text-sm font-black transition ${selected ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"}`}
+              onClick={() => setActiveCarouselTab(tab.key)}
+              type="button"
+              key={tab.key}
             >
-              <div className="relative aspect-[16/10] bg-slate-100">
-                <VehicleImage className="h-full w-full object-cover transition duration-500 group-hover:scale-105" src={model.imageUrl} alt={model.name} />
-                <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-emerald-800">
-                  {category?.name}
-                </span>
-              </div>
-              <div className="p-4">
-                <div className="text-xs font-bold text-emerald-700">{model.brand?.name}</div>
-                <h3 className="mt-1 text-xl font-black text-slate-950">{model.name}</h3>
-                <p className="mt-2 text-sm text-slate-600">
-                  {model.bodyType} {variant ? `from ${formatShortPrice(variant.exShowroomPrice)} ex-showroom` : ""}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {model.loaderSize ? (
-                    <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-bold text-lime-900">{model.loaderSize} loader</span>
-                  ) : null}
-                  {variant ? (
-                    <>
-                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">{variant.fuelType}</span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{variant.transmission}</span>
-                      <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-bold text-lime-900">{variant.mileage}</span>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            </a>
+              {tab.label}
+            </button>
           );
         })}
+      </div>
+      <div className="mt-5">
+        <div className="relative">
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-white to-transparent" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white to-transparent" />
+          <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth" ref={carouselRef} style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+            {filteredCarouselModels.length ? (
+              filteredCarouselModels.map((model) => {
+                const variant = model.variants[0];
+                const category = categories.find((item) => item.id === model.categoryId);
+                const launchLabel = model.launchLabel?.trim();
+                return (
+                  <a
+                    className="group min-w-[260px] max-w-[260px] snap-start overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                    href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`}
+                    key={model.id}
+                  >
+                    <div className="relative aspect-[16/10] bg-slate-100">
+                      <VehicleImage className="h-full w-full object-cover transition duration-500 group-hover:scale-105" src={model.imageUrl} alt={model.name} />
+                      <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-emerald-800">
+                        {category?.name}
+                      </span>
+                      {launchLabel ? (
+                        <span className="absolute right-3 top-3 rounded-full bg-lime-300 px-3 py-1 text-[11px] font-black text-slate-950">
+                          {launchLabel}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="p-4">
+                      <div className="text-xs font-bold text-emerald-700">{model.brand?.name}</div>
+                      <h3 className="mt-1 text-xl font-black text-slate-950">{model.name}</h3>
+                      <p className="mt-2 text-sm text-slate-600">
+                        {model.bodyType} {variant ? `from ${formatShortPrice(variant.exShowroomPrice)} ex-showroom` : ""}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {model.loaderSize ? (
+                          <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-bold text-lime-900">{model.loaderSize} loader</span>
+                        ) : null}
+                        {variant ? (
+                          <>
+                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">{variant.fuelType}</span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{variant.transmission}</span>
+                            <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-bold text-lime-900">{variant.mileage}</span>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </a>
+                );
+              })
+            ) : (
+              <div className="w-full rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm font-semibold text-slate-600">
+                No {activeCarouselTabConfig.label.toLowerCase()} models are available right now.
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:bg-slate-50" onClick={() => scrollCarousel("left")} type="button" aria-label="Scroll left">
+            ←
+          </button>
+          <button className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:bg-slate-50" onClick={() => scrollCarousel("right")} type="button" aria-label="Scroll right">
+            →
+          </button>
+        </div>
       </div>
       </div>
     </section>

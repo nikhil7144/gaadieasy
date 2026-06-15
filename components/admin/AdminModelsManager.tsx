@@ -23,6 +23,7 @@ export function AdminModelsManager({
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [bodyType, setBodyType] = useState("");
+  const [launchLabel, setLaunchLabel] = useState("");
   const [loaderSize, setLoaderSize] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [overview, setOverview] = useState("");
@@ -55,6 +56,7 @@ export function AdminModelsManager({
         name,
         slug: slug || slugify(name),
         bodyType,
+        launchLabel,
         loaderSize,
         imageUrl,
         overview,
@@ -68,6 +70,7 @@ export function AdminModelsManager({
       setName("");
       setSlug("");
       setBodyType("");
+      setLaunchLabel("");
       setLoaderSize("");
       setImageUrl("");
       setOverview("");
@@ -142,6 +145,7 @@ export function AdminModelsManager({
           <input className={adminFieldClass} value={name} onChange={(event) => setName(event.target.value)} placeholder="Model name" required />
           <input className={adminFieldClass} value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="Slug auto-generates if blank" />
           <input className={adminFieldClass} value={bodyType} onChange={(event) => setBodyType(event.target.value)} placeholder="SUV, Cruiser, Scooter..." required />
+          <input className={adminFieldClass} value={launchLabel} onChange={(event) => setLaunchLabel(event.target.value)} placeholder="New launch label (optional)" />
           <select className={adminFieldClass} value={loaderSize} onChange={(event) => setLoaderSize(event.target.value)}>
             <option value="">Loader / truck size optional</option>
             <option value="Small">Small</option>

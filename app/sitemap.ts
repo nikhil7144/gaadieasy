@@ -3,6 +3,15 @@ import { brands, comparisonPages, cities, models, seoPages } from "@/lib/data";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://www.gaadieasy.com";
 
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
@@ -15,7 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/dealer",
     "/dealer/login",
   ].map((path) => ({
-    url: `${baseUrl}${path}`,
+    url: escapeXml(`${baseUrl}${path}`),
     lastModified: now,
     changeFrequency: "daily" as const,
     priority: path === "/" ? 1 : 0.8,
@@ -24,7 +33,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const brandRoutes = brands
     .filter((brand) => brand.active)
     .map((brand) => ({
-      url: `${baseUrl}/brands/${brand.slug}`,
+      url: escapeXml(`${baseUrl}/brands/${brand.slug}`),
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.75,
@@ -33,7 +42,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const seoRoutes = seoPages
     .filter((page) => page.active)
     .map((page) => ({
-      url: `${baseUrl}/seo/${page.slug}`,
+      url: escapeXml(`${baseUrl}/seo/${page.slug}`),
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.8,
@@ -42,7 +51,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const comparisonRoutes = comparisonPages
     .filter((page) => page.active)
     .map((page) => ({
-      url: `${baseUrl}/compare/${page.slug}`,
+      url: escapeXml(`${baseUrl}/compare/${page.slug}`),
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.75,
@@ -54,7 +63,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       const brand = brands.find((item) => item.id === model.brandId);
       const city = cities[0]?.slug ?? "bangalore";
       return {
-        url: `${baseUrl}/on-road-price?brand=${brand?.slug ?? ""}&model=${model.slug}&city=${city}`,
+        url: escapeXml(`${baseUrl}/on-road-price?brand=${brand?.slug ?? ""}&model=${model.slug}&city=${city}`),
         lastModified: now,
         changeFrequency: "weekly" as const,
         priority: 0.72,
