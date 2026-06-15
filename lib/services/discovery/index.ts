@@ -311,6 +311,40 @@ function slugText(value?: string) {
   return (value ?? "").toLowerCase().replaceAll("/", " ").replaceAll("-", " ");
 }
 
+function normalizeMatchText(value?: string) {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function matchesBodyStyleFilter(model: DiscoveryModel, slug: string) {
+  const normalizedSlug = normalizeMatchText(slug);
+  if (!normalizedSlug) return false;
+
+  const aliases: Record<string, string[]> = {
+    suv: ["suv", "sports utility vehicle"],
+    hatchback: ["hatchback"],
+    sedan: ["sedan"],
+    muv: ["muv", "multi utility vehicle"],
+    commuter: ["commuter"],
+    cruiser: ["cruiser"],
+    sports: ["sports", "sport"],
+    "naked-sports": ["naked sports", "naked sport", "streetfighter"],
+    scooter: ["scooter"],
+    "super-bikes": ["super bike", "superbike", "super bikes"],
+    pickup: ["pickup"],
+    "mini-truck": ["mini truck", "mini-truck"],
+    cargo: ["cargo"],
+  };
+
+  const candidateTexts = [model.bodyType, ...model.variants.map((variant) => variant.name)].filter(Boolean);
+  const normalizedCandidates = candidateTexts.map((value) => normalizeMatchText(value));
+  const expectedAliases = aliases[normalizedSlug] ?? [normalizedSlug];
+
+  return normalizedCandidates.some((candidate) => expectedAliases.some((alias) => candidate.includes(alias)));
+}
+
 function commercialValues(model: DiscoveryModel) {
   const variant = model.variants[0];
   const specs = variant?.specifications;
@@ -492,7 +526,7 @@ export function getDiscoveryDatasetForType(data: DiscoveryDataSet, value?: strin
 }
 
 export function modelSearchText(model: DiscoveryModel) {
-  const variant = model.variants[0];
+  const variant = model.variants.find((item) => item.active && item.isDefault) ?? model.variants.find((item) => item.active) ?? model.variants[0];
   const specs = variant?.specifications;
   const commercial = specs && "commercial" in specs ? (specs.commercial as Record<string, unknown>) : {};
 
@@ -522,6 +556,8 @@ export function matchesDiscoveryFilter(model: DiscoveryModel, filter: DiscoveryF
   const label = filter.label.toLowerCase();
   const slug = filter.slug.toLowerCase();
   const variants = model.variants ?? [];
+  const primaryVariant = variants.find((variant) => variant.active && variant.isDefault) ?? variants.find((variant) => variant.active) ?? variants[0];
+  const variantPool = primaryVariant ? [primaryVariant] : variants;
 
   if (slug === "dealer-offers") return true;
   if (slug === "small-loader") return inferredLoaderSize(model) === "small";
@@ -529,16 +565,20 @@ export function matchesDiscoveryFilter(model: DiscoveryModel, filter: DiscoveryF
   if (slug === "large-loader") return inferredLoaderSize(model) === "large";
   if (slug === "trucks") return text.includes("truck") || text.includes("haulage") || text.includes("tipper");
   if (slug === "automatic" || slug === "manual") {
-    return variants.some((variant) => variant?.transmission?.toLowerCase() === slug);
+    return variantPool.some((variant) => variant?.transmission?.toLowerCase() === slug);
   }
   if (["electric", "diesel", "petrol", "cng", "lng"].includes(slug)) {
-    return variants.some((variant) => variant?.fuelType?.toLowerCase() === slug) || text.includes(slug);
+    return variantPool.some((variant) => variant?.fuelType?.toLowerCase() === slug);
   }
-  if (slug === "5-seater") return variants.some((variant) => variant?.seatingCapacity === 5);
-  if (slug === "6-seater") return variants.some((variant) => variant?.seatingCapacity === 6);
-  if (slug === "7-seater") return variants.some((variant) => variant?.seatingCapacity === 7);
+  if (slug === "5-seater") return variantPool.some((variant) => variant?.seatingCapacity === 5);
+  if (slug === "6-seater") return variantPool.some((variant) => variant?.seatingCapacity === 6);
+  if (slug === "7-seater") return variantPool.some((variant) => variant?.seatingCapacity === 7);
 
-  const priceMatches = variants.some((variant) => {
+  if (["suv", "hatchback", "sedan", "muv", "commuter", "cruiser", "sports", "naked-sports", "scooter", "super-bikes", "pickup", "mini-truck", "cargo"].includes(slug)) {
+    return matchesBodyStyleFilter(model, slug);
+  }
+
+  const priceMatches = variantPool.some((variant) => {
     const price = variant?.exShowroomPrice ?? 0;
     if (slug === "under-8-lakh") return price > 0 && price < 800000;
     if (slug === "8-15-lakh") return price >= 800000 && price <= 1500000;
@@ -552,7 +592,7 @@ export function matchesDiscoveryFilter(model: DiscoveryModel, filter: DiscoveryF
   });
   if (priceMatches) return true;
 
-  const engineCcMatches = variants.some((variant) => {
+  const engineCcMatches = variantPool.some((variant) => {
     const engineCc = engineNumber(variant?.engineCapacity);
     if (slug === "under-125cc") return typeof engineCc === "number" && engineCc < 125;
     if (slug === "under-250cc") return typeof engineCc === "number" && engineCc < 250;
@@ -565,7 +605,7 @@ export function matchesDiscoveryFilter(model: DiscoveryModel, filter: DiscoveryF
   });
   if (engineCcMatches) return true;
 
-  const powerMatches = variants.some((variant) => {
+  const powerMatches = variantPool.some((variant) => {
     const power = variantPowerNumberFromVariant(variant);
     if (slug === "under-20-ps") return typeof power === "number" && power < 20;
     if (slug === "20-40-ps") return typeof power === "number" && power >= 20 && power <= 40;

@@ -543,15 +543,17 @@ function SearchableQuickFilters({
               <button
                 className={`rounded-full border px-3.5 py-2 text-sm font-black transition ${
                   selected
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                    ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
                     : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
                 }`}
                 onClick={() =>
-                  setSelectedFilters((current) =>
-                    current.includes(filter.slug)
-                      ? current.filter((slug) => slug !== filter.slug)
-                      : [...current, filter.slug],
-                  )
+                  setSelectedFilters((current) => {
+                    if (current.includes(filter.slug)) {
+                      return [];
+                    }
+
+                    return [filter.slug];
+                  })
                 }
                 type="button"
                 key={filter.slug}
