@@ -313,7 +313,7 @@ const tabs = [
   {
     key: "commercial",
     label: "Commercial",
-    categoryIds: ["cat-commercial", "cat-ev-commercial"],
+    categoryIds: ["cat-commercial"],
     evCategoryIds: ["cat-ev-commercial"],
     eyebrow: "Commercial discovery",
     headline: "Find business vehicles by wheels, payload, body and fuel",
@@ -386,7 +386,7 @@ const tabs = [
   {
     key: "ev-commercial",
     label: "EV Commercial",
-    categoryIds: ["cat-ev-commercial", "cat-commercial"],
+    categoryIds: ["cat-ev-commercial"],
     evCategoryIds: ["cat-ev-commercial"],
     eyebrow: "EV commercial discovery",
     headline: "Find electric commercial vehicles by payload, range and business use",
@@ -492,10 +492,6 @@ function SearchableQuickFilters({
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const discoveryTab = getDiscoveryTab(activeTab.key);
-
-  useEffect(() => {
-    setSelectedFilters([]);
-  }, [activeTab.key]);
 
   const filteredModels = useMemo(() => {
     if (!selectedFilters.length) return models.slice(0, 8);
@@ -884,11 +880,9 @@ export function HomeVehicleDiscovery({
     .map((category) => category.id);
   const typeModels = models;
   const [citySlug, setCitySlug] = useState(cities[0]?.slug ?? "bangalore");
-  const [activeCarouselTab, setActiveCarouselTab] = useState("all");
+  const [activeCarouselState, setActiveCarouselState] = useState({ tabKey: activeTab.key, value: "all" });
+  const activeCarouselTab = activeCarouselState.tabKey === activeTab.key ? activeCarouselState.value : "all";
   const carouselRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    setActiveCarouselTab("all");
-  }, [activeTab.key]);
   useEffect(() => {
     carouselRef.current?.scrollTo({ left: 0, behavior: "smooth" });
   }, [activeCarouselTab]);
@@ -1064,7 +1058,7 @@ export function HomeVehicleDiscovery({
           return (
             <button
               className={`rounded-full border px-3.5 py-2 text-sm font-black transition ${selected ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"}`}
-              onClick={() => setActiveCarouselTab(tab.key)}
+              onClick={() => setActiveCarouselState({ tabKey: activeTab.key, value: tab.key })}
               type="button"
               key={tab.key}
             >

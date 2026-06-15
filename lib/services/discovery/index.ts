@@ -218,7 +218,7 @@ export const discoveryTabs: DiscoveryTab[] = [
     key: "commercial",
     label: "Commercial",
     primaryCategorySlugs: ["commercial-vehicles"],
-    includedCategorySlugs: ["commercial-vehicles", "ev-commercial-vehicles"],
+    includedCategorySlugs: ["commercial-vehicles"],
     evCategorySlugs: ["ev-commercial-vehicles"],
     filters: [
       { label: "Small", slug: "small-loader" },
@@ -246,7 +246,7 @@ export const discoveryTabs: DiscoveryTab[] = [
     key: "ev-commercial",
     label: "EV Commercial",
     primaryCategorySlugs: ["ev-commercial-vehicles"],
-    includedCategorySlugs: ["ev-commercial-vehicles", "commercial-vehicles"],
+    includedCategorySlugs: ["ev-commercial-vehicles"],
     evCategorySlugs: ["ev-commercial-vehicles"],
     filters: [
       { label: "Small", slug: "small-loader" },
@@ -386,10 +386,6 @@ function variantPowerNumberFromVariant(variant?: VehicleVariant) {
   return undefined;
 }
 
-function variantPowerNumber(model: DiscoveryModel) {
-  return variantPowerNumberFromVariant(model.variants[0]);
-}
-
 function inferredLoaderSize(model: DiscoveryModel) {
   if (model.loaderSize) return model.loaderSize.toLowerCase();
 
@@ -455,10 +451,11 @@ function isCommercialCategorySlug(slug?: string) {
 
 function isPassengerEvModel(model: DiscoveryModel) {
   const categorySlug = model.category?.slug;
+  if (categorySlug) return categorySlug === "passenger-ev-vehicles";
+
   const text = modelSearchText(model);
 
   return (
-    categorySlug === "passenger-ev-vehicles" ||
     text.includes("e-rickshaw") ||
     text.includes("erickshaw") ||
     text.includes("e auto") ||
@@ -477,7 +474,6 @@ function isScooterModel(model: DiscoveryModel) {
 export function modelBelongsToDiscoveryType(model: DiscoveryModel, tab: DiscoveryTab) {
   const categorySlug = model.category?.slug;
   const modelPrimary = categorySlug ? tab.primaryCategorySlugs.includes(categorySlug) : false;
-  const modelIncluded = categorySlug ? tab.includedCategorySlugs.includes(categorySlug) : false;
   const modelIsElectric = hasElectricVariant(model);
   const modelIsPassengerEv = isPassengerEvModel(model);
   const modelIsScooter = isScooterModel(model);
@@ -488,11 +484,11 @@ export function modelBelongsToDiscoveryType(model: DiscoveryModel, tab: Discover
   }
 
   if (tab.key === "ev-commercial") {
-    return modelIsElectric && modelIsCommercial && !modelIsPassengerEv;
+    return modelPrimary;
   }
 
   if (tab.key === "commercial") {
-    return modelIncluded;
+    return modelPrimary;
   }
 
   if (tab.key === "scooters") {
@@ -500,7 +496,7 @@ export function modelBelongsToDiscoveryType(model: DiscoveryModel, tab: Discover
   }
 
   if (tab.key === "passenger-ev") {
-    return modelIsElectric && modelIsPassengerEv;
+    return modelPrimary;
   }
 
   return modelPrimary;
