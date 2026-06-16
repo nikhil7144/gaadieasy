@@ -3,10 +3,40 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileJson, Plus, Trash2 } from "lucide-react";
-import { adminFieldClass, deleteAdminJson, parseFaqLines, postAdminJson, splitLines } from "@/components/admin/admin-form-utils";
+import { FileJson, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { adminFieldClass, deleteAdminJson, parseFaqLines, patchAdminJson, postAdminJson, splitLines } from "@/components/admin/admin-form-utils";
 import { slugify } from "@/lib/utils/format";
 import type { Brand, VehicleCategory, VehicleModel } from "@/types/automobile";
+
+const loaderSizeOptions: NonNullable<VehicleModel["loaderSize"]>[] = ["Small", "Medium", "Large"];
+
+const bodyTypeOptions = {
+  cars: ["Hatchback", "Sedan", "SUV", "Compact SUV", "Micro SUV", "MUV", "MPV", "Pickup"],
+  bikes: ["Commuter Bike", "Cruiser Bike", "Sports Bike", "Naked Sports", "Adventure Bike", "Cafe Racer", "Electric Bike"],
+  scooters: ["Petrol Scooter", "Electric Scooter", "Maxi Scooter"],
+  ev: ["Electric Hatchback", "Electric Sedan", "Electric SUV", "Electric Micro SUV", "Electric Scooter", "Electric Bike"],
+  commercial: ["Cargo three-wheeler", "Passenger three-wheeler", "Pickup", "Mini truck", "Light Commercial Truck", "Medium Commercial Truck", "Heavy Truck", "Tipper", "Tractor", "Bus"],
+  passengerEv: ["E-rickshaw", "E-auto", "Electric passenger three-wheeler"],
+};
+
+function bodyOptionsForCategory(category?: VehicleCategory) {
+  const slug = category?.slug ?? "";
+  if (slug.includes("passenger-ev")) return bodyTypeOptions.passengerEv;
+  if (slug.includes("commercial")) return bodyTypeOptions.commercial;
+  if (slug.includes("scooter")) return bodyTypeOptions.scooters;
+  if (slug.includes("bike")) return bodyTypeOptions.bikes;
+  if (slug === "ev-vehicles") return bodyTypeOptions.ev;
+  return bodyTypeOptions.cars;
+}
+
+function optionsWithCurrent(options: string[], current: string) {
+  if (!current || options.includes(current)) return options;
+  return [current, ...options];
+}
+
+function faqToLines(faq?: VehicleModel["faq"]) {
+  return (faq ?? []).map((item) => `${item.question} | ${item.answer}`).join("\n");
+}
 
 export function AdminModelsManager({
   brands,
@@ -31,6 +61,7 @@ export function AdminModelsManager({
   const [cons, setCons] = useState("");
   const [faq, setFaq] = useState("");
   const [featured, setFeatured] = useState(false);
+  const [isUpcoming, setIsUpcoming] = useState(false);
   const [createdModel, setCreatedModel] = useState<VehicleModel | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -42,6 +73,27 @@ export function AdminModelsManager({
   const [importing, setImporting] = useState(false);
   const [deletingModelId, setDeletingModelId] = useState("");
   const [deleteError, setDeleteError] = useState("");
+  const [editingModelId, setEditingModelId] = useState("");
+  const [editBrandId, setEditBrandId] = useState("");
+  const [editCategoryId, setEditCategoryId] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editSlug, setEditSlug] = useState("");
+  const [editBodyType, setEditBodyType] = useState("");
+  const [editLaunchLabel, setEditLaunchLabel] = useState("");
+  const [editLoaderSize, setEditLoaderSize] = useState("");
+  const [editImageUrl, setEditImageUrl] = useState("");
+  const [editOverview, setEditOverview] = useState("");
+  const [editPros, setEditPros] = useState("");
+  const [editCons, setEditCons] = useState("");
+  const [editFaq, setEditFaq] = useState("");
+  const [editFeatured, setEditFeatured] = useState(false);
+  const [editActive, setEditActive] = useState(true);
+  const [editIsUpcoming, setEditIsUpcoming] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [editMessage, setEditMessage] = useState("");
+
+  const selectedCategory = categories.find((category) => category.id === categoryId);
+  const selectedEditCategory = categories.find((category) => category.id === editCategoryId);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,6 +117,7 @@ export function AdminModelsManager({
         faq: parseFaqLines(faq),
         active: true,
         featured,
+        isUpcoming,
       });
       setCreatedModel(payload.model);
       setName("");
@@ -78,9 +131,67 @@ export function AdminModelsManager({
       setCons("");
       setFaq("");
       setFeatured(false);
+      setIsUpcoming(false);
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to save model");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function beginEditModel(model: VehicleModel) {
+    setEditingModelId(model.id);
+    setEditBrandId(model.brandId);
+    setEditCategoryId(model.categoryId);
+    setEditName(model.name);
+    setEditSlug(model.slug);
+    setEditBodyType(model.bodyType);
+    setEditLaunchLabel(model.launchLabel ?? "");
+    setEditLoaderSize(model.loaderSize ?? "");
+    setEditImageUrl(model.imageUrl ?? "");
+    setEditOverview(model.overview ?? "");
+    setEditPros((model.pros ?? []).join("\n"));
+    setEditCons((model.cons ?? []).join("\n"));
+    setEditFaq(faqToLines(model.faq));
+    setEditFeatured(Boolean(model.featured));
+    setEditActive(Boolean(model.active));
+    setEditIsUpcoming(Boolean(model.isUpcoming));
+    setEditError("");
+    setEditMessage("");
+  }
+
+  async function handleEditSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingModelId) return;
+
+    setSaving(true);
+    setEditError("");
+    setEditMessage("");
+
+    try {
+      await patchAdminJson("/api/admin/models", {
+        id: editingModelId,
+        brandId: editBrandId,
+        categoryId: editCategoryId,
+        name: editName,
+        slug: editSlug || slugify(editName),
+        bodyType: editBodyType,
+        launchLabel: editLaunchLabel,
+        loaderSize: editLoaderSize,
+        imageUrl: editImageUrl,
+        overview: editOverview,
+        pros: splitLines(editPros),
+        cons: splitLines(editCons),
+        faq: parseFaqLines(editFaq),
+        active: editActive,
+        featured: editFeatured,
+        isUpcoming: editIsUpcoming,
+      });
+      setEditMessage("Model updated.");
+      router.refresh();
+    } catch (caught) {
+      setEditError(caught instanceof Error ? caught.message : "Unable to update model");
     } finally {
       setSaving(false);
     }
@@ -144,13 +255,14 @@ export function AdminModelsManager({
           </select>
           <input className={adminFieldClass} value={name} onChange={(event) => setName(event.target.value)} placeholder="Model name" required />
           <input className={adminFieldClass} value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="Slug auto-generates if blank" />
-          <input className={adminFieldClass} value={bodyType} onChange={(event) => setBodyType(event.target.value)} placeholder="SUV, Cruiser, Scooter..." required />
+          <select className={adminFieldClass} value={bodyType} onChange={(event) => setBodyType(event.target.value)} required>
+            <option value="">Select body / vehicle type</option>
+            {optionsWithCurrent(bodyOptionsForCategory(selectedCategory), bodyType).map((item) => <option value={item} key={item}>{item}</option>)}
+          </select>
           <input className={adminFieldClass} value={launchLabel} onChange={(event) => setLaunchLabel(event.target.value)} placeholder="New launch label (optional)" />
           <select className={adminFieldClass} value={loaderSize} onChange={(event) => setLoaderSize(event.target.value)}>
             <option value="">Loader / truck size optional</option>
-            <option value="Small">Small</option>
-            <option value="Medium">Medium</option>
-            <option value="Large">Large</option>
+            {loaderSizeOptions.map((item) => <option value={item} key={item}>{item}</option>)}
           </select>
           <input className={adminFieldClass} value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="Hero image URL until upload is wired" />
           <textarea className={`${adminFieldClass} min-h-24 py-3`} value={overview} onChange={(event) => setOverview(event.target.value)} placeholder="Overview" />
@@ -165,6 +277,10 @@ export function AdminModelsManager({
           <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
             <input type="checkbox" checked={featured} onChange={(event) => setFeatured(event.target.checked)} />
             Featured model
+          </label>
+          <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
+            <input type="checkbox" checked={isUpcoming} onChange={(event) => setIsUpcoming(event.target.checked)} />
+            Upcoming / to be launched
           </label>
           {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</p> : null}
           {createdModel ? (
@@ -203,19 +319,103 @@ export function AdminModelsManager({
                   <div className="mt-1 break-all text-xs font-bold text-slate-500">/{model.slug}</div>
                   {model.faq?.length ? <div className="mt-2 text-xs font-bold text-emerald-700">{model.faq.length} FAQ items</div> : null}
                 </Link>
-                <button
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-wait disabled:opacity-60"
-                  disabled={deletingModelId === model.id}
-                  onClick={() => void handleDeleteModel(model)}
-                  type="button"
-                >
-                  <Trash2 size={14} />
-                  {deletingModelId === model.id ? "Deleting" : "Delete"}
-                </button>
+                <div className="grid shrink-0 gap-2">
+                  <button
+                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                    onClick={() => beginEditModel(model)}
+                    type="button"
+                  >
+                    <Pencil size={14} />
+                    Edit
+                  </button>
+                  <button
+                    className="inline-flex items-center gap-1 rounded-full border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-wait disabled:opacity-60"
+                    disabled={deletingModelId === model.id}
+                    onClick={() => void handleDeleteModel(model)}
+                    type="button"
+                  >
+                    <Trash2 size={14} />
+                    {deletingModelId === model.id ? "Deleting" : "Delete"}
+                  </button>
+                </div>
               </div>
             </article>
           ))}
         </div>
+
+        {editingModelId ? (
+          <form className="mt-5 grid gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4" onSubmit={handleEditSubmit}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase text-emerald-700">Edit model</p>
+                <h3 className="mt-1 text-lg font-black text-slate-950">{editName}</h3>
+              </div>
+              <button
+                className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 hover:text-slate-950"
+                onClick={() => setEditingModelId("")}
+                type="button"
+                aria-label="Close model editor"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <select className={adminFieldClass} value={editBrandId} onChange={(event) => setEditBrandId(event.target.value)} required>
+                {brands.map((brand) => <option value={brand.id} key={brand.id}>{brand.name}</option>)}
+              </select>
+              <select
+                className={adminFieldClass}
+                value={editCategoryId}
+                onChange={(event) => {
+                  setEditCategoryId(event.target.value);
+                  setEditBodyType("");
+                }}
+                required
+              >
+                {categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}
+              </select>
+            </div>
+            <input className={adminFieldClass} value={editName} onChange={(event) => setEditName(event.target.value)} placeholder="Model name" required />
+            <input className={adminFieldClass} value={editSlug} onChange={(event) => setEditSlug(event.target.value)} placeholder="Slug" />
+            <div className="grid gap-3 md:grid-cols-2">
+              <select className={adminFieldClass} value={editBodyType} onChange={(event) => setEditBodyType(event.target.value)} required>
+                <option value="">Select body / vehicle type</option>
+                {optionsWithCurrent(bodyOptionsForCategory(selectedEditCategory), editBodyType).map((item) => <option value={item} key={item}>{item}</option>)}
+              </select>
+              <select className={adminFieldClass} value={editLoaderSize} onChange={(event) => setEditLoaderSize(event.target.value)}>
+                <option value="">Loader / truck size optional</option>
+                {optionsWithCurrent(loaderSizeOptions, editLoaderSize).map((item) => <option value={item} key={item}>{item}</option>)}
+              </select>
+            </div>
+            <input className={adminFieldClass} value={editLaunchLabel} onChange={(event) => setEditLaunchLabel(event.target.value)} placeholder="New launch label (optional)" />
+            <input className={adminFieldClass} value={editImageUrl} onChange={(event) => setEditImageUrl(event.target.value)} placeholder="Hero image URL" />
+            <textarea className={`${adminFieldClass} min-h-24 py-3`} value={editOverview} onChange={(event) => setEditOverview(event.target.value)} placeholder="Overview" />
+            <div className="grid gap-3 md:grid-cols-2">
+              <textarea className={`${adminFieldClass} min-h-20 py-3`} value={editPros} onChange={(event) => setEditPros(event.target.value)} placeholder="Pros, one per line" />
+              <textarea className={`${adminFieldClass} min-h-20 py-3`} value={editCons} onChange={(event) => setEditCons(event.target.value)} placeholder="Cons, one per line" />
+            </div>
+            <textarea className={`${adminFieldClass} min-h-24 py-3`} value={editFaq} onChange={(event) => setEditFaq(event.target.value)} placeholder="FAQs, one per line. Format: Question | Answer" />
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                <input type="checkbox" checked={editFeatured} onChange={(event) => setEditFeatured(event.target.checked)} />
+                Featured model
+              </label>
+              <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                <input type="checkbox" checked={editActive} onChange={(event) => setEditActive(event.target.checked)} />
+                Active model
+              </label>
+              <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                <input type="checkbox" checked={editIsUpcoming} onChange={(event) => setEditIsUpcoming(event.target.checked)} />
+                Upcoming / to be launched
+              </label>
+            </div>
+            {editError ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{editError}</p> : null}
+            {editMessage ? <p className="rounded-md bg-emerald-100 px-3 py-2 text-sm font-bold text-emerald-800">{editMessage}</p> : null}
+            <button className="inline-flex w-fit items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-lime-400" disabled={saving}>
+              <Save size={16} /> {saving ? "Saving" : "Save model changes"}
+            </button>
+          </form>
+        ) : null}
       </div>
       </section>
 

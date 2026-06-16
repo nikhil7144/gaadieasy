@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUpDown, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { ArrowUpDown, ChevronDown, SlidersHorizontal, X } from "lucide-react";
 import { BrandLogo } from "@/components/public/BrandLogo";
 import { VehicleCompareModal } from "@/components/public/VehicleCompareModal";
 import { VehicleImage } from "@/components/public/VehicleImage";
@@ -410,108 +410,152 @@ function sortModels(models: DiscoveryModel[], sort: SortOption) {
   });
 }
 
+// Collapsible filter group — tapping header expands/collapses the options
 function FilterGroup({
   filters,
   label,
   selectedFilters,
   setSelectedFilters,
+  defaultOpen = true,
 }: {
   filters: DiscoveryFilter[];
   label: string;
   selectedFilters: string[];
   setSelectedFilters: React.Dispatch<React.SetStateAction<string[]>>;
+  defaultOpen?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const visibleFilters = expanded ? filters : filters.slice(0, 6);
+  const [open, setOpen] = useState(defaultOpen);
+  const [showMore, setShowMore] = useState(false);
+  const filterSlugs = filters.map((f) => f.slug);
+  const activeInGroup = filters.filter((f) => selectedFilters.includes(f.slug));
+  const visibleFilters = showMore ? filters : filters.slice(0, 6);
   const hiddenCount = Math.max(filters.length - visibleFilters.length, 0);
-  const filterSlugs = filters.map((filter) => filter.slug);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-black text-white">{label}</h3>
-          <p className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-400">Choose one</p>
+    <div className="border-b border-slate-200 last:border-b-0">
+      <button
+        className="flex w-full items-center justify-between gap-3 py-3.5 text-left"
+        onClick={() => setOpen((v) => !v)}
+        type="button"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-black text-slate-900">{label}</span>
+          {activeInGroup.length > 0 && (
+            <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white">
+              {activeInGroup.length}
+            </span>
+          )}
         </div>
-        <div className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-lime-300">
-          {filters.length}
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div className="pb-4">
+          <div className="flex flex-wrap gap-2">
+            {visibleFilters.map((filter) => {
+              const selected = selectedFilters.includes(filter.slug);
+              return (
+                <button
+                  className={`rounded-full border px-3.5 py-2 text-sm font-black transition ${
+                    selected
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50"
+                  }`}
+                  onClick={() =>
+                    setSelectedFilters((current) =>
+                      current.includes(filter.slug)
+                        ? current.filter((slug) => slug !== filter.slug)
+                        : [...current.filter((slug) => !filterSlugs.includes(slug)), filter.slug],
+                    )
+                  }
+                  type="button"
+                  key={filter.slug}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
+            {(hiddenCount > 0 || showMore) ? (
+              <button
+                className="rounded-full border border-slate-300 px-3.5 py-2 text-sm font-black text-slate-500 hover:border-emerald-400 hover:text-emerald-700"
+                onClick={() => setShowMore((v) => !v)}
+                type="button"
+              >
+                {showMore ? "Show less" : `+${hiddenCount} more`}
+              </button>
+            ) : null}
+          </div>
         </div>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {visibleFilters.map((filter) => {
-          const selected = selectedFilters.includes(filter.slug);
-          return (
-            <button
-              className={`rounded-full px-3.5 py-2 text-sm font-black transition ${
-                selected ? "bg-lime-300 text-slate-950" : "bg-white/10 text-slate-100 hover:bg-white/15"
-              }`}
-              onClick={() =>
-                setSelectedFilters((current) =>
-                  current.includes(filter.slug)
-                    ? current.filter((slug) => slug !== filter.slug)
-                    : [...current.filter((slug) => !filterSlugs.includes(slug)), filter.slug],
-                )
-              }
-              type="button"
-              key={filter.slug}
-            >
-              {filter.label}
-            </button>
-          );
-        })}
-        {hiddenCount || expanded ? (
-          <button
-            className="rounded-full border border-white/15 px-3.5 py-2 text-sm font-black text-lime-300 hover:bg-white/10"
-            onClick={() => setExpanded((value) => !value)}
-            type="button"
-          >
-            {expanded ? "Show less" : `More (${hiddenCount})`}
-          </button>
-        ) : null}
-      </div>
+      )}
     </div>
   );
 }
 
+// Collapsible range input section
 function RangeInputs({
   config,
   ranges,
   setRanges,
+  defaultOpen = true,
 }: {
   config: RangeSection;
   ranges: RangeState;
   setRanges: React.Dispatch<React.SetStateAction<RangeState>>;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const hasValue = Boolean(ranges[config.minKey] || ranges[config.maxKey]);
+
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-      <h3 className="text-sm font-black text-white">{config.title}</h3>
-      <p className="mt-1 text-xs text-slate-400">{config.hint}</p>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <label className="space-y-2">
-          <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">{config.minLabel}</span>
-          <input
-            className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2.5 text-sm font-bold text-white outline-none placeholder:text-slate-500 focus:border-lime-300"
-            inputMode="numeric"
-            min={0}
-            placeholder={config.minLabel}
-            type="number"
-            value={ranges[config.minKey]}
-            onChange={(event) => setRanges((current) => ({ ...current, [config.minKey]: event.target.value }))}
-          />
-        </label>
-        <label className="space-y-2">
-          <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">{config.maxLabel}</span>
-          <input
-            className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2.5 text-sm font-bold text-white outline-none placeholder:text-slate-500 focus:border-lime-300"
-            inputMode="numeric"
-            min={0}
-            placeholder={config.maxLabel}
-            type="number"
-            value={ranges[config.maxKey]}
-            onChange={(event) => setRanges((current) => ({ ...current, [config.maxKey]: event.target.value }))}
-          />
-        </label>
-      </div>
+    <div className="border-b border-slate-200">
+      <button
+        className="flex w-full items-center justify-between gap-3 py-3.5 text-left"
+        onClick={() => setOpen((v) => !v)}
+        type="button"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-black text-slate-900">{config.title}</span>
+          {hasValue && (
+            <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white">✓</span>
+          )}
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="pb-4">
+          <p className="mb-3 text-xs text-slate-500">{config.hint}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="space-y-1.5">
+              <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">{config.minLabel}</span>
+              <input
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-emerald-500"
+                inputMode="numeric"
+                min={0}
+                placeholder={config.minLabel}
+                type="number"
+                value={ranges[config.minKey]}
+                onChange={(event) => setRanges((current) => ({ ...current, [config.minKey]: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-1.5">
+              <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">{config.maxLabel}</span>
+              <input
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-emerald-500"
+                inputMode="numeric"
+                min={0}
+                placeholder={config.maxLabel}
+                type="number"
+                value={ranges[config.maxKey]}
+                onChange={(event) => setRanges((current) => ({ ...current, [config.maxKey]: event.target.value }))}
+              />
+            </label>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -540,15 +584,14 @@ export function VehicleDiscoverClient({
     () => [...brands].sort((left, right) => Number(right.featured) - Number(left.featured) || left.name.localeCompare(right.name)),
     [brands],
   );
+
+  const skipUrlSync = useRef(true);
   const [citySlug, setCitySlug] = useState(initialCity);
   const [brandQuery, setBrandQuery] = useState("");
-  const [selectedFilters, setSelectedFilters] = useState(() => parseFilterParam(initialFilters));
-  const [appliedFilters, setAppliedFilters] = useState(() => parseFilterParam(initialFilters));
-  const [selectedBrands, setSelectedBrands] = useState(() => parseFilterParam(initialBrands));
-  const [appliedBrands, setAppliedBrands] = useState(() => parseFilterParam(initialBrands));
-  const [selectedSort, setSelectedSort] = useState<SortOption>((initialSort as SortOption) || "relevance");
-  const [appliedSort, setAppliedSort] = useState<SortOption>((initialSort as SortOption) || "relevance");
-  const [selectedRanges, setSelectedRanges] = useState(() =>
+  const [activeFilters, setActiveFilters] = useState(() => parseFilterParam(initialFilters));
+  const [activeBrands, setActiveBrands] = useState(() => parseFilterParam(initialBrands));
+  const [activeSort, setActiveSort] = useState<SortOption>((initialSort as SortOption) || "relevance");
+  const [activeRanges, setActiveRanges] = useState(() =>
     parseRangeState({
       priceMin: initialPriceMin,
       priceMax: initialPriceMax,
@@ -560,65 +603,55 @@ export function VehicleDiscoverClient({
       payloadMax: initialPayloadMax,
     }),
   );
-  const [appliedRanges, setAppliedRanges] = useState(() =>
-    parseRangeState({
-      priceMin: initialPriceMin,
-      priceMax: initialPriceMax,
-      engineMin: initialEngineMin,
-      engineMax: initialEngineMax,
-      powerMin: initialPowerMin,
-      powerMax: initialPowerMax,
-      payloadMin: initialPayloadMin,
-      payloadMax: initialPayloadMax,
-    }),
-  );
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
-  const appliedFilterObjects = activeTab.filters.filter((filter) => appliedFilters.includes(filter.slug));
+  // Sync URL on every filter change via replaceState (no back-button history spam)
+  useEffect(() => {
+    if (skipUrlSync.current) {
+      skipUrlSync.current = false;
+      return;
+    }
+    window.history.replaceState(
+      null,
+      "",
+      buildDiscoverUrl(activeTab.key, citySlug, activeFilters, activeBrands, activeRanges, activeSort),
+    );
+  }, [activeTab.key, citySlug, activeFilters, activeBrands, activeRanges, activeSort]);
+
+  const activeFilterObjects = activeTab.filters.filter((f) => activeFilters.includes(f.slug));
   const rangeSections = rangeSectionsForType(activeTab.key);
   const sortOptions = sortOptionsForType(activeTab.key);
-  const selectedCount = selectedFilters.length + selectedBrands.length + countRangeSelections(selectedRanges);
-  const matchingBrands = brandList.filter((brand) => brand.name.toLowerCase().includes(brandQuery.trim().toLowerCase()));
-
-  const results = sortModels(
-    filterDiscoveryModels(models, activeTab, appliedFilters)
-      .filter((model) => !appliedBrands.length || appliedBrands.includes(model.brand?.slug ?? ""))
-      .filter((model) => passesRanges(model, appliedRanges)),
-    appliedSort,
+  const activeCount = activeFilters.length + activeBrands.length + countRangeSelections(activeRanges);
+  const matchingBrands = brandList.filter((brand) =>
+    brand.name.toLowerCase().includes(brandQuery.trim().toLowerCase()),
   );
 
-  function pushUrl(nextFilters = selectedFilters, nextBrands = selectedBrands, nextRanges = selectedRanges, nextSort = selectedSort, nextCity = citySlug) {
-    window.history.pushState(null, "", buildDiscoverUrl(activeTab.key, nextCity, nextFilters, nextBrands, nextRanges, nextSort));
-  }
+  const results = sortModels(
+    filterDiscoveryModels(models, activeTab, activeFilters)
+      .filter((model) => !activeBrands.length || activeBrands.includes(model.brand?.slug ?? ""))
+      .filter((model) => passesRanges(model, activeRanges)),
+    activeSort,
+  );
 
   function resetFilters() {
-    const emptyRanges = parseRangeState({});
-    setSelectedFilters([]);
-    setAppliedFilters([]);
-    setSelectedBrands([]);
-    setAppliedBrands([]);
-    setSelectedRanges(emptyRanges);
-    setAppliedRanges(emptyRanges);
-    setSelectedSort("relevance");
-    setAppliedSort("relevance");
-    pushUrl([], [], emptyRanges, "relevance", citySlug);
-  }
-
-  function applyFilters() {
-    setAppliedFilters(selectedFilters);
-    setAppliedBrands(selectedBrands);
-    setAppliedRanges(selectedRanges);
-    setAppliedSort(selectedSort);
-    pushUrl(selectedFilters, selectedBrands, selectedRanges, selectedSort, citySlug);
+    setActiveFilters([]);
+    setActiveBrands([]);
+    setActiveRanges(parseRangeState({}));
+    setActiveSort("relevance");
+    setFilterDrawerOpen(false);
   }
 
   return (
     <main className="bg-slate-50">
+      {/* Page header */}
       <section className="border-b border-emerald-100 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-sm font-black uppercase tracking-wide text-emerald-700">Vehicle discover</p>
-              <h1 className="mt-1 text-4xl font-black tracking-tight text-slate-950">Find matching {activeTab.label.toLowerCase()}</h1>
+              <h1 className="mt-1 text-4xl font-black tracking-tight text-slate-950">
+                Find matching {activeTab.label.toLowerCase()}
+              </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                 Refine by brand, type, fuel, specs and budget, then open the exact model without losing your search.
               </p>
@@ -628,11 +661,7 @@ export function VehicleDiscoverClient({
               <select
                 className="rounded-full border border-emerald-200 bg-white px-4 py-3 text-sm font-black text-slate-800"
                 value={citySlug}
-                onChange={(event) => {
-                  const nextCity = event.target.value;
-                  setCitySlug(nextCity);
-                  pushUrl(selectedFilters, selectedBrands, selectedRanges, selectedSort, nextCity);
-                }}
+                onChange={(event) => setCitySlug(event.target.value)}
               >
                 {cities.map((city) => (
                   <option value={city.slug} key={city.id}>
@@ -645,154 +674,187 @@ export function VehicleDiscoverClient({
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[360px_1fr]">
-        <aside className="h-fit rounded-2xl border border-slate-800 bg-slate-950 p-4 shadow-sm lg:sticky lg:top-24">
-          <div className="rounded-xl border border-white/10 bg-slate-900/80 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-lime-300">
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  Filter workspace
-                </div>
-                <h2 className="mt-3 text-xl font-black text-white">{activeTab.label}</h2>
-                <p className="mt-1 text-sm text-slate-400">Choose one option per group, then apply the search.</p>
-              </div>
-              {selectedCount ? (
-                <span className="rounded-full bg-lime-300 px-3 py-1 text-xs font-black text-slate-950">{selectedCount}</span>
-              ) : null}
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[300px_1fr]">
+        {/* Desktop filter sidebar */}
+        <aside className="hidden flex-col rounded-2xl border border-slate-200 bg-white shadow-sm lg:flex lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
+          {/* Sidebar header — stays pinned while content scrolls */}
+          <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-4 pt-5">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-emerald-600" />
+              <span className="text-base font-black text-slate-900">{activeTab.label}</span>
+              {activeCount > 0 && (
+                <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-black text-white">
+                  {activeCount}
+                </span>
+              )}
             </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {activeCount > 0 && (
               <button
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-lime-300 px-4 py-3 text-sm font-black text-slate-950 hover:bg-lime-200"
-                onClick={applyFilters}
-                type="button"
-              >
-                <Search className="h-4 w-4" />
-                Search models
-              </button>
-              <button
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 px-4 py-3 text-sm font-black text-white hover:bg-white/10"
+                className="flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-500 hover:border-slate-400 hover:text-slate-800"
                 onClick={resetFilters}
                 type="button"
               >
-                <RotateCcw className="h-4 w-4" />
-                Reset all
+                <X className="h-3 w-3" /> Clear all
               </button>
-            </div>
-
-            {(selectedBrands.length || selectedFilters.length || hasRangeSelection(selectedRanges)) ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {selectedBrands.map((slug) => {
-                  const brand = brandList.find((item) => item.slug === slug);
-                  if (!brand) return null;
-                  return (
-                    <button
-                      className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-black text-white hover:bg-white/15"
-                      onClick={() => setSelectedBrands((current) => current.filter((item) => item !== slug))}
-                      type="button"
-                      key={`brand-${slug}`}
-                    >
-                      {brand.name}
-                    </button>
-                  );
-                })}
-                {selectedFilters.map((slug) => {
-                  const filter = activeTab.filters.find((item) => item.slug === slug);
-                  if (!filter) return null;
-                  return (
-                    <button
-                      className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-black text-white hover:bg-white/15"
-                      onClick={() => setSelectedFilters((current) => current.filter((item) => item !== slug))}
-                      type="button"
-                      key={`filter-${slug}`}
-                    >
-                      {filter.label}
-                    </button>
-                  );
-                })}
-                {(Object.entries(selectedRanges) as [RangeKey, string][]).map(([key, value]) =>
-                  value ? (
-                    <button
-                      className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-black text-white hover:bg-white/15"
-                      onClick={() => setSelectedRanges((current) => ({ ...current, [key]: "" }))}
-                      type="button"
-                      key={`range-${key}`}
-                    >
-                      {key.replace(/([A-Z])/g, " $1")}: {value}
-                    </button>
-                  ) : null,
-                )}
-              </div>
-            ) : null}
+            )}
           </div>
 
-          <div className="mt-4 space-y-4">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-black text-white">Brands</h3>
-                  <p className="mt-1 text-xs text-slate-400">Search and select one or more brands.</p>
+          {/* Active filter chips — also pinned */}
+          {(activeBrands.length > 0 || activeFilters.length > 0 || hasRangeSelection(activeRanges)) ? (
+            <div className="flex shrink-0 flex-wrap gap-1.5 px-5 pb-4">
+              {activeBrands.map((slug) => {
+                const brand = brandList.find((item) => item.slug === slug);
+                if (!brand) return null;
+                return (
+                  <button
+                    className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 hover:bg-emerald-100"
+                    onClick={() => setActiveBrands((c) => c.filter((s) => s !== slug))}
+                    type="button"
+                    key={`chip-brand-${slug}`}
+                  >
+                    {brand.name} <X className="h-3 w-3" />
+                  </button>
+                );
+              })}
+              {activeFilters.map((slug) => {
+                const filter = activeTab.filters.find((item) => item.slug === slug);
+                if (!filter) return null;
+                return (
+                  <button
+                    className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 hover:bg-emerald-100"
+                    onClick={() => setActiveFilters((c) => c.filter((s) => s !== slug))}
+                    type="button"
+                    key={`chip-filter-${slug}`}
+                  >
+                    {filter.label} <X className="h-3 w-3" />
+                  </button>
+                );
+              })}
+              {(Object.entries(activeRanges) as [RangeKey, string][]).map(([key, value]) =>
+                value ? (
+                  <button
+                    className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 hover:bg-emerald-100"
+                    onClick={() => setActiveRanges((c) => ({ ...c, [key]: "" }))}
+                    type="button"
+                    key={`chip-range-${key}`}
+                  >
+                    {key.replace(/([A-Z])/g, " $1")}: {value} <X className="h-3 w-3" />
+                  </button>
+                ) : null,
+              )}
+            </div>
+          ) : null}
+
+          <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto border-t border-slate-200 px-5 pb-5">
+            {/* Brand section */}
+            <div className="border-b border-slate-200">
+              <div className="py-3.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black text-slate-900">Brand</span>
+                  {activeBrands.length > 0 && (
+                    <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white">
+                      {activeBrands.length}
+                    </span>
+                  )}
                 </div>
-                <div className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-lime-300">
-                  {selectedBrands.length ? selectedBrands.length : "All"}
+                <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <input
+                    className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+                    placeholder="Search brand"
+                    value={brandQuery}
+                    onChange={(event) => setBrandQuery(event.target.value)}
+                  />
                 </div>
-              </div>
-              <div className="mt-4 rounded-lg border border-white/10 bg-slate-900 px-3 py-2">
-                <input
-                  className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-slate-500"
-                  placeholder="Search brand"
-                  value={brandQuery}
-                  onChange={(event) => setBrandQuery(event.target.value)}
-                />
-              </div>
-              <div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
-                {matchingBrands.map((brand) => {
-                  const selected = selectedBrands.includes(brand.slug);
-                  return (
-                    <button
-                      className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${
-                        selected
-                          ? "border-lime-300 bg-lime-300/10 text-white"
-                          : "border-white/10 bg-slate-900/60 text-slate-100 hover:border-white/20 hover:bg-white/5"
-                      }`}
-                      onClick={() =>
-                        setSelectedBrands((current) =>
-                          current.includes(brand.slug) ? current.filter((slug) => slug !== brand.slug) : [...current, brand.slug],
-                        )
-                      }
-                      type="button"
-                      key={brand.id}
-                    >
-                      <BrandLogo className="h-10 w-14 shrink-0" logoUrl={brand.logoUrl} name={brand.name} />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-black">{brand.name}</div>
-                        <div className="text-xs text-slate-400">{selected ? "Selected" : "Tap to include"}</div>
-                      </div>
-                    </button>
-                  );
-                })}
-                {!matchingBrands.length ? <div className="rounded-xl bg-slate-900/70 px-3 py-4 text-sm text-slate-400">No brand matches this search.</div> : null}
+                <div className="no-scrollbar mt-3 max-h-60 space-y-1.5 overflow-y-auto pr-1">
+                  {matchingBrands.map((brand) => {
+                    const selected = activeBrands.includes(brand.slug);
+                    return (
+                      <button
+                        className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
+                          selected
+                            ? "border-emerald-500 bg-emerald-50 text-slate-900"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50"
+                        }`}
+                        onClick={() =>
+                          setActiveBrands((current) =>
+                            current.includes(brand.slug)
+                              ? current.filter((s) => s !== brand.slug)
+                              : [...current, brand.slug],
+                          )
+                        }
+                        type="button"
+                        key={brand.id}
+                      >
+                        <BrandLogo className="h-8 w-12 shrink-0" logoUrl={brand.logoUrl} name={brand.name} />
+                        <div className="min-w-0 flex-1 truncate text-sm font-black">{brand.name}</div>
+                        {selected && <span className="shrink-0 text-xs font-black text-emerald-600">✓</span>}
+                      </button>
+                    );
+                  })}
+                  {!matchingBrands.length && (
+                    <div className="rounded-xl bg-slate-50 px-3 py-4 text-sm text-slate-500">
+                      No brand matches.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {rangeSections.map((section) => (
-              <RangeInputs config={section} ranges={selectedRanges} setRanges={setSelectedRanges} key={section.title} />
+              <RangeInputs
+                config={section}
+                ranges={activeRanges}
+                setRanges={setActiveRanges}
+                key={section.title}
+              />
             ))}
 
             {filterGroups.map((group) => (
               <FilterGroup
                 filters={group.filters}
                 label={group.label}
-                selectedFilters={selectedFilters}
-                setSelectedFilters={setSelectedFilters}
+                selectedFilters={activeFilters}
+                setSelectedFilters={setActiveFilters}
                 key={`${activeTab.key}-${group.key}`}
               />
             ))}
           </div>
         </aside>
 
+        {/* Results column */}
         <div>
+          {/* Mobile filter + sort bar */}
+          <div className="mb-4 flex items-center gap-3 lg:hidden">
+            <button
+              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-slate-950 px-4 py-2.5 text-sm font-black text-white"
+              onClick={() => setFilterDrawerOpen(true)}
+              type="button"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Filters
+              {activeCount > 0 && (
+                <span className="ml-0.5 rounded-full bg-lime-300 px-2 py-0.5 text-xs font-black text-slate-950">
+                  {activeCount}
+                </span>
+              )}
+            </button>
+            <label className="flex min-w-0 flex-1 items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 shrink-0 text-slate-500" />
+              <select
+                className="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-3 py-2.5 text-sm font-black text-slate-800"
+                value={activeSort}
+                onChange={(event) => setActiveSort(event.target.value as SortOption)}
+              >
+                {sortOptions.map((option) => (
+                  <option value={option.value} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {/* Results header */}
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -800,18 +862,21 @@ export function VehicleDiscoverClient({
                 <h2 className="mt-1 text-2xl font-black text-slate-950">
                   {results.length} {activeTab.label.toLowerCase()} found
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">Refine the left panel, then jump into the exact model you want.</p>
+                <p className="mt-1 hidden text-sm text-slate-500 lg:block">
+                  Select filters on the left — results update instantly.
+                </p>
+                <p className="mt-1 text-sm text-slate-500 lg:hidden">Tap Filters to narrow your results.</p>
               </div>
 
-              <label className="space-y-2">
+              <label className="hidden space-y-2 lg:block">
                 <span className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-wide text-slate-500">
                   <ArrowUpDown className="h-3.5 w-3.5" />
-                  Sort results
+                  Sort
                 </span>
                 <select
                   className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800"
-                  value={selectedSort}
-                  onChange={(event) => setSelectedSort(event.target.value as SortOption)}
+                  value={activeSort}
+                  onChange={(event) => setActiveSort(event.target.value as SortOption)}
                 >
                   {sortOptions.map((option) => (
                     <option value={option.value} key={option.value}>
@@ -822,37 +887,58 @@ export function VehicleDiscoverClient({
               </label>
             </div>
 
-            {(appliedFilterObjects.length || appliedBrands.length || hasRangeSelection(appliedRanges) || appliedSort !== "relevance") ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {appliedBrands.map((slug) => {
+            {/* Active filter chips (removable) */}
+            {(activeFilterObjects.length > 0 || activeBrands.length > 0 || hasRangeSelection(activeRanges) || activeSort !== "relevance") ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {activeBrands.map((slug) => {
                   const brand = brandList.find((item) => item.slug === slug);
                   return brand ? (
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800" key={`applied-brand-${slug}`}>
-                      {brand.name}
-                    </span>
+                    <button
+                      className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800 hover:bg-emerald-100"
+                      onClick={() => setActiveBrands((c) => c.filter((s) => s !== slug))}
+                      type="button"
+                      key={`res-brand-${slug}`}
+                    >
+                      {brand.name} <X className="h-3 w-3" />
+                    </button>
                   ) : null;
                 })}
-                {appliedFilterObjects.map((filter) => (
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800" key={filter.slug}>
-                    {filter.label}
-                  </span>
+                {activeFilterObjects.map((filter) => (
+                  <button
+                    className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800 hover:bg-emerald-100"
+                    onClick={() => setActiveFilters((c) => c.filter((s) => s !== filter.slug))}
+                    type="button"
+                    key={`res-filter-${filter.slug}`}
+                  >
+                    {filter.label} <X className="h-3 w-3" />
+                  </button>
                 ))}
-                {(Object.entries(appliedRanges) as [RangeKey, string][]).map(([key, value]) =>
+                {(Object.entries(activeRanges) as [RangeKey, string][]).map(([key, value]) =>
                   value ? (
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800" key={`applied-${key}`}>
-                      {key.replace(/([A-Z])/g, " $1")}: {value}
-                    </span>
+                    <button
+                      className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800 hover:bg-emerald-100"
+                      onClick={() => setActiveRanges((c) => ({ ...c, [key]: "" }))}
+                      type="button"
+                      key={`res-range-${key}`}
+                    >
+                      {key.replace(/([A-Z])/g, " $1")}: {value} <X className="h-3 w-3" />
+                    </button>
                   ) : null,
                 )}
-                {appliedSort !== "relevance" ? (
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
-                    {sortOptions.find((option) => option.value === appliedSort)?.label}
-                  </span>
+                {activeSort !== "relevance" ? (
+                  <button
+                    className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800 hover:bg-emerald-100"
+                    onClick={() => setActiveSort("relevance")}
+                    type="button"
+                  >
+                    {sortOptions.find((o) => o.value === activeSort)?.label} <X className="h-3 w-3" />
+                  </button>
                 ) : null}
               </div>
             ) : null}
           </div>
 
+          {/* Vehicle cards */}
           {results.length ? (
             <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {results.map((model) => {
@@ -895,7 +981,12 @@ export function VehicleDiscoverClient({
                           <span className="rounded-md bg-lime-100 px-3 py-2 text-lime-900">{formatShortPrice(variant.exShowroomPrice)}</span>
                         </div>
                       ) : null}
-                      <Link className="mt-4 block rounded-md bg-slate-950 px-3 py-2 text-center text-xs font-black text-white" href={href}>Check on-road price</Link>
+                      <Link
+                        className="mt-4 block rounded-md bg-slate-950 px-3 py-2 text-center text-xs font-black text-white"
+                        href={href}
+                      >
+                        Check on-road price
+                      </Link>
                     </div>
                   </div>
                 );
@@ -911,6 +1002,131 @@ export function VehicleDiscoverClient({
           )}
         </div>
       </section>
+
+      {/* Mobile filter backdrop */}
+      {filterDrawerOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setFilterDrawerOpen(false)}
+        />
+      )}
+
+      {/* Mobile filter bottom drawer */}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] flex-col rounded-t-2xl border-t border-slate-200 bg-white transition-transform duration-300 ease-out lg:hidden ${
+          filterDrawerOpen ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
+        {/* Drawer header */}
+        <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-3">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-emerald-600" />
+              <span className="text-base font-black text-slate-900">Filters</span>
+              {activeCount > 0 && (
+                <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-black text-white">
+                  {activeCount}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {activeCount > 0 && (
+                <button
+                  className="text-xs font-black text-slate-500 hover:text-slate-900"
+                  onClick={resetFilters}
+                  type="button"
+                >
+                  Clear all
+                </button>
+              )}
+              <button
+                className="rounded-full bg-slate-950 px-4 py-1.5 text-sm font-black text-white"
+                onClick={() => setFilterDrawerOpen(false)}
+                type="button"
+              >
+                Done ({results.length})
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Drawer scrollable body */}
+        <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6">
+          {/* Brand section */}
+          <div className="border-b border-slate-200">
+            <div className="py-3.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-slate-900">Brand</span>
+                {activeBrands.length > 0 && (
+                  <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white">
+                    {activeBrands.length}
+                  </span>
+                )}
+              </div>
+              <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <input
+                  className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+                  placeholder="Search brand"
+                  value={brandQuery}
+                  onChange={(event) => setBrandQuery(event.target.value)}
+                />
+              </div>
+              <div className="no-scrollbar mt-3 max-h-52 space-y-1.5 overflow-y-auto pr-1">
+                {matchingBrands.map((brand) => {
+                  const selected = activeBrands.includes(brand.slug);
+                  return (
+                    <button
+                      className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
+                        selected
+                          ? "border-emerald-500 bg-emerald-50 text-slate-900"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50"
+                      }`}
+                      onClick={() =>
+                        setActiveBrands((current) =>
+                          current.includes(brand.slug)
+                            ? current.filter((s) => s !== brand.slug)
+                            : [...current, brand.slug],
+                        )
+                      }
+                      type="button"
+                      key={`mb-br-${brand.id}`}
+                    >
+                      <BrandLogo className="h-8 w-12 shrink-0" logoUrl={brand.logoUrl} name={brand.name} />
+                      <div className="min-w-0 flex-1 truncate text-sm font-black">{brand.name}</div>
+                      {selected && <span className="shrink-0 text-xs font-black text-emerald-600">✓</span>}
+                    </button>
+                  );
+                })}
+                {!matchingBrands.length && (
+                  <div className="rounded-xl bg-slate-50 px-3 py-4 text-sm text-slate-500">No brand matches.</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {rangeSections.map((section) => (
+            <RangeInputs
+              config={section}
+              ranges={activeRanges}
+              setRanges={setActiveRanges}
+              defaultOpen={false}
+              key={`mb-${section.title}`}
+            />
+          ))}
+
+          {filterGroups.map((group) => (
+            <FilterGroup
+              filters={group.filters}
+              label={group.label}
+              selectedFilters={activeFilters}
+              setSelectedFilters={setActiveFilters}
+              defaultOpen={false}
+              key={`mb-${activeTab.key}-${group.key}`}
+            />
+          ))}
+        </div>
+      </div>
     </main>
   );
 }

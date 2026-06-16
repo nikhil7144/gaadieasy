@@ -1,6 +1,7 @@
 import {
   brands,
   categories,
+  cityPages,
   cities,
   dealerBrandMappings,
   dealers,
@@ -557,6 +558,7 @@ export function calculateOnRoadPrice(query: PricingQuery): PricingResult {
     dealerBrandMappings,
     offers,
     heroPromotions,
+    cityPages,
   });
 }
 

@@ -1,6 +1,7 @@
 import type {
   Brand,
   City,
+  CityPage,
   ComparisonPage,
   Dealer,
   DealerBrandMapping,
@@ -1050,6 +1051,68 @@ export const seoPages: SeoPage[] = [
     filters: { cityId: "city-delhi", categoryId: "cat-ev", fuelType: "Electric" },
     showOnHomepage: true,
     showInFooter: true,
+    active: true,
+  },
+];
+
+export const cityPages: CityPage[] = [
+  {
+    id: "city-page-bangalore",
+    cityId: "city-bengaluru",
+    slug: "bangalore",
+    title: "Vehicle on-road prices in Bengaluru",
+    h1: "On-road prices in Bengaluru",
+    metaTitle: "Vehicle On-Road Prices in Bengaluru | Gaadieasy",
+    metaDescription:
+      "Compare cars, bikes, scooters, EVs and commercial vehicle on-road prices in Bengaluru with RTO, insurance, dealer offers and brand-wise models.",
+    intro:
+      "Explore city-wise vehicle prices in Bengaluru with live model data, RTO context, dealer availability and transparent pricing sections.",
+    body:
+      "Bengaluru vehicle prices can vary by state tax, RTO office, insurance plan, dealer offer and selected variant. Use this page to shortlist brands and models before opening the detailed on-road price page.",
+    heroImageUrl: "",
+    featuredCategoryId: "cat-car",
+    featuredBrandIds: ["brand-hyundai", "brand-tata", "brand-ather"],
+    faq: [
+      {
+        question: "Are prices on this city page final dealer quotes?",
+        answer:
+          "No. The city page shows planning estimates from the pricing engine. Dealer quote, insurance plan and selected accessories can change the final price.",
+      },
+      {
+        question: "Can I compare models available in Bengaluru?",
+        answer:
+          "Yes. Open any model card to check variant-wise on-road pricing, then use comparison to evaluate similar vehicles.",
+      },
+    ],
+    showInFooter: true,
+    displayOrder: 1,
+    active: true,
+  },
+  {
+    id: "city-page-mumbai",
+    cityId: "city-mumbai",
+    slug: "mumbai",
+    title: "Vehicle on-road prices in Mumbai",
+    h1: "On-road prices in Mumbai",
+    metaTitle: "Vehicle On-Road Prices in Mumbai | Gaadieasy",
+    metaDescription:
+      "Check Mumbai on-road prices for popular vehicle models with Maharashtra tax, RTO charges, insurance estimate and dealer offers.",
+    intro:
+      "Shortlist vehicles in Mumbai with brand-wise models, city price estimates and dealer-led discovery.",
+    body:
+      "Mumbai on-road price estimates include ex-showroom price, state-level tax, RTO charges and insurance assumptions where configured.",
+    heroImageUrl: "",
+    featuredCategoryId: "cat-car",
+    featuredBrandIds: ["brand-tata", "brand-mahindra", "brand-hyundai"],
+    faq: [
+      {
+        question: "Why does Mumbai price differ from Delhi or Bengaluru?",
+        answer:
+          "Road tax, RTO charges, insurance and dealer offers are configured city or state-wise, so final estimates change by location.",
+      },
+    ],
+    showInFooter: true,
+    displayOrder: 2,
     active: true,
   },
 ];

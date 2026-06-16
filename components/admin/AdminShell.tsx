@@ -12,8 +12,10 @@ const nav = [
   ["Offers", "/admin/offers"],
   ["Leads", "/admin/leads"],
   ["Homepage banners", "/admin/homepage-banners"],
+  ["City pages", "/admin/city-pages"],
   ["SEO pages", "/admin/seo-pages"],
   ["Comparisons", "/admin/comparisons"],
+  ["Vehicle updates", "/admin/vehicle-updates"],
 ];
 
 export function AdminShell({ children, userEmail }: { children: React.ReactNode; userEmail?: string }) {

@@ -29,6 +29,7 @@ export const modelSchema = z.object({
   faq: z.array(faqItemSchema).default([]),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
+  isUpcoming: z.boolean().default(false),
 });
 
 export const variantSchema = z.object({
@@ -128,6 +129,24 @@ export const seoPageSchema = z.object({
   active: z.boolean().default(true),
 });
 
+export const cityPageSchema = z.object({
+  cityId: z.string().uuid(),
+  slug: z.string().min(2),
+  title: z.string().min(3),
+  h1: z.string().min(3),
+  metaTitle: z.string().min(3),
+  metaDescription: z.string().min(10),
+  intro: z.string().min(10),
+  body: z.string().optional().default(""),
+  heroImageUrl: z.string().url().optional().or(z.literal("")),
+  featuredCategoryId: z.string().uuid().optional().or(z.literal("")),
+  featuredBrandIds: z.array(z.string().uuid()).default([]),
+  faq: z.array(faqItemSchema).default([]),
+  showInFooter: z.boolean().default(true),
+  displayOrder: z.coerce.number().int().default(0),
+  active: z.boolean().default(true),
+});
+
 export const comparisonPageSchema = z.object({
   slug: z.string().min(3),
   title: z.string().min(3),
@@ -204,6 +223,35 @@ export const taxRuleSchema = z.object({
   fixedTaxAmount: z.coerce.number().min(0).default(0),
   evExemptionPercent: z.coerce.number().min(0).max(100).default(0),
   luxuryCessPercent: z.coerce.number().min(0).max(100).default(0),
+  active: z.boolean().default(true),
+});
+
+export const vehicleStorySchema = z.object({
+  slug: z.string().min(2).optional(),
+  brandSlug: z.string().min(2),
+  brandName: z.string().min(2),
+  modelId: z.string().uuid().optional().or(z.literal("")),
+  title: z.string().min(3),
+  tagline: z.string().optional().default(""),
+  heroImageUrl: z.string().url().optional().or(z.literal("")),
+  intro: z.string().min(10),
+  body: z.string().default(""),
+  launchStatus: z.enum(["upcoming", "launched", "updated", "discontinued"]).default("upcoming"),
+  expectedLaunchDate: z.string().optional().or(z.literal("")),
+  actualLaunchDate: z.string().optional().or(z.literal("")),
+  seoTitle: z.string().optional().default(""),
+  seoDescription: z.string().optional().default(""),
+  featured: z.boolean().default(false),
+  publishedAt: z.string().optional().or(z.literal("")),
+  active: z.boolean().default(true),
+});
+
+export const vehicleStoryUpdateSchema = z.object({
+  storyId: z.string().uuid(),
+  title: z.string().min(3),
+  body: z.string().default(""),
+  imageUrl: z.string().url().optional().or(z.literal("")),
+  postedAt: z.string().optional(),
   active: z.boolean().default(true),
 });
 

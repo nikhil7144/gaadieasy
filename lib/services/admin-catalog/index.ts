@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils/format";
 import type {
   Brand,
+  CityPage,
   Dealer,
   DealerBrandMapping,
   DealerBusiness,
@@ -54,6 +55,7 @@ function mapModel(row: DbRow): VehicleModel {
     faq: Array.isArray(row.faq) ? (row.faq as VehicleModel["faq"]) : [],
     active: Boolean(row.active),
     featured: Boolean(row.featured),
+    isUpcoming: Boolean(row.is_upcoming),
   };
 }
 
@@ -80,6 +82,29 @@ function mapHeroPromotion(row: DbRow): HeroPromotion {
     variantId: typeof row.variant_id === "string" ? row.variant_id : undefined,
     targetUrl: String(row.target_url),
     active: Boolean(row.active),
+  };
+}
+
+function mapCityPage(row: DbRow): CityPage {
+  return {
+    id: String(row.id),
+    cityId: String(row.city_id),
+    slug: String(row.slug),
+    title: String(row.title),
+    h1: String(row.h1),
+    metaTitle: String(row.meta_title),
+    metaDescription: String(row.meta_description),
+    intro: String(row.intro ?? ""),
+    body: String(row.body ?? ""),
+    heroImageUrl: typeof row.hero_image_url === "string" ? row.hero_image_url : undefined,
+    featuredCategoryId: typeof row.featured_category_id === "string" ? row.featured_category_id : undefined,
+    featuredBrandIds: Array.isArray(row.featured_brand_ids) ? (row.featured_brand_ids as string[]) : [],
+    faq: Array.isArray(row.faq) ? (row.faq as CityPage["faq"]) : [],
+    showInFooter: Boolean(row.show_in_footer),
+    displayOrder: Number(row.display_order ?? 0),
+    active: Boolean(row.active),
+    createdAt: typeof row.created_at === "string" ? row.created_at : undefined,
+    updatedAt: typeof row.updated_at === "string" ? row.updated_at : undefined,
   };
 }
 
@@ -664,6 +689,7 @@ export async function createModel(input: {
   faq?: VehicleModel["faq"];
   active: boolean;
   featured: boolean;
+  isUpcoming?: boolean;
 }) {
   const supabase = getAdminClient();
   const { data, error } = await supabase
@@ -683,6 +709,7 @@ export async function createModel(input: {
       faq: Array.isArray(input.faq) ? input.faq : [],
       active: input.active,
       featured: input.featured,
+      is_upcoming: input.isUpcoming ?? false,
     })
     .select("*")
     .single();
@@ -713,6 +740,7 @@ export async function updateModel(input: Partial<Parameters<typeof createModel>[
   if (input.faq !== undefined) patch.faq = Array.isArray(input.faq) ? input.faq : [];
   if (input.active !== undefined) patch.active = input.active;
   if (input.featured !== undefined) patch.featured = input.featured;
+  if (input.isUpcoming !== undefined) patch.is_upcoming = input.isUpcoming;
 
   const { data, error } = await supabase.from("vehicle_models").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;
@@ -1166,6 +1194,120 @@ export async function updateHomepageBanner(input: {
   revalidatePath("/admin");
   revalidatePath("/admin/homepage-banners");
   return mapHeroPromotion(data as DbRow);
+}
+
+export async function createCityPage(input: {
+  cityId: string;
+  slug: string;
+  title: string;
+  h1: string;
+  metaTitle: string;
+  metaDescription: string;
+  intro: string;
+  body?: string;
+  heroImageUrl?: string;
+  featuredCategoryId?: string;
+  featuredBrandIds?: string[];
+  faq?: CityPage["faq"];
+  showInFooter: boolean;
+  displayOrder: number;
+  active: boolean;
+}) {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("city_pages")
+    .insert({
+      city_id: input.cityId,
+      slug: input.slug.trim() || slugify(input.title),
+      title: input.title,
+      h1: input.h1,
+      meta_title: input.metaTitle,
+      meta_description: input.metaDescription,
+      intro: input.intro,
+      body: input.body ?? "",
+      hero_image_url: optionalText(input.heroImageUrl),
+      featured_category_id: optionalText(input.featuredCategoryId),
+      featured_brand_ids: arrayFromText(input.featuredBrandIds),
+      faq: input.faq ?? [],
+      show_in_footer: input.showInFooter,
+      display_order: input.displayOrder,
+      active: input.active,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/city-pages");
+  revalidatePath(`/city/${input.slug}`);
+  return mapCityPage(data as DbRow);
+}
+
+export async function updateCityPage(input: {
+  id: string;
+  cityId?: string;
+  slug?: string;
+  title?: string;
+  h1?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  intro?: string;
+  body?: string;
+  heroImageUrl?: string;
+  featuredCategoryId?: string;
+  featuredBrandIds?: string[];
+  faq?: CityPage["faq"];
+  showInFooter?: boolean;
+  displayOrder?: number;
+  active?: boolean;
+}) {
+  const supabase = getAdminClient();
+  const patch: DbRow = { updated_at: new Date().toISOString() };
+
+  if (input.cityId !== undefined) patch.city_id = input.cityId;
+  if (input.slug !== undefined) patch.slug = input.slug.trim();
+  if (input.title !== undefined) patch.title = input.title;
+  if (input.h1 !== undefined) patch.h1 = input.h1;
+  if (input.metaTitle !== undefined) patch.meta_title = input.metaTitle;
+  if (input.metaDescription !== undefined) patch.meta_description = input.metaDescription;
+  if (input.intro !== undefined) patch.intro = input.intro;
+  if (input.body !== undefined) patch.body = input.body;
+  if (input.heroImageUrl !== undefined) patch.hero_image_url = optionalText(input.heroImageUrl);
+  if (input.featuredCategoryId !== undefined) patch.featured_category_id = optionalText(input.featuredCategoryId);
+  if (input.featuredBrandIds !== undefined) patch.featured_brand_ids = arrayFromText(input.featuredBrandIds);
+  if (input.faq !== undefined) patch.faq = input.faq;
+  if (input.showInFooter !== undefined) patch.show_in_footer = input.showInFooter;
+  if (input.displayOrder !== undefined) patch.display_order = input.displayOrder;
+  if (input.active !== undefined) patch.active = input.active;
+
+  const { data, error } = await supabase.from("city_pages").update(patch).eq("id", input.id).select("*").single();
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/city-pages");
+  revalidatePath(`/city/${String((data as DbRow).slug)}`);
+  return mapCityPage(data as DbRow);
+}
+
+export async function deleteCityPage(id: string) {
+  const supabase = getAdminClient();
+  const { data: existing, error: existingError } = await supabase
+    .from("city_pages")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+  if (existingError) throw existingError;
+
+  const { error } = await supabase.from("city_pages").delete().eq("id", id);
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/city-pages");
+  if (existing && typeof existing.slug === "string") revalidatePath(`/city/${existing.slug}`);
+  return { id };
 }
 
 export async function createTaxRule(input: {

@@ -20,6 +20,17 @@ export const metadata: Metadata = {
   description: "Check city-wise on-road vehicle prices with tax, RTO, insurance and dealer enquiry.",
 };
 
+function sectionValue(section: unknown, keys: string[]) {
+  if (!section || typeof section !== "object" || Array.isArray(section)) return undefined;
+  const record = section as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return undefined;
+}
+
 export default async function OnRoadPricePage({
   searchParams,
 }: {
@@ -45,8 +56,15 @@ export default async function OnRoadPricePage({
     ["Engine", pricing.variant.engineCapacity],
     ["Mileage", pricing.variant.mileage],
     ["Seats", `${pricing.variant.seatingCapacity}`],
+    ["Power", sectionValue(pricing.variant.specifications.engine, ["maxPower", "power"])],
+    ["Battery", sectionValue(pricing.variant.specifications.ev, ["batteryCapacity", "battery"])],
+    ["Range", sectionValue(pricing.variant.specifications.ev, ["claimedRange", "realWorldRange", "range"])],
+    ["Payload", sectionValue(pricing.variant.specifications.commercial, ["payloadCapacity", "payload"])],
+    ["Wheels", sectionValue(pricing.variant.specifications.commercial, ["numberOfWheels", "wheels"])],
+    ["Loader", pricing.model.loaderSize ?? sectionValue(pricing.variant.specifications.commercial, ["loaderSize"])],
+    ["Brakes", sectionValue(pricing.variant.specifications.bike, ["brakeType", "brakes"])],
     ["RTO", pricing.rto?.code ?? "Mapped city RTO"],
-  ];
+  ].filter((fact): fact is [string, string] => typeof fact[1] === "string" && Boolean(fact[1]));
   const modelFaqs = pricing.model.faq?.length
     ? pricing.model.faq
     : [

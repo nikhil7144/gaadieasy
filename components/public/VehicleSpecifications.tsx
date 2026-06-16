@@ -1,22 +1,64 @@
 import type { SpecificationGroup, VehicleSpecifications as VehicleSpecificationsType } from "@/types/automobile";
-import { CarFront, Gauge, ShieldCheck, Sofa, Sparkles } from "lucide-react";
+import { BatteryCharging, Bike, CarFront, Gauge, ShieldCheck, Sofa, Sparkles, Truck } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-type SpecGroup = {
+type DisplayRow = readonly [string, string];
+
+type DisplayGroup = {
   title: string;
+  description?: string;
   tone: string;
-  rows?: Record<string, string>;
+  icon: LucideIcon;
+  rows: DisplayRow[];
 };
 
 function labelize(value: string) {
   return value.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
 }
 
+function normalize(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function displayValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.map(displayValue).filter(Boolean).join(", ");
+  return "";
+}
+
 function objectRows(value: unknown) {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, string>) : undefined;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  return Object.entries(value)
+    .map(([label, rowValue]) => [label, displayValue(rowValue)] as const)
+    .filter(([, rowValue]) => rowValue && rowValue !== "Not applicable");
 }
 
 function stringList(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && Boolean(item)) : [];
+}
+
+function mergeGroups(groups: DisplayGroup[]) {
+  const merged = new Map<string, DisplayGroup>();
+
+  groups.forEach((group) => {
+    if (!group.rows.length) return;
+    const key = normalize(group.title);
+    const existing = merged.get(key);
+
+    if (!existing) {
+      merged.set(key, group);
+      return;
+    }
+
+    const existingLabels = new Set(existing.rows.map(([label]) => normalize(label)));
+    const missingRows = group.rows.filter(([label]) => !existingLabels.has(normalize(label)));
+    if (missingRows.length) {
+      existing.rows = [...existing.rows, ...missingRows];
+    }
+  });
+
+  return Array.from(merged.values());
 }
 
 export function VehicleSpecifications({
@@ -28,23 +70,81 @@ export function VehicleSpecifications({
 }) {
   const highlights = stringList(specifications.highlights);
   const features = stringList(specifications.features);
-  const groups: SpecGroup[] = [
-    { title: "Engine and transmission", tone: "bg-emerald-100 text-emerald-900", rows: objectRows(specifications.engine) },
-    { title: "Dimensions and capacity", tone: "bg-blue-100 text-blue-900", rows: objectRows(specifications.dimensions) },
-    { title: "Interior specification", tone: "bg-violet-100 text-violet-900", rows: objectRows(specifications.interior) },
-    { title: "Exterior specification", tone: "bg-lime-100 text-lime-900", rows: objectRows(specifications.exterior) },
-    { title: "Safety specification", tone: "bg-amber-100 text-amber-900", rows: objectRows(specifications.safety) },
-  ].filter((group) => group.rows && Object.values(group.rows).some(Boolean));
-  const icons = [Gauge, CarFront, Sofa, Sparkles, ShieldCheck];
+  const fallbackGroups: DisplayGroup[] = [
+    {
+      title: "Engine and transmission",
+      tone: "bg-emerald-100 text-emerald-900",
+      icon: Gauge,
+      rows: objectRows(specifications.engine),
+    },
+    {
+      title: "Dimensions and capacity",
+      tone: "bg-blue-100 text-blue-900",
+      icon: CarFront,
+      rows: objectRows(specifications.dimensions),
+    },
+    {
+      title: "Interior specification",
+      tone: "bg-violet-100 text-violet-900",
+      icon: Sofa,
+      rows: objectRows(specifications.interior),
+    },
+    {
+      title: "Exterior specification",
+      tone: "bg-lime-100 text-lime-900",
+      icon: Sparkles,
+      rows: objectRows(specifications.exterior),
+    },
+    {
+      title: "Safety specification",
+      tone: "bg-amber-100 text-amber-900",
+      icon: ShieldCheck,
+      rows: objectRows(specifications.safety),
+    },
+    {
+      title: "EV battery and charging",
+      tone: "bg-cyan-100 text-cyan-900",
+      icon: BatteryCharging,
+      rows: objectRows(specifications.ev),
+    },
+    {
+      title: "Commercial and permit details",
+      tone: "bg-orange-100 text-orange-900",
+      icon: Truck,
+      rows: objectRows(specifications.commercial),
+    },
+    {
+      title: "Two-wheeler details",
+      tone: "bg-rose-100 text-rose-900",
+      icon: Bike,
+      rows: objectRows(specifications.bike),
+    },
+  ];
+  const icons = [Gauge, CarFront, Sofa, Sparkles, ShieldCheck, BatteryCharging, Truck, Bike];
+  const tones = [
+    "bg-emerald-100 text-emerald-900",
+    "bg-blue-100 text-blue-900",
+    "bg-violet-100 text-violet-900",
+    "bg-lime-100 text-lime-900",
+    "bg-amber-100 text-amber-900",
+    "bg-cyan-100 text-cyan-900",
+    "bg-orange-100 text-orange-900",
+    "bg-rose-100 text-rose-900",
+  ];
   const dynamicGroups = specificationGroups
-    .map((group) => ({
-      ...group,
-      fields: Array.isArray(group.fields)
+    .map((group, index): DisplayGroup => ({
+      title: group.title,
+      description: group.description,
+      icon: icons[index % icons.length] ?? Sparkles,
+      tone: tones[index % tones.length] ?? "bg-emerald-100 text-emerald-900",
+      rows: Array.isArray(group.fields)
         ? group.fields.filter((field) => field.value && field.value !== "Not applicable")
+            .map((field) => [field.label, displayValue(field.value)] as const)
+            .filter(([, value]) => value)
         : [],
     }))
-    .filter((group) => group.fields.length > 0);
-  const visibleGroups = dynamicGroups.length ? dynamicGroups : groups;
+    .filter((group) => group.rows.length > 0);
+  const visibleGroups = mergeGroups([...dynamicGroups, ...fallbackGroups]);
 
   return (
     <div className="space-y-6">
@@ -70,10 +170,8 @@ export function VehicleSpecifications({
       ) : null}
 
       {visibleGroups.map((group, index) => {
-        const Icon = icons[index] ?? Sparkles;
-        const rows = "fields" in group
-          ? group.fields.map((field) => [field.label, field.value] as const)
-          : Object.entries(group.rows ?? {});
+        const Icon = group.icon ?? icons[index] ?? Sparkles;
+        const rows = group.rows;
         if (!rows.length) return null;
         return (
           <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm" key={group.title}>
@@ -92,7 +190,7 @@ export function VehicleSpecifications({
                   ) : null}
                 </div>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-black ${"tone" in group ? group.tone : "bg-emerald-100 text-emerald-900"}`}>
+              <span className={`rounded-full px-3 py-1 text-xs font-black ${group.tone}`}>
                 Specs
               </span>
             </div>

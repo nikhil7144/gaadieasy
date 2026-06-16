@@ -38,6 +38,7 @@ export type VehicleModel = {
   active: boolean;
   featured: boolean;
   launchLabel?: string;
+  isUpcoming?: boolean;
 };
 
 export type VehicleVariant = {
@@ -155,6 +156,27 @@ export type City = {
   tier?: string;
   isMetro?: boolean;
   rtoStateCode?: string;
+};
+
+export type CityPage = {
+  id: string;
+  cityId: string;
+  slug: string;
+  title: string;
+  h1: string;
+  metaTitle: string;
+  metaDescription: string;
+  intro: string;
+  body: string;
+  heroImageUrl?: string;
+  featuredCategoryId?: string;
+  featuredBrandIds: string[];
+  faq: FaqItem[];
+  showInFooter: boolean;
+  displayOrder: number;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type PricingVehicleClass =
@@ -386,4 +408,50 @@ export type PricingResult = {
   offer?: Offer;
   dealerOffers: Offer[];
   breakdown: PriceBreakdown;
+};
+
+export type VehicleStoryLaunchStatus = "upcoming" | "launched" | "updated" | "discontinued";
+
+export type VehicleStory = {
+  id: string;
+  slug: string;
+  brandSlug: string;
+  brandName: string;
+  modelId?: string;
+  title: string;
+  tagline?: string;
+  heroImageUrl?: string;
+  intro: string;
+  body: string;
+  launchStatus: VehicleStoryLaunchStatus;
+  expectedLaunchDate?: string;
+  actualLaunchDate?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  featured: boolean;
+  publishedAt?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VehicleStoryUpdate = {
+  id: string;
+  storyId: string;
+  title: string;
+  body: string;
+  imageUrl?: string;
+  postedAt: string;
+  active: boolean;
+  createdAt: string;
+};
+
+export type VehicleStoryMedia = {
+  id: string;
+  storyId: string;
+  url: string;
+  alt: string;
+  displayOrder: number;
+  active: boolean;
+  createdAt: string;
 };

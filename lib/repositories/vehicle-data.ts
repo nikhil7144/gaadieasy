@@ -1,6 +1,7 @@
 import {
   brands as seedBrands,
   categories as seedCategories,
+  cityPages as seedCityPages,
   cities as seedCities,
   dealerBrandMappings as seedDealerBrandMappings,
   dealers as seedDealers,
@@ -21,6 +22,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type {
   Brand,
   City,
+  CityPage,
   Dealer,
   DealerBusiness,
   DealerBrandMapping,
@@ -60,6 +62,7 @@ export type VehicleDataSet = {
   dealerBrandMappings: DealerBrandMapping[];
   offers: Offer[];
   heroPromotions: HeroPromotion[];
+  cityPages: CityPage[];
 };
 
 type DbRow = Record<string, unknown>;
@@ -84,6 +87,7 @@ const seedDataSet: VehicleDataSet = {
   dealerBrandMappings: seedDealerBrandMappings,
   offers: seedOffers,
   heroPromotions: seedHeroPromotions,
+  cityPages: seedCityPages,
 };
 
 function stringValue(row: DbRow, key: string, fallback = "") {
@@ -169,6 +173,7 @@ function mapModel(row: DbRow): VehicleModel {
     faq: jsonArray<{ question: string; answer: string }>(row, "faq"),
     active: booleanValue(row, "active", true),
     featured: booleanValue(row, "featured"),
+    isUpcoming: booleanValue(row, "is_upcoming"),
   };
 }
 
@@ -246,6 +251,29 @@ function mapCity(row: DbRow): City {
     tier: optionalString(row, "tier"),
     isMetro: booleanValue(row, "is_metro"),
     rtoStateCode: optionalString(row, "rto_state_code"),
+  };
+}
+
+function mapCityPage(row: DbRow): CityPage {
+  return {
+    id: stringValue(row, "id"),
+    cityId: stringValue(row, "city_id"),
+    slug: stringValue(row, "slug"),
+    title: stringValue(row, "title"),
+    h1: stringValue(row, "h1"),
+    metaTitle: stringValue(row, "meta_title"),
+    metaDescription: stringValue(row, "meta_description"),
+    intro: stringValue(row, "intro"),
+    body: stringValue(row, "body"),
+    heroImageUrl: optionalString(row, "hero_image_url"),
+    featuredCategoryId: optionalString(row, "featured_category_id"),
+    featuredBrandIds: jsonArray<string>(row, "featured_brand_ids"),
+    faq: jsonArray(row, "faq"),
+    showInFooter: booleanValue(row, "show_in_footer", true),
+    displayOrder: numberValue(row, "display_order"),
+    active: booleanValue(row, "active", true),
+    createdAt: optionalString(row, "created_at"),
+    updatedAt: optionalString(row, "updated_at"),
   };
 }
 
@@ -423,6 +451,7 @@ export async function getVehicleDataSet(): Promise<VehicleDataSet> {
     dealerBrandMappings,
     offers,
     heroPromotions,
+    cityPages,
   ] = await Promise.all([
     readTable("vehicle_categories"),
     readTable("brands"),
@@ -443,6 +472,7 @@ export async function getVehicleDataSet(): Promise<VehicleDataSet> {
     readTable("dealer_brand_mappings"),
     readTable("offers"),
     readTable("hero_promotions"),
+    readTable("city_pages"),
   ]);
 
   if (!brands?.length || !models?.length || !variants?.length || !cities?.length) {
@@ -469,5 +499,6 @@ export async function getVehicleDataSet(): Promise<VehicleDataSet> {
     dealerBrandMappings: dealerBrandMappings?.map(mapDealerBrandMapping) ?? [],
     offers: offers?.map(mapOffer) ?? [],
     heroPromotions: heroPromotions?.map(mapHeroPromotion) ?? seedHeroPromotions,
+    cityPages: cityPages?.map(mapCityPage) ?? seedCityPages,
   };
 }

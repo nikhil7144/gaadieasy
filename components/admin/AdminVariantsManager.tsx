@@ -11,6 +11,7 @@ type SpecField = {
   key: string;
   label: string;
   placeholder?: string;
+  options?: string[];
 };
 
 type SpecSection = {
@@ -19,6 +20,24 @@ type SpecSection = {
   group: "engine" | "dimensions" | "interior" | "exterior" | "safety" | "ev" | "commercial" | "bike";
   fields: SpecField[];
 };
+
+const wheelCountOptions = ["2 wheeler", "3 wheeler", "4 wheeler", "6 wheeler", "8 wheeler", "10 wheeler", "12 wheeler", "14 wheeler", "16 wheeler"];
+const loaderSizeOptions = ["Small", "Medium", "Large"];
+const commercialBodyOptions = ["Pickup", "Mini truck", "Truck", "Tipper", "Tractor", "Cargo three-wheeler", "Passenger three-wheeler", "E-rickshaw", "E-auto", "Bus"];
+const commercialUseOptions = [
+  "Last-mile delivery",
+  "E-commerce goods",
+  "FMCG logistics",
+  "Agricultural products",
+  "Construction material",
+  "Raw materials",
+  "Steel logistics",
+  "Coal transportation",
+  "Port and container logistics",
+  "School / staff transport",
+  "Passenger transport",
+];
+const containerTypeOptions = ["Open body", "Closed container", "Refrigerated", "Tipper body", "Flatbed", "Tanker", "Trailer"];
 
 const baseSections: SpecSection[] = [
   {
@@ -106,11 +125,15 @@ const commercialSection: SpecSection = {
   description: "Payload, body and usage fields for business vehicles.",
   group: "commercial",
   fields: [
+    { key: "commercial.loaderSize", label: "Loader size", placeholder: "Small", options: loaderSizeOptions },
+    { key: "commercial.numberOfWheels", label: "No. of wheels", placeholder: "4 wheeler", options: wheelCountOptions },
+    { key: "commercial.bodyType", label: "Body / truck type", placeholder: "Mini truck", options: commercialBodyOptions },
     { key: "commercial.payloadCapacity", label: "Payload capacity", placeholder: "1.2 ton" },
+    { key: "commercial.containerType", label: "Container type", placeholder: "Open body", options: containerTypeOptions },
     { key: "commercial.bodyLength", label: "Body length", placeholder: "8.2 ft" },
     { key: "commercial.axleConfiguration", label: "Axle configuration", placeholder: "4x2" },
     { key: "commercial.permitType", label: "Permit type", placeholder: "Goods carrier" },
-    { key: "commercial.fleetUsageType", label: "Fleet usage", placeholder: "Last-mile delivery" },
+    { key: "commercial.fleetUsageType", label: "Fleet usage", placeholder: "Last-mile delivery", options: commercialUseOptions },
     { key: "commercial.tyreCondition", label: "Tyre details", placeholder: "Tubeless radial tyres" },
   ],
 };
@@ -139,6 +162,11 @@ function setNestedValue(target: Record<string, unknown>, path: string, value: st
 
 function specValue(values: Record<string, string>, key: string) {
   return values[key] ?? "";
+}
+
+function optionsWithCurrent(options: string[], current: string) {
+  if (!current || options.includes(current)) return options;
+  return [current, ...options];
 }
 
 function parseColorLines(value: string) {
@@ -513,6 +541,28 @@ export function AdminVariantsManager({
     setEditSpecValues((current) => ({ ...current, [key]: value }));
   }
 
+  function renderSpecField(field: SpecField, value: string, onChange: (value: string) => void) {
+    if (field.options?.length) {
+      return (
+        <select className={adminFieldClass} value={value} onChange={(event) => onChange(event.target.value)}>
+          <option value="">{field.placeholder ?? `Select ${field.label.toLowerCase()}`}</option>
+          {optionsWithCurrent(field.options, value).map((item) => (
+            <option value={item} key={item}>{item}</option>
+          ))}
+        </select>
+      );
+    }
+
+    return (
+      <input
+        className={adminFieldClass}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={field.placeholder}
+      />
+    );
+  }
+
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
       <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -561,12 +611,7 @@ export function AdminVariantsManager({
                   {section.fields.map((field) => (
                     <label className="grid gap-1" key={field.key}>
                       <span className="text-xs font-black uppercase text-slate-500">{field.label}</span>
-                      <input
-                        className={adminFieldClass}
-                        value={specValue(specValues, field.key)}
-                        onChange={(event) => updateSpecValue(field.key, event.target.value)}
-                        placeholder={field.placeholder}
-                      />
+                      {renderSpecField(field, specValue(specValues, field.key), (value) => updateSpecValue(field.key, value))}
                     </label>
                   ))}
                 </div>
@@ -676,12 +721,7 @@ export function AdminVariantsManager({
                       {section.fields.map((field) => (
                         <label className="grid gap-1" key={`edit-${field.key}`}>
                           <span className="text-xs font-black uppercase text-slate-500">{field.label}</span>
-                          <input
-                            className={adminFieldClass}
-                            value={specValue(editSpecValues, field.key)}
-                            onChange={(event) => updateEditSpecValue(field.key, event.target.value)}
-                            placeholder={field.placeholder}
-                          />
+                          {renderSpecField(field, specValue(editSpecValues, field.key), (value) => updateEditSpecValue(field.key, value))}
                         </label>
                       ))}
                     </div>
