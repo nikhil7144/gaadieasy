@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { BrandLogo } from "@/components/public/BrandLogo";
+import { VehicleCompareModal } from "@/components/public/VehicleCompareModal";
 import { VehicleImage } from "@/components/public/VehicleImage";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
@@ -80,6 +81,26 @@ export default async function BrandModelsPage({ params }: { params: Promise<{ br
         .filter((variant) => variant.active && variant.modelId === model.id)
         .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.exShowroomPrice - b.exShowroomPrice)[0],
     }));
+  const compareModels = data.models
+    .filter((model) => model.active && categoryIds.has(model.categoryId))
+    .map((model) => {
+      const modelVariants = data.variants
+        .filter((variant) => variant.active && variant.modelId === model.id)
+        .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.exShowroomPrice - b.exShowroomPrice);
+      const defaultVariant = modelVariants.find((variant) => variant.isDefault) ?? modelVariants[0];
+      const primaryMedia = data.media
+        .filter((item) => item.active && item.modelId === model.id && (!defaultVariant || !item.variantId || item.variantId === defaultVariant.id))
+        .sort((a, b) => a.displayOrder - b.displayOrder)[0];
+
+      return {
+        ...model,
+        imageUrl: primaryMedia?.url || model.imageUrl,
+        brand: data.brands.find((item) => item.id === model.brandId),
+        category: data.categories.find((item) => item.id === model.categoryId),
+        variants: modelVariants,
+      };
+    })
+    .filter((model) => model.brand && model.variants.length);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -101,7 +122,7 @@ export default async function BrandModelsPage({ params }: { params: Promise<{ br
                 <div className="min-w-0 flex-1">
                   <h1 className="text-4xl font-black tracking-tight text-slate-950">{brand.name} models</h1>
                   <p className="mt-3 max-w-4xl text-base leading-7 text-slate-600">
-                    {brand.name} has {brandModels.length} active model{brandModels.length === 1 ? "" : "s"} on AutoPrice
+                    {brand.name} has {brandModels.length} active model{brandModels.length === 1 ? "" : "s"} on Gaadieasy
                     {allPrices.length ? `, with ex-showroom prices from ${formatShortPrice(minPrice)} to ${formatShortPrice(maxPrice)}.` : "."}
                     {" "}Compare variants, city-wise on-road prices, fuel options, specifications and dealer enquiries before visiting a showroom.
                   </p>
@@ -138,23 +159,32 @@ export default async function BrandModelsPage({ params }: { params: Promise<{ br
                   const priceMax = modelPrices.length ? Math.max(...modelPrices) : 0;
 
                   return (
-                    <Link
+                    <div
                       className="grid overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md md:grid-cols-[320px_1fr]"
-                      href={onRoadPriceHref({ brandSlug: brand.slug, modelSlug: model.slug, variantSlug: model.variant?.slug })}
                       key={model.id}
                     >
-                      <div className="bg-slate-100 md:min-h-56">
+                      <Link className="bg-slate-100 md:min-h-56" href={onRoadPriceHref({ brandSlug: brand.slug, modelSlug: model.slug, variantSlug: model.variant?.slug })}>
                         <VehicleImage className="h-full min-h-56 w-full object-cover" src={model.imageUrl} alt={model.name} />
-                      </div>
+                      </Link>
                       <div className="p-5">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <div className="text-xs font-black uppercase tracking-wide text-emerald-700">{model.category?.name ?? model.bodyType}</div>
-                            <h3 className="mt-1 text-2xl font-black text-slate-950">{brand.name} {model.name}</h3>
+                            <Link href={onRoadPriceHref({ brandSlug: brand.slug, modelSlug: model.slug, variantSlug: model.variant?.slug })}>
+                              <h3 className="mt-1 text-2xl font-black text-slate-950 hover:text-emerald-700">{brand.name} {model.name}</h3>
+                            </Link>
                           </div>
-                          <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-black text-lime-900">
-                            {model.variants.length} variant{model.variants.length === 1 ? "" : "s"}
-                          </span>
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-black text-lime-900">
+                              {model.variants.length} variant{model.variants.length === 1 ? "" : "s"}
+                            </span>
+                            <VehicleCompareModal
+                              models={compareModels}
+                              brands={data.brands}
+                              cities={data.cities}
+                              initialModelId={model.id}
+                            />
+                          </div>
                         </div>
                         <div className="mt-3 text-2xl font-black text-slate-950">
                           {modelPrices.length ? `${formatShortPrice(priceMin)} - ${formatShortPrice(priceMax)}` : "Price pending"}
@@ -170,11 +200,11 @@ export default async function BrandModelsPage({ params }: { params: Promise<{ br
                           {model.variant?.mileage ? <span className="rounded-md bg-slate-50 px-3 py-2">{model.variant.mileage}</span> : null}
                           {seats ? <span className="rounded-md bg-slate-50 px-3 py-2">{seats} seats</span> : null}
                         </div>
-                        <div className="mt-5 inline-flex rounded-md border border-emerald-500 px-5 py-3 text-sm font-black text-emerald-700">
+                        <Link className="mt-5 inline-flex rounded-md border border-emerald-500 px-5 py-3 text-sm font-black text-emerald-700" href={onRoadPriceHref({ brandSlug: brand.slug, modelSlug: model.slug, variantSlug: model.variant?.slug })}>
                           View on-road price
-                        </div>
+                        </Link>
                       </div>
-                    </Link>
+                    </div>
                   );
                 })}
               </div>

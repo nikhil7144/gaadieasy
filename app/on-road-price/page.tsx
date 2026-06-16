@@ -16,7 +16,7 @@ import { formatIndianPrice, formatShortPrice } from "@/lib/utils/format";
 import { BadgeIndianRupee, Gauge, MapPin, ShieldCheck, Zap } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "On-Road Vehicle Price Calculator | AutoPrice",
+  title: "On-Road Vehicle Price Calculator | Gaadieasy",
   description: "Check city-wise on-road vehicle prices with tax, RTO, insurance and dealer enquiry.",
 };
 

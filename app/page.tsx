@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/shared/SiteHeader";
 import { BrandShowcase } from "@/components/public/BrandShowcase";
 import { HomeVehicleDiscovery, HomepageQuickFilterSections } from "@/components/public/HomeVehicleDiscovery";
 import { PricingExplorer } from "@/components/public/PricingExplorer";
+import { VehicleCompareModal } from "@/components/public/VehicleCompareModal";
 import { VehicleImage } from "@/components/public/VehicleImage";
 import { getHomepageComparisons } from "@/lib/services/comparisons";
 import { getDiscoveryDatasetForType, getDiscoveryTab } from "@/lib/services/discovery";
@@ -189,16 +190,31 @@ export default async function Home({
             {selectedModels.slice(0, 6).map((model) => {
               const firstVariant = model.variants[0];
               return (
-                <a className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg" href={modelPriceHref(model)} key={model.id}>
-                  <div className="aspect-[4/3] bg-slate-100">
-                    <VehicleImage className="h-full w-full object-cover" src={model.imageUrl} alt={model.name} />
-                  </div>
+                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg" key={model.id}>
+                  <Link href={modelPriceHref(model)}>
+                    <div className="aspect-[4/3] bg-slate-100">
+                      <VehicleImage className="h-full w-full object-cover" src={model.imageUrl} alt={model.name} />
+                    </div>
+                  </Link>
                   <div className="p-4">
-                    <div className="text-xs font-bold text-emerald-700">{model.brand?.name} {model.launchLabel ? `- ${model.launchLabel}` : ""}</div>
-                    <h3 className="mt-1 text-lg font-black text-slate-950">{model.name}</h3>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-bold text-emerald-700">{model.brand?.name} {model.launchLabel ? `- ${model.launchLabel}` : ""}</div>
+                        <Link href={modelPriceHref(model)}>
+                          <h3 className="mt-1 text-lg font-black text-slate-950 hover:text-emerald-700">{model.name}</h3>
+                        </Link>
+                      </div>
+                      <VehicleCompareModal
+                        models={selectedModels}
+                        brands={selectedBrands}
+                        cities={data.cities}
+                        initialModelId={model.id}
+                        citySlug={defaultCitySlug}
+                      />
+                    </div>
                     <p className="mt-2 text-sm text-slate-600">{model.bodyType} starting from {formatShortPrice(firstVariant?.exShowroomPrice ?? 0)} ex-showroom.</p>
                   </div>
-                </a>
+                </div>
               );
             })}
           </div>

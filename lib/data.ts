@@ -1023,7 +1023,7 @@ export const seoPages: SeoPage[] = [
     pageKind: "model_price",
     title: "Hyundai Creta On-Road Price in Bangalore",
     h1: "Hyundai Creta on-road price in Bangalore",
-    metaTitle: "Hyundai Creta On-Road Price in Bangalore | AutoPrice",
+    metaTitle: "Hyundai Creta On-Road Price in Bangalore | Gaadieasy",
     metaDescription: "Check Hyundai Creta variant-wise on-road price in Bangalore with tax, RTO, insurance and dealer enquiry.",
     intro: "Compare Hyundai Creta variants with transparent Bangalore on-road pricing before visiting the showroom.",
     body: "This page uses live variant prices and Karnataka tax assumptions from the platform pricing engine. Final dealer quote may vary based on accessories, insurance plan and offers.",

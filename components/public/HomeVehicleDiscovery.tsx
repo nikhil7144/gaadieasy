@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/public/BrandLogo";
+import { VehicleCompareModal } from "@/components/public/VehicleCompareModal";
 import { VehicleImage } from "@/components/public/VehicleImage";
 import { filterDiscoveryModels, getDiscoveryTab, matchesDiscoveryFilter, modelBelongsToDiscoveryType } from "@/lib/services/discovery";
 import type { Brand, City, HeroPromotion, VehicleCategory, VehicleModel, VehicleVariant } from "@/types/automobile";
@@ -1020,13 +1021,22 @@ export function HomeVehicleDiscovery({
             {evModels.map((model) => {
               const variant = model.variants[0];
               return (
-                <a className="overflow-hidden rounded-lg border border-slate-100 bg-slate-50 shadow-sm" href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`} key={model.id}>
-                  <div className="aspect-[4/3] bg-slate-200">
-                    <VehicleImage className="h-full w-full object-cover" src={model.imageUrl} alt={model.name} />
-                  </div>
+                <div className="overflow-hidden rounded-lg border border-slate-100 bg-slate-50 shadow-sm" key={model.id}>
+                  <Link href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`}>
+                    <div className="aspect-[4/3] bg-slate-200">
+                      <VehicleImage className="h-full w-full object-cover" src={model.imageUrl} alt={model.name} />
+                    </div>
+                  </Link>
                   <div className="p-3">
-                    <div className="text-xs font-bold text-emerald-700">{model.brand?.name}</div>
-                    <div className="mt-1 font-black text-slate-950">{model.name}</div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-bold text-emerald-700">{model.brand?.name}</div>
+                        <Link href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`}>
+                          <div className="mt-1 font-black text-slate-950 hover:text-emerald-700">{model.name}</div>
+                        </Link>
+                      </div>
+                      <VehicleCompareModal models={typeModels} brands={brands} cities={cities} initialModelId={model.id} citySlug={citySlug} />
+                    </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                       <span className="rounded-md bg-white p-2 font-bold text-slate-700">Range: {variant?.mileage ?? "NA"}</span>
                       <span className="rounded-md bg-white p-2 font-bold text-slate-700">Battery: {variant?.engineCapacity ?? "NA"}</span>
@@ -1034,7 +1044,7 @@ export function HomeVehicleDiscovery({
                       <span className="rounded-md bg-lime-100 p-2 font-black text-lime-900">{variant ? formatShortPrice(variant.exShowroomPrice) : "Price soon"}</span>
                     </div>
                   </div>
-                </a>
+                </div>
               );
             })}
           </div>
@@ -1078,25 +1088,33 @@ export function HomeVehicleDiscovery({
                 const category = categories.find((item) => item.id === model.categoryId);
                 const launchLabel = model.launchLabel?.trim();
                 return (
-                  <a
+                  <div
                     className="group min-w-[260px] max-w-[260px] snap-start overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-                    href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`}
                     key={model.id}
                   >
-                    <div className="relative aspect-[16/10] bg-slate-100">
-                      <VehicleImage className="h-full w-full object-cover transition duration-500 group-hover:scale-105" src={model.imageUrl} alt={model.name} />
-                      <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-emerald-800">
-                        {category?.name}
-                      </span>
-                      {launchLabel ? (
-                        <span className="absolute right-3 top-3 rounded-full bg-lime-300 px-3 py-1 text-[11px] font-black text-slate-950">
-                          {launchLabel}
+                    <Link href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`}>
+                      <div className="relative aspect-[16/10] bg-slate-100">
+                        <VehicleImage className="h-full w-full object-cover transition duration-500 group-hover:scale-105" src={model.imageUrl} alt={model.name} />
+                        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-emerald-800">
+                          {category?.name}
                         </span>
-                      ) : null}
-                    </div>
+                        {launchLabel ? (
+                          <span className="absolute right-3 top-3 rounded-full bg-lime-300 px-3 py-1 text-[11px] font-black text-slate-950">
+                            {launchLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                    </Link>
                     <div className="p-4">
-                      <div className="text-xs font-bold text-emerald-700">{model.brand?.name}</div>
-                      <h3 className="mt-1 text-xl font-black text-slate-950">{model.name}</h3>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-bold text-emerald-700">{model.brand?.name}</div>
+                          <Link href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`}>
+                            <h3 className="mt-1 text-xl font-black text-slate-950 hover:text-emerald-700">{model.name}</h3>
+                          </Link>
+                        </div>
+                        <VehicleCompareModal models={typeModels} brands={brands} cities={cities} initialModelId={model.id} citySlug={citySlug} />
+                      </div>
                       <p className="mt-2 text-sm text-slate-600">
                         {model.bodyType} {variant ? `from ${formatShortPrice(variant.exShowroomPrice)} ex-showroom` : ""}
                       </p>
@@ -1113,7 +1131,7 @@ export function HomeVehicleDiscovery({
                         ) : null}
                       </div>
                     </div>
-                  </a>
+                  </div>
                 );
               })
             ) : (

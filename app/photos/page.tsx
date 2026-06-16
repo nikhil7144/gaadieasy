@@ -7,7 +7,7 @@ import { getVehicleMediaForApi } from "@/lib/services/media";
 import { calculateOnRoadPriceFromData } from "@/lib/services/pricing";
 
 export const metadata: Metadata = {
-  title: "Vehicle Photos | AutoPrice",
+  title: "Vehicle Photos | Gaadieasy",
   description: "View vehicle images by color, variant and model with zoomable photo details.",
 };
 
