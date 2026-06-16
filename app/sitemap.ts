@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { brands, comparisonPages, cities, models } from "@/lib/data";
+import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getComparisonPagesFromDb } from "@/lib/services/comparisons/db";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://www.gaadieasy.com";
 
@@ -12,8 +13,16 @@ function escapeXml(value: string) {
     .replace(/'/g, "&apos;");
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+
+  const [dataset, comparisonPages] = await Promise.all([
+    getVehicleDataSet(),
+    getComparisonPagesFromDb().catch(() => []),
+  ]);
+
+  const { brands, models, cities } = dataset;
+  const defaultCity = cities[0]?.slug ?? "bangalore";
 
   const staticRoutes = [
     "/",
@@ -51,9 +60,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     .filter((model) => model.active)
     .map((model) => {
       const brand = brands.find((item) => item.id === model.brandId);
-      const city = cities[0]?.slug ?? "bangalore";
       return {
-        url: escapeXml(`${baseUrl}/on-road-price?brand=${brand?.slug ?? ""}&model=${model.slug}&city=${city}`),
+        url: escapeXml(`${baseUrl}/on-road-price?brand=${brand?.slug ?? ""}&model=${model.slug}&city=${defaultCity}`),
         lastModified: now,
         changeFrequency: "weekly" as const,
         priority: 0.72,
