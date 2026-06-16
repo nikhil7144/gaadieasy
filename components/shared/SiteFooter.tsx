@@ -2,19 +2,17 @@ import Link from "next/link";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 import { brands as seedBrands, cities } from "@/lib/data";
 import { getFooterComparisons } from "@/lib/services/comparisons";
-import { getSeoPagesForNavigation } from "@/lib/services/seo";
 import type { Brand, ComparisonPage } from "@/types/automobile";
 
-export function SiteFooter({
+export async function SiteFooter({
   brandsOverride,
   comparisonsOverride,
 }: {
   brandsOverride?: Brand[];
   comparisonsOverride?: ComparisonPage[];
 } = {}) {
-  const seoPages = getSeoPagesForNavigation();
   const brands = brandsOverride?.length ? brandsOverride : seedBrands;
-  const comparisons = comparisonsOverride ?? getFooterComparisons();
+  const comparisons = comparisonsOverride ?? await getFooterComparisons();
 
   return (
     <footer className="bg-slate-950 text-white">
@@ -32,7 +30,7 @@ export function SiteFooter({
           <h3 className="text-sm font-bold text-lime-300">Popular cities</h3>
           <div className="mt-3 flex flex-wrap gap-2">
             {cities.map((city) => (
-              <Link className="rounded-full bg-white/10 px-3 py-1 text-xs" href={`/discover?type=cars&city=${city.slug}`} key={city.id}>
+              <Link className="rounded-full bg-white/10 px-3 py-1 text-xs transition hover:bg-lime-300 hover:text-slate-950" href={`/discover?type=cars&city=${city.slug}`} key={city.id}>
                 {city.name}
               </Link>
             ))}
@@ -40,18 +38,10 @@ export function SiteFooter({
         </div>
         <div>
           <h3 className="text-sm font-bold text-lime-300">Brands</h3>
-          <div className="mt-3 space-y-2 text-sm text-slate-300">
-            {brands.slice(0, 5).map((brand) => (
-              <div key={brand.id}>{brand.name}</div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-lime-300">SEO pages</h3>
-          <div className="mt-3 space-y-2 text-sm text-slate-300">
-            {seoPages.map((page) => (
-              <Link className="block hover:text-lime-300" href={`/seo/${page.slug}`} key={page.id}>
-                {page.title}
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-300">
+            {brands.map((brand) => (
+              <Link className="hover:text-lime-300" href={`/brands/${brand.slug}`} key={brand.id}>
+                {brand.name}
               </Link>
             ))}
           </div>

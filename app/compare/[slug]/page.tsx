@@ -7,7 +7,7 @@ import { formatIndianPrice, formatShortPrice } from "@/lib/utils/format";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const comparison = getComparisonPage(slug);
+  const comparison = await getComparisonPage(slug);
 
   if (!comparison) {
     return {};
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ComparisonDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const comparison = getComparisonPage(slug);
+  const comparison = await getComparisonPage(slug);
 
   if (!comparison) {
     notFound();

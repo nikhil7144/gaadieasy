@@ -44,9 +44,6 @@ export function SiteHeader() {
             <Link className="transition hover:text-slate-950" href="/city/bangalore">
               City pages
             </Link>
-            <Link className="transition hover:text-slate-950" href="/compare">
-              Compare
-            </Link>
           </nav>
 
           {/* Mobile hamburger */}
@@ -110,13 +107,6 @@ export function SiteHeader() {
                 onClick={() => setMenuOpen(false)}
               >
                 City pages
-              </Link>
-              <Link
-                className="text-sm font-bold text-slate-600 transition hover:text-slate-950"
-                href="/compare"
-                onClick={() => setMenuOpen(false)}
-              >
-                Compare
               </Link>
             </div>
           </div>

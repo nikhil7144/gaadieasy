@@ -10,7 +10,6 @@ import { VehicleImage } from "@/components/public/VehicleImage";
 import { getHomepageComparisons } from "@/lib/services/comparisons";
 import { getDiscoveryDatasetForType, getDiscoveryTab } from "@/lib/services/discovery";
 import { getPublicHomepageDataForApi } from "@/lib/services/public-data";
-import { getSeoPagesForNavigation } from "@/lib/services/seo";
 import { formatShortPrice } from "@/lib/utils/format";
 import type { Brand, VehicleModel, VehicleVariant } from "@/types/automobile";
 
@@ -48,8 +47,7 @@ export default async function Home({
   const selectedType = getDiscoveryTab(params.type).key;
   const data = await getPublicHomepageDataForApi();
   const selectedData = getDiscoveryDatasetForType(data, selectedType);
-  const seoPages = getSeoPagesForNavigation();
-  const homepageComparisons = getHomepageComparisons();
+  const homepageComparisons = await getHomepageComparisons();
   const selectedModels = selectedData.models;
   const selectedBrands = selectedData.brands;
   const selectedBrandSlugs = new Set(selectedBrands.map((brand) => brand.slug));
@@ -228,7 +226,6 @@ export default async function Home({
               <p className="text-sm font-bold text-emerald-700">Popular comparisons</p>
               <h2 className="mt-1 text-3xl font-black text-slate-950">Compare vehicles before you enquire</h2>
             </div>
-            <Link className="text-sm font-black text-emerald-700" href="/compare">Open comparison tool</Link>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {comparisons.map((comparison) => {
@@ -280,16 +277,6 @@ export default async function Home({
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-          <h2 className="text-2xl font-black text-slate-950">Popular city searches</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {seoPages.map((page) => (
-              <a className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-bold text-emerald-800" href={`/seo/${page.slug}`} key={page.id}>
-                {page.title}
-              </a>
-            ))}
-          </div>
-        </section>
       </main>
       <SiteFooter brandsOverride={selectedBrands} comparisonsOverride={comparisons.map((comparison) => comparison.page)} />
     </div>

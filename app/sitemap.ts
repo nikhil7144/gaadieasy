@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { brands, comparisonPages, cities, models, seoPages } from "@/lib/data";
+import { brands, comparisonPages, cities, models } from "@/lib/data";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://www.gaadieasy.com";
 
@@ -18,7 +18,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [
     "/",
     "/discover",
-    "/compare",
     "/on-road-price",
     "/photos",
     "/dealer",
@@ -37,15 +36,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.75,
-    }));
-
-  const seoRoutes = seoPages
-    .filter((page) => page.active)
-    .map((page) => ({
-      url: escapeXml(`${baseUrl}/seo/${page.slug}`),
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
     }));
 
   const comparisonRoutes = comparisonPages
@@ -70,5 +60,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       };
     });
 
-  return [...staticRoutes, ...brandRoutes, ...seoRoutes, ...comparisonRoutes, ...priceRoutes];
+  return [...staticRoutes, ...brandRoutes, ...comparisonRoutes, ...priceRoutes];
 }

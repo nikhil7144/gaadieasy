@@ -1236,7 +1236,7 @@ export async function createCityPage(input: {
     .select("*")
     .single();
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/city-pages");
@@ -1282,7 +1282,7 @@ export async function updateCityPage(input: {
   if (input.active !== undefined) patch.active = input.active;
 
   const { data, error } = await supabase.from("city_pages").update(patch).eq("id", input.id).select("*").single();
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 
   revalidatePath("/");
   revalidatePath("/admin");
@@ -1298,10 +1298,10 @@ export async function deleteCityPage(id: string) {
     .select("slug")
     .eq("id", id)
     .maybeSingle();
-  if (existingError) throw existingError;
+  if (existingError) throw new Error(existingError.message);
 
   const { error } = await supabase.from("city_pages").delete().eq("id", id);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 
   revalidatePath("/");
   revalidatePath("/admin");

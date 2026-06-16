@@ -148,7 +148,7 @@ export const cityPageSchema = z.object({
 });
 
 export const comparisonPageSchema = z.object({
-  slug: z.string().min(3),
+  slug: z.string().min(3).optional(),
   title: z.string().min(3),
   cityId: z.string().min(2),
   vehicle1ModelId: z.string().min(2),
