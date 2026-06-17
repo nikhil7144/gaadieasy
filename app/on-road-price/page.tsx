@@ -9,6 +9,7 @@ import { VehicleOverview, VehicleProsCons } from "@/components/public/VehicleOve
 import { VehicleSpecifications } from "@/components/public/VehicleSpecifications";
 import { VariantsPriceTable } from "@/components/public/VariantsPriceTable";
 import { EmiPreview } from "@/components/public/EmiPreview";
+import { VehiclePageNav } from "@/components/public/VehiclePageNav";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
@@ -115,9 +116,9 @@ export default async function OnRoadPricePage({
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 md:pb-0">
-      <SiteHeader />
+      <SiteHeader scrollable />
       <main>
-        <section className="relative overflow-hidden bg-slate-950 text-white">
+        <section id="overview" className="relative overflow-hidden bg-slate-950 text-white">
           <div className="absolute inset-0">
             {heroImage ? (
               <>
@@ -177,23 +178,7 @@ export default async function OnRoadPricePage({
           </div>
         </section>
 
-        <nav className="sticky top-[65px] z-30 border-b border-emerald-100 bg-white/95 backdrop-blur">
-          <div className="no-scrollbar mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-3 text-sm font-bold text-slate-600 sm:px-6">
-            {[
-              ["Overview", "#overview"],
-              ["Price", "#price"],
-              ["Variants", "#variants"],
-              ["Specs", "#specs"],
-              ["Colors", "#colors"],
-              ["Dealer", "#lead"],
-              ["FAQs", "#faqs"],
-            ].map(([label, href]) => (
-              <a className="shrink-0 rounded-full px-4 py-2 hover:bg-emerald-50 hover:text-emerald-800" href={href} key={href}>
-                {label}
-              </a>
-            ))}
-          </div>
-        </nav>
+        <VehiclePageNav />
 
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
           <PricingExplorer
@@ -262,6 +247,18 @@ export default async function OnRoadPricePage({
               media={media}
               photoPageHref={`/photos?brand=${pricing.brand.slug}&model=${pricing.model.slug}&variant=${pricing.variant.slug}&city=${pricing.city.slug}`}
             />
+            <div id="emi">
+              <EmiPreview
+                onRoadPrice={pricing.breakdown.totalOnRoadPrice}
+                brandSlug={pricing.brand.slug}
+                modelSlug={pricing.model.slug}
+                variantSlug={pricing.variant.slug}
+                citySlug={pricing.city.slug}
+                vehicleName={`${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name}`}
+              />
+            </div>
+          </div>
+          <aside className="space-y-4">
             <EmiPreview
               onRoadPrice={pricing.breakdown.totalOnRoadPrice}
               brandSlug={pricing.brand.slug}
@@ -270,8 +267,6 @@ export default async function OnRoadPricePage({
               citySlug={pricing.city.slug}
               vehicleName={`${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name}`}
             />
-          </div>
-          <aside className="space-y-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
             <div className="rounded-lg border border-emerald-100 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>

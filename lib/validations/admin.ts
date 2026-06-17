@@ -267,3 +267,11 @@ export const rtoChargeSchema = z.object({
   handlingCharges: z.coerce.number().min(0).default(0),
   active: z.boolean().default(true),
 });
+
+export const insuranceRuleSchema = z.object({
+  categoryId: z.string().uuid(),
+  fuelType: z.enum(["Petrol", "Diesel", "CNG", "Hybrid", "Electric"]).optional().or(z.literal("")),
+  percentOfExShowroom: z.coerce.number().min(0).max(100),
+  fixedAmount: z.coerce.number().min(0).default(0),
+  active: z.boolean().default(true),
+});

@@ -9,6 +9,7 @@ import type {
   DealerBusiness,
   DealerUser,
   HeroPromotion,
+  InsuranceRule,
   RtoCharge,
   SpecificationGroup,
   StateTaxRule,
@@ -1446,4 +1447,63 @@ export async function updateRtoCharge(input: {
   revalidatePath("/admin");
   revalidatePath("/admin/rto-charges");
   return mapRtoCharge(data as DbRow);
+}
+
+function mapInsuranceRule(row: DbRow): InsuranceRule {
+  return {
+    id: String(row.id),
+    categoryId: String(row.category_id),
+    fuelType: typeof row.fuel_type === "string" ? (row.fuel_type as InsuranceRule["fuelType"]) : undefined,
+    percentOfExShowroom: Number(row.percent_of_ex_showroom ?? 0),
+    fixedAmount: Number(row.fixed_amount ?? 0),
+    active: Boolean(row.active),
+  };
+}
+
+export async function createInsuranceRule(input: {
+  categoryId: string;
+  fuelType?: string;
+  percentOfExShowroom: number;
+  fixedAmount: number;
+  active: boolean;
+}) {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("insurance_rules")
+    .insert({
+      category_id: input.categoryId,
+      fuel_type: optionalText(input.fuelType),
+      percent_of_ex_showroom: input.percentOfExShowroom,
+      fixed_amount: input.fixedAmount,
+      active: input.active,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  revalidatePath("/admin/insurance");
+  return mapInsuranceRule(data as DbRow);
+}
+
+export async function updateInsuranceRule(input: {
+  id: string;
+  categoryId?: string;
+  fuelType?: string;
+  percentOfExShowroom?: number;
+  fixedAmount?: number;
+  active?: boolean;
+}) {
+  const supabase = getAdminClient();
+  const patch: DbRow = {};
+  if (input.categoryId !== undefined) patch.category_id = input.categoryId;
+  if (input.fuelType !== undefined) patch.fuel_type = optionalText(input.fuelType);
+  if (input.percentOfExShowroom !== undefined) patch.percent_of_ex_showroom = input.percentOfExShowroom;
+  if (input.fixedAmount !== undefined) patch.fixed_amount = input.fixedAmount;
+  if (input.active !== undefined) patch.active = input.active;
+
+  const { data, error } = await supabase.from("insurance_rules").update(patch).eq("id", input.id).select("*").single();
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  revalidatePath("/admin/insurance");
+  return mapInsuranceRule(data as DbRow);
 }

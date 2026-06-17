@@ -7,20 +7,20 @@ import { HeaderSearch } from "@/components/public/HeaderSearch";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 
 const vehicleTypes = [
-  ["Cars", "/?type=cars#vehicle-home"],
-  ["Bikes", "/?type=bikes#vehicle-home"],
-  ["Scooters", "/?type=scooters#vehicle-home"],
-  ["EV Vehicles", "/?type=ev#vehicle-home"],
-  ["Commercial", "/?type=commercial#vehicle-home"],
-  ["EV Commercial", "/?type=ev-commercial#vehicle-home"],
-  ["Passenger EV", "/?type=passenger-ev#vehicle-home"],
+  ["Cars", "/?type=cars"],
+  ["Bikes", "/?type=bikes"],
+  ["Scooters", "/?type=scooters"],
+  ["EV Vehicles", "/?type=ev"],
+  ["Commercial", "/?type=commercial"],
+  ["EV Commercial", "/?type=ev-commercial"],
+  ["Passenger EV", "/?type=passenger-ev"],
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ scrollable = false }: { scrollable?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b-2 border-lime-300/60 bg-white/90 backdrop-blur">
+    <header className={`border-b-2 border-lime-300/60 bg-white/90 backdrop-blur ${scrollable ? "" : "sticky top-0 z-40"}`}>
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
 
         {/* Top row */}

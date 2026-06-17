@@ -8,6 +8,7 @@ const nav = [
   ["Variants", "/admin/variants"],
   ["Tax rules", "/admin/tax-rules"],
   ["RTO charges", "/admin/rto-charges"],
+  ["Insurance", "/admin/insurance"],
   ["Dealers", "/admin/dealers"],
   ["Offers", "/admin/offers"],
   ["Leads", "/admin/leads"],
