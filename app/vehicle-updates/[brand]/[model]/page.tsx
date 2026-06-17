@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
 import Link from "next/link";
+import { MarkdownBody } from "@/components/shared/MarkdownBody";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { getVehicleStoryBySlug, getVehicleStoryMedia, getVehicleStoryUpdates } from "@/lib/services/vehicle-stories";
@@ -133,9 +133,7 @@ export default async function VehicleStoryPage({ params }: Props) {
 
               {/* Body (Markdown) */}
               {story.body ? (
-                <div className="prose prose-slate mt-8 max-w-none prose-headings:font-black prose-headings:text-slate-950 prose-a:text-emerald-700 prose-strong:text-slate-950">
-                  <ReactMarkdown>{story.body}</ReactMarkdown>
-                </div>
+                <MarkdownBody className="mt-8">{story.body}</MarkdownBody>
               ) : null}
 
               {/* Remaining gallery images after body */}
@@ -174,9 +172,7 @@ export default async function VehicleStoryPage({ params }: Props) {
                             </time>
                           </div>
                           {upd.body ? (
-                            <div className="prose prose-sm prose-slate mt-2 max-w-none prose-headings:font-black">
-                              <ReactMarkdown>{upd.body}</ReactMarkdown>
-                            </div>
+                            <MarkdownBody className="mt-2 text-sm">{upd.body}</MarkdownBody>
                           ) : null}
                           {upd.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element

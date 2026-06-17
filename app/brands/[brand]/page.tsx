@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { BrandLogo } from "@/components/public/BrandLogo";
@@ -7,6 +8,42 @@ import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
 import { formatShortPrice } from "@/lib/utils/format";
+
+export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
+  const { brand: brandSlug } = await params;
+  const data = await getVehicleDataSet();
+  const brand = data.brands.find((item) => item.slug === brandSlug && item.active);
+
+  if (!brand) return { title: "Brand not found" };
+
+  const brandModels = data.models.filter((model) => model.brandId === brand.id && model.active);
+  const allPrices = brandModels.flatMap((model) =>
+    data.variants.filter((v) => v.active && v.modelId === model.id).map((v) => v.exShowroomPrice),
+  );
+  const minPrice = allPrices.length ? Math.min(...allPrices) : 0;
+  const maxPrice = allPrices.length ? Math.max(...allPrices) : 0;
+  const modelNames = brandModels.slice(0, 4).map((m) => m.name).join(", ");
+  const bodyTypes = Array.from(new Set(brandModels.map((m) => m.bodyType).filter(Boolean)));
+
+  const title = `${brand.name} ${bodyTypes.slice(0, 2).join(" & ") || "Vehicles"} Price List in India | Gaadieasy`;
+  const description = [
+    `${brand.name} has ${brandModels.length} model${brandModels.length === 1 ? "" : "s"} on Gaadieasy`,
+    allPrices.length ? `with ex-showroom prices from ${formatShortPrice(minPrice)} to ${formatShortPrice(maxPrice)}` : "",
+    modelNames ? `– ${modelNames}` : "",
+    `Compare on-road prices across cities with RTO, tax and insurance breakdown.`,
+  ].filter(Boolean).join(" ");
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/brands/${brandSlug}` },
+    openGraph: {
+      title,
+      description,
+      images: brand.logoUrl ? [{ url: brand.logoUrl, alt: brand.name }] : [],
+    },
+  };
+}
 
 function onRoadPriceHref({
   brandSlug,

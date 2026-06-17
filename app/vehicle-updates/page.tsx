@@ -6,8 +6,8 @@ import { getVehicleStories } from "@/lib/services/vehicle-stories";
 import type { VehicleStory } from "@/types/automobile";
 
 export const metadata: Metadata = {
-  title: "Vehicle Updates & Launch Stories",
-  description: "Follow the latest vehicle launches, updates, and stories from top brands in India — tracked and updated by Gaadieasy.",
+  title: "Vehicle Updates & Launch Stories | Gaadieasy",
+  description: "Follow the latest vehicle launches, price updates and stories from top car and bike brands in India — tracked and updated by Gaadieasy.",
   alternates: { canonical: "/vehicle-updates" },
 };
 

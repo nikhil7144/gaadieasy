@@ -6,8 +6,8 @@ import { getDiscoveryDatasetForType } from "@/lib/services/discovery";
 import { getPublicDiscoveryDataForApi } from "@/lib/services/public-data";
 
 export const metadata: Metadata = {
-  title: "Discover vehicles by filters",
-  description: "Filter cars, bikes and commercial vehicles by body type, fuel, seating, engine and offers before checking on-road price.",
+  title: "Discover Vehicles – Cars, Bikes, Scooters, EVs with On-Road Prices | Gaadieasy",
+  description: "Filter cars, bikes, scooters and EVs by body type, fuel, seating, engine and budget. Check city-wise on-road prices before visiting a showroom.",
   alternates: {
     canonical: "/discover",
   },

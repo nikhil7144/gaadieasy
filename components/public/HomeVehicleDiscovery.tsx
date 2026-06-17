@@ -775,7 +775,7 @@ function CommercialTruckFinder({
   if (!groups.length) return null;
 
   const filterSlugs = Object.values(selectedFilters).filter(Boolean);
-  const matchedModels = filterDiscoveryModels(models, tab, filterSlugs);
+  const matchedModels = filterDiscoveryModels(models, tab, filterSlugs, "any");
   const searchParams = new URLSearchParams({ type: tab.key, city: citySlug });
   if (filterSlugs.length) searchParams.set("filters", filterSlugs.join(","));
 

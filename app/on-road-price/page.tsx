@@ -15,10 +15,47 @@ import { calculateOnRoadPriceFromData } from "@/lib/services/pricing";
 import { formatIndianPrice, formatShortPrice } from "@/lib/utils/format";
 import { BadgeIndianRupee, Gauge, MapPin, ShieldCheck, Zap } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "On-Road Vehicle Price Calculator | Gaadieasy",
-  description: "Check city-wise on-road vehicle prices with tax, RTO, insurance and dealer enquiry.",
-};
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ brand?: string; model?: string; variant?: string; city?: string }>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const data = await getVehicleDataSet();
+  const pricing = calculateOnRoadPriceFromData(params, data);
+
+  const { brand, model, variant, city } = pricing;
+  const price = formatIndianPrice(pricing.breakdown.totalOnRoadPrice);
+  const colors: string[] = Array.isArray(variant.specifications.colors) ? variant.specifications.colors : [];
+  const features: string[] = Array.isArray(variant.specifications.features) ? variant.specifications.features.slice(0, 3) : [];
+
+  const title = `${brand.name} ${model.name} ${variant.name} On-Road Price in ${city.name} | Gaadieasy`;
+
+  const descParts: string[] = [
+    `${brand.name} ${model.name} ${variant.name} on-road price in ${city.name} is ${price}.`,
+  ];
+  if (variant.fuelType) descParts.push(`${variant.fuelType} engine`);
+  if (variant.engineCapacity) descParts.push(`${variant.engineCapacity}`);
+  if (variant.mileage) descParts.push(`${variant.mileage} mileage`);
+  if (colors.length) descParts.push(`Available in ${colors.length} colour${colors.length > 1 ? "s" : ""}: ${colors.slice(0, 3).join(", ")}`);
+  if (features.length) descParts.push(`Features: ${features.join(", ")}`);
+  descParts.push("Includes RTO, tax and insurance breakdown.");
+
+  const description = descParts.join(". ");
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `/on-road-price?brand=${brand.slug}&model=${model.slug}&variant=${variant.slug}&city=${city.slug}`,
+    },
+    openGraph: {
+      title,
+      description,
+      images: model.imageUrl ? [{ url: model.imageUrl, alt: `${brand.name} ${model.name}` }] : [],
+    },
+  };
+}
 
 function sectionValue(section: unknown, keys: string[]) {
   if (!section || typeof section !== "object" || Array.isArray(section)) return undefined;

@@ -556,10 +556,50 @@ export function matchesDiscoveryFilter(model: DiscoveryModel, filter: DiscoveryF
   const variantPool = primaryVariant ? [primaryVariant] : variants;
 
   if (slug === "dealer-offers") return true;
+  if (slug === "fleet-operations") return true; // advisory — any commercial vehicle can serve fleet use
   if (slug === "small-loader") return inferredLoaderSize(model) === "small";
   if (slug === "medium-loader") return inferredLoaderSize(model) === "medium";
   if (slug === "large-loader") return inferredLoaderSize(model) === "large";
   if (slug === "trucks") return text.includes("truck") || text.includes("haulage") || text.includes("tipper");
+
+  // Truck finder — truck type slugs
+  if (slug === "lcv") return text.includes("lcv") || text.includes("light commercial");
+  if (slug === "icv") return text.includes("icv") || text.includes("intermediate");
+  if (slug === "hcv") return text.includes("hcv") || text.includes("heavy commercial") || text.includes("heavy duty");
+  if (slug === "haulage") return text.includes("haulage") || text.includes("tractor") || text.includes("trailer");
+  if (slug === "tipper") return text.includes("tipper");
+  if (slug === "tractor-trailer") return text.includes("tractor") || text.includes("trailer");
+  if (slug === "tanker") return text.includes("tanker");
+  if (slug === "reefer") return text.includes("reefer") || text.includes("refriger");
+
+  // Truck finder — body type slugs
+  if (slug === "open-body") return text.includes("open") || text.includes("flatbed") || text.includes("tipper");
+  if (slug === "closed-container") return text.includes("closed") || text.includes("container") || text.includes("box");
+  if (slug === "flatbed") return text.includes("flatbed") || text.includes("flat bed");
+  if (slug === "tipper-body") return text.includes("tipper");
+  if (slug === "tanker-body") return text.includes("tanker");
+  if (slug === "reefer-body") return text.includes("reefer") || text.includes("refriger") || text.includes("cold");
+  if (slug === "box-body") return text.includes("box");
+  if (slug === "cab-chassis") return text.includes("cab") || text.includes("chassis");
+
+  // Truck finder — application/use-case slugs (broad inference from truck type)
+  if (slug === "cold-chain") return text.includes("reefer") || text.includes("refriger") || text.includes("cold");
+  if (slug === "e-commerce-goods") return text.includes("cargo") || text.includes("delivery") || text.includes("pickup") || text.includes("mini truck") || text.includes("closed") || text.includes("lcv");
+  if (slug === "fmcg-logistics") return text.includes("cargo") || text.includes("lcv") || text.includes("delivery") || text.includes("pickup") || text.includes("closed");
+  if (slug === "agricultural-products") return text.includes("tipper") || text.includes("flatbed") || text.includes("open") || text.includes("pickup");
+  if (slug === "construction-material") return text.includes("tipper") || text.includes("flatbed") || text.includes("hcv") || text.includes("heavy");
+  if (slug === "city-delivery") return inferredLoaderSize(model) === "small" || text.includes("mini") || text.includes("pickup") || text.includes("cargo");
+  if (slug === "mining") return text.includes("tipper") || text.includes("hcv") || text.includes("heavy") || text.includes("mining");
+  if (slug === "steel-logistics") return text.includes("flatbed") || text.includes("haulage") || text.includes("heavy") || text.includes("trailer");
+  if (slug === "container-logistics") return text.includes("container") || text.includes("hcv") || text.includes("haulage") || text.includes("trailer");
+
+  // Truck finder — tonnage / GVW slugs
+  if (slug === "under-750-kg") return text.includes("under 750") || text.includes("750 kg") || text.includes("three wheeler") || text.includes("3 wheeler") || inferredLoaderSize(model) === "small";
+  if (slug === "750-kg-1-5-ton") return text.includes("750") || text.includes("1.5 ton") || text.includes("1 ton") || (inferredLoaderSize(model) === "small" && !text.includes("3 wheeler"));
+  if (slug === "1-5-3-ton") return text.includes("1.5") || text.includes("2 ton") || text.includes("3 ton") || inferredLoaderSize(model) === "medium";
+  if (slug === "3-7-5-ton") return text.includes("3.5") || text.includes("5 ton") || text.includes("7.5") || inferredLoaderSize(model) === "medium";
+  if (slug === "7-5-19-ton") return text.includes("10 ton") || text.includes("12 ton") || text.includes("16 ton") || text.includes("icv") || text.includes("hcv");
+  if (slug === "20-55-ton") return text.includes("hcv") || text.includes("heavy") || text.includes("haulage") || text.includes("tractor") || inferredLoaderSize(model) === "large";
   if (slug === "automatic" || slug === "manual") {
     return variantPool.some((variant) => variant?.transmission?.toLowerCase() === slug);
   }
