@@ -55,7 +55,16 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      images: model.imageUrl ? [{ url: model.imageUrl, alt: `${brand.name} ${model.name}` }] : [],
+      type: "website",
+      images: model.imageUrl
+        ? [{ url: model.imageUrl, width: 1200, height: 630, alt: `${brand.name} ${model.name} ${variant.name}` }]
+        : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: model.imageUrl ? [model.imageUrl] : [],
     },
   };
 }
@@ -114,8 +123,45 @@ export default async function OnRoadPricePage({
         { question: "Can offers change?", answer: "Yes. Dealer and brand offers can change by stock, date and city." },
       ];
 
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gaadieasy.com").replace(/\/$/, "");
+  const canonicalUrl = `${siteUrl}/on-road-price?brand=${pricing.brand.slug}&model=${pricing.model.slug}&variant=${pricing.variant.slug}&city=${pricing.city.slug}`;
+
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: `${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name}`,
+      description: `${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name} on-road price in ${pricing.city.name} is ${formatIndianPrice(pricing.breakdown.totalOnRoadPrice)}. Includes RTO, tax and insurance.`,
+      ...(heroImage ? { image: [heroImage] } : {}),
+      brand: { "@type": "Brand", name: pricing.brand.name },
+      offers: {
+        "@type": "Offer",
+        url: canonicalUrl,
+        priceCurrency: "INR",
+        price: pricing.breakdown.totalOnRoadPrice,
+        availability: "https://schema.org/InStock",
+        seller: { "@type": "Organization", name: "Gaadieasy" },
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+        { "@type": "ListItem", position: 2, name: pricing.brand.name, item: `${siteUrl}/brands/${pricing.brand.slug}` },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: `${pricing.brand.name} ${pricing.model.name} On-Road Price in ${pricing.city.name}`,
+          item: canonicalUrl,
+        },
+      ],
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24 md:pb-0">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <SiteHeader scrollable />
       <main>
         <section id="overview" className="relative overflow-hidden bg-slate-950 text-white">
@@ -247,7 +293,7 @@ export default async function OnRoadPricePage({
               media={media}
               photoPageHref={`/photos?brand=${pricing.brand.slug}&model=${pricing.model.slug}&variant=${pricing.variant.slug}&city=${pricing.city.slug}`}
             />
-            <div id="emi">
+            <div id="emi" className="lg:hidden">
               <EmiPreview
                 onRoadPrice={pricing.breakdown.totalOnRoadPrice}
                 brandSlug={pricing.brand.slug}
@@ -259,14 +305,16 @@ export default async function OnRoadPricePage({
             </div>
           </div>
           <aside className="space-y-4">
-            <EmiPreview
-              onRoadPrice={pricing.breakdown.totalOnRoadPrice}
-              brandSlug={pricing.brand.slug}
-              modelSlug={pricing.model.slug}
-              variantSlug={pricing.variant.slug}
-              citySlug={pricing.city.slug}
-              vehicleName={`${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name}`}
-            />
+            <div className="hidden lg:block">
+              <EmiPreview
+                onRoadPrice={pricing.breakdown.totalOnRoadPrice}
+                brandSlug={pricing.brand.slug}
+                modelSlug={pricing.model.slug}
+                variantSlug={pricing.variant.slug}
+                citySlug={pricing.city.slug}
+                vehicleName={`${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name}`}
+              />
+            </div>
             <div className="rounded-lg border border-emerald-100 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>

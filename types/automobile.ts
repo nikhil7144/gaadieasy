@@ -20,6 +20,10 @@ export type Brand = {
   categoryIds?: string[];
   active: boolean;
   featured: boolean;
+  overview?: string;
+  tagline?: string;
+  seoTitle?: string;
+  seoDescription?: string;
 };
 
 export type VehicleModel = {

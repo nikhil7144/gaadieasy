@@ -7,6 +7,7 @@ import { VehicleImage } from "@/components/public/VehicleImage";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getVehicleStories } from "@/lib/services/vehicle-stories";
 import { formatShortPrice } from "@/lib/utils/format";
 
 export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
@@ -25,13 +26,16 @@ export async function generateMetadata({ params }: { params: Promise<{ brand: st
   const modelNames = brandModels.slice(0, 4).map((m) => m.name).join(", ");
   const bodyTypes = Array.from(new Set(brandModels.map((m) => m.bodyType).filter(Boolean)));
 
-  const title = `${brand.name} ${bodyTypes.slice(0, 2).join(" & ") || "Vehicles"} Price List in India | Gaadieasy`;
-  const description = [
+  const autoTitle = `${brand.name} ${bodyTypes.slice(0, 2).join(" & ") || "Vehicles"} Price List in India | Gaadieasy`;
+  const autoDescription = [
     `${brand.name} has ${brandModels.length} model${brandModels.length === 1 ? "" : "s"} on Gaadieasy`,
     allPrices.length ? `with ex-showroom prices from ${formatShortPrice(minPrice)} to ${formatShortPrice(maxPrice)}` : "",
     modelNames ? `– ${modelNames}` : "",
     `Compare on-road prices across cities with RTO, tax and insurance breakdown.`,
   ].filter(Boolean).join(" ");
+
+  const title = brand.seoTitle ?? autoTitle;
+  const description = brand.seoDescription ?? autoDescription;
 
   return {
     title,
@@ -66,12 +70,19 @@ function onRoadPriceHref({
 
 export default async function BrandModelsPage({ params }: { params: Promise<{ brand: string }> }) {
   const { brand: brandSlug } = await params;
-  const data = await getVehicleDataSet();
+  const [data, allStories] = await Promise.all([
+    getVehicleDataSet(),
+    getVehicleStories({ activeOnly: true }).catch(() => []),
+  ]);
   const brand = data.brands.find((item) => item.slug === brandSlug && item.active);
 
   if (!brand) {
     notFound();
   }
+
+  const brandNews = allStories
+    .filter((s) => s.brandSlug === brand.slug && !s.modelId)
+    .slice(0, 3);
 
   const brandModels = data.models
     .filter((model) => model.brandId === brand.id && model.active)
@@ -249,6 +260,56 @@ export default async function BrandModelsPage({ params }: { params: Promise<{ br
           </div>
 
           <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+            {/* Brand overview square */}
+            {(brand.overview || brand.tagline) ? (
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div className="p-4">
+                  <div className="flex items-center gap-3">
+                    <BrandLogo className="h-10 w-16 shrink-0" name={brand.name} logoUrl={brand.logoUrl} />
+                    <div>
+                      <div className="font-black text-slate-950">{brand.name}</div>
+                      {brand.tagline ? <div className="text-xs font-semibold text-emerald-700">{brand.tagline}</div> : null}
+                    </div>
+                  </div>
+                  {brand.overview ? (
+                    <p className="mt-3 line-clamp-4 text-sm leading-6 text-slate-600">
+                      {brand.overview.replace(/#{1,6}\s*/g, "").replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1").replace(/\n+/g, " ").trim()}
+                    </p>
+                  ) : null}
+                  <Link
+                    className="mt-3 inline-flex rounded-md border border-slate-300 px-4 py-2 text-xs font-black text-slate-700 hover:border-emerald-400 hover:text-emerald-800"
+                    href={`/brands/${brand.slug}/overview`}
+                  >
+                    Know more about {brand.name} →
+                  </Link>
+                </div>
+              </section>
+            ) : null}
+
+            {/* Brand news banners */}
+            {brandNews.length > 0 ? (
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 p-4">
+                  <h2 className="text-xl font-black text-slate-950">{brand.name} news</h2>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {brandNews.map((story) => {
+                    const storyPath = story.slug.slice(story.brandSlug.length + 1);
+                    return (
+                      <Link key={story.id} className="block p-4 hover:bg-emerald-50" href={`/brand-updates/${story.brandSlug}/${storyPath}`}>
+                        <div className="text-xs font-black uppercase tracking-wide text-emerald-700">
+                          {new Date(story.publishedAt ?? story.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </div>
+                        <div className="mt-1 font-black text-slate-950 leading-tight">{story.title}</div>
+                        {story.tagline ? <div className="mt-0.5 text-xs text-slate-500">{story.tagline}</div> : null}
+                        {story.intro ? <p className="mt-1 text-xs leading-5 text-slate-600">{story.intro}</p> : null}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
             <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-100 p-4">
                 <h2 className="text-xl font-black text-slate-950">Similar brands</h2>

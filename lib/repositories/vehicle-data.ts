@@ -153,6 +153,10 @@ function mapBrand(row: DbRow): Brand {
     categoryIds: jsonArray<string>(row, "category_ids"),
     active: booleanValue(row, "active", true),
     featured: booleanValue(row, "featured"),
+    overview: optionalString(row, "overview"),
+    tagline: optionalString(row, "tagline"),
+    seoTitle: optionalString(row, "seo_title"),
+    seoDescription: optionalString(row, "seo_description"),
   };
 }
 

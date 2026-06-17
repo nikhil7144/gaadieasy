@@ -407,6 +407,10 @@ export async function createBrand(input: {
   categoryIds?: string[];
   active: boolean;
   featured: boolean;
+  overview?: string;
+  tagline?: string;
+  seoTitle?: string;
+  seoDescription?: string;
 }) {
   const supabase = getAdminClient();
   const { data, error } = await supabase
@@ -418,6 +422,10 @@ export async function createBrand(input: {
       category_ids: arrayFromText(input.categoryIds),
       active: input.active,
       featured: input.featured,
+      overview: optionalText(input.overview),
+      tagline: optionalText(input.tagline),
+      seo_title: optionalText(input.seoTitle),
+      seo_description: optionalText(input.seoDescription),
     })
     .select("*")
     .single();
@@ -436,6 +444,10 @@ export async function updateBrand(input: {
   categoryIds?: string[];
   active?: boolean;
   featured?: boolean;
+  overview?: string;
+  tagline?: string;
+  seoTitle?: string;
+  seoDescription?: string;
 }) {
   const supabase = getAdminClient();
   const patch: DbRow = {};
@@ -446,6 +458,10 @@ export async function updateBrand(input: {
   if (input.categoryIds !== undefined) patch.category_ids = arrayFromText(input.categoryIds);
   if (input.active !== undefined) patch.active = input.active;
   if (input.featured !== undefined) patch.featured = input.featured;
+  if (input.overview !== undefined) patch.overview = optionalText(input.overview);
+  if (input.tagline !== undefined) patch.tagline = optionalText(input.tagline);
+  if (input.seoTitle !== undefined) patch.seo_title = optionalText(input.seoTitle);
+  if (input.seoDescription !== undefined) patch.seo_description = optionalText(input.seoDescription);
 
   const { data, error } = await supabase.from("brands").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;

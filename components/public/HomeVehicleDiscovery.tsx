@@ -797,8 +797,13 @@ function CommercialTruckFinder({
               <div className="text-[11px] font-bold text-emerald-50">filters</div>
             </div>
             <div className="rounded-md bg-white/10 p-3">
-              <div className="text-xl font-black text-lime-300">API</div>
-              <div className="text-[11px] font-bold text-emerald-50">ready</div>
+              <div className="text-xl font-black text-lime-300">
+                {(() => {
+                  const prices = matchedModels.flatMap((m) => m.variants.map((v) => v.exShowroomPrice)).filter((p) => p > 0);
+                  return prices.length ? formatShortPrice(Math.min(...prices)) : "—";
+                })()}
+              </div>
+              <div className="text-[11px] font-bold text-emerald-50">starting ex-showroom</div>
             </div>
           </div>
         </div>

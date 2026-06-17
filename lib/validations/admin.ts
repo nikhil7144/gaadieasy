@@ -12,6 +12,10 @@ export const brandSchema = z.object({
   categoryIds: z.array(z.string().uuid()).default([]),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
+  overview: z.string().optional().or(z.literal("")),
+  tagline: z.string().optional().or(z.literal("")),
+  seoTitle: z.string().optional().or(z.literal("")),
+  seoDescription: z.string().optional().or(z.literal("")),
 });
 
 export const modelSchema = z.object({
