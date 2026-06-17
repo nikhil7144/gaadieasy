@@ -7,6 +7,8 @@ import { VehicleColorGallery } from "@/components/public/VehicleColorGallery";
 import { VehicleGallery } from "@/components/public/VehicleGallery";
 import { VehicleOverview, VehicleProsCons } from "@/components/public/VehicleOverview";
 import { VehicleSpecifications } from "@/components/public/VehicleSpecifications";
+import { VariantsPriceTable } from "@/components/public/VariantsPriceTable";
+import { EmiPreview } from "@/components/public/EmiPreview";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
@@ -79,14 +81,16 @@ export default async function OnRoadPricePage({
   const modelVariants = data.variants.filter((variant) => variant.active && variant.modelId === pricing.model.id);
   const media = await getVehicleMediaForApi(pricing.model.id, pricing.variant.id);
   const heroImage = media[0]?.url ?? pricing.model.imageUrl;
-  const variantPrices = modelVariants.map((variant) =>
-    calculateOnRoadPriceFromData({
-      brand: pricing.brand.slug,
-      model: pricing.model.slug,
-      variant: variant.slug,
-      city: pricing.city.slug,
-    }, data),
-  );
+  const variantPrices = modelVariants
+    .map((variant) =>
+      calculateOnRoadPriceFromData({
+        brand: pricing.brand.slug,
+        model: pricing.model.slug,
+        variant: variant.slug,
+        city: pricing.city.slug,
+      }, data),
+    )
+    .sort((a, b) => a.breakdown.totalOnRoadPrice - b.breakdown.totalOnRoadPrice);
   const facts = [
     ["Fuel", pricing.variant.fuelType],
     ["Transmission", pricing.variant.transmission],
@@ -216,53 +220,20 @@ export default async function OnRoadPricePage({
                 </div>
                 <span className="rounded-full bg-lime-300 px-3 py-1 text-xs font-black text-slate-950">{modelVariants.length} variants</span>
               </div>
-              <div className="mt-4 space-y-3 md:hidden">
-                {variantPrices.map((item) => {
-                  const active = item.variant.id === pricing.variant.id;
-                  return (
-                    <a
-                      className={`block rounded-lg border p-3 text-sm ${active ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}
-                      href={`/on-road-price?brand=${pricing.brand.slug}&model=${pricing.model.slug}&variant=${item.variant.slug}&city=${pricing.city.slug}`}
-                      key={item.variant.id}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="font-black text-slate-950 break-words">{item.variant.name}</div>
-                          <div className="mt-1 text-slate-600">
-                            {item.variant.fuelType} · {item.variant.transmission}
-                          </div>
-                        </div>
-                        <span className="shrink-0 rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-white">
-                          {active ? "Selected" : "View"}
-                        </span>
-                      </div>
-                      <div className="mt-3 text-lg font-black text-slate-950">
-                        {formatShortPrice(item.breakdown.totalOnRoadPrice)}
-                      </div>
-                    </a>
-                  );
-                })}
-              </div>
-              <div className="mt-4 hidden overflow-x-auto md:block">
-                <div className="min-w-[640px] divide-y divide-slate-100">
-                  {variantPrices.map((item) => {
-                    const active = item.variant.id === pricing.variant.id;
-                    return (
-                      <a
-                        className={`grid grid-cols-[1.2fr_.8fr_.8fr_.8fr_auto] items-center gap-3 py-3 text-sm ${active ? "rounded-lg bg-emerald-50 px-3" : "px-3 hover:bg-slate-50"}`}
-                        href={`/on-road-price?brand=${pricing.brand.slug}&model=${pricing.model.slug}&variant=${item.variant.slug}&city=${pricing.city.slug}`}
-                        key={item.variant.id}
-                      >
-                        <span className="font-black text-slate-950">{item.variant.name}</span>
-                        <span className="text-slate-600">{item.variant.fuelType}</span>
-                        <span className="text-slate-600">{item.variant.transmission}</span>
-                        <span className="font-black text-slate-950">{formatShortPrice(item.breakdown.totalOnRoadPrice)}</span>
-                        <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-white">{active ? "Selected" : "View"}</span>
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
+              <VariantsPriceTable
+                rows={variantPrices.map((item) => ({
+                  id: item.variant.id,
+                  name: item.variant.name,
+                  slug: item.variant.slug,
+                  fuelType: item.variant.fuelType,
+                  transmission: item.variant.transmission,
+                  totalOnRoadPrice: item.breakdown.totalOnRoadPrice,
+                }))}
+                brandSlug={pricing.brand.slug}
+                modelSlug={pricing.model.slug}
+                citySlug={pricing.city.slug}
+                activeVariantId={pricing.variant.id}
+              />
             </div>
 
             <div id="price">
@@ -291,14 +262,14 @@ export default async function OnRoadPricePage({
               media={media}
               photoPageHref={`/photos?brand=${pricing.brand.slug}&model=${pricing.model.slug}&variant=${pricing.variant.slug}&city=${pricing.city.slug}`}
             />
-            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
-              <h2 className="text-xl font-black text-slate-950">EMI planning estimate</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                A 20 percent down payment over 5 years at 9.5 percent interest gives an estimated EMI of{" "}
-                <strong>{formatIndianPrice(Math.round((pricing.breakdown.totalOnRoadPrice * 0.8 * 0.021) / 1))}</strong>.
-                This is a planning estimate, not lender approval.
-              </p>
-            </div>
+            <EmiPreview
+              onRoadPrice={pricing.breakdown.totalOnRoadPrice}
+              brandSlug={pricing.brand.slug}
+              modelSlug={pricing.model.slug}
+              variantSlug={pricing.variant.slug}
+              citySlug={pricing.city.slug}
+              vehicleName={`${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name}`}
+            />
           </div>
           <aside className="space-y-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
             <div className="rounded-lg border border-emerald-100 bg-white p-4 shadow-sm">

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
+import { Copy, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import { adminFieldClass, deleteAdminJson, parseOptionalJson, patchAdminJson, postAdminJson, splitLines } from "@/components/admin/admin-form-utils";
 import { slugify } from "@/lib/utils/format";
 import type { SpecificationGroup, VehicleCategory, VehicleMedia, VehicleModel, VehicleVariant } from "@/types/automobile";
@@ -213,6 +213,35 @@ function valuesFromSpecifications(sections: SpecSection[], specifications: Recor
   return values;
 }
 
+const BULK_TEMPLATE = JSON.stringify(
+  [
+    {
+      name: "Base",
+      slug: "",
+      exShowroomPrice: 1000000,
+      fuelType: "Petrol",
+      transmission: "Manual",
+      engineCapacity: "1197 cc",
+      mileage: "22 km/l",
+      seatingCapacity: 5,
+      displayOrder: 0,
+      isDefault: false,
+      colors: ["Pearl White | #f8fafc", "Midnight Black | #0f172a"],
+      features: ["ABS with EBD", "Rear parking camera", "6 airbags"],
+      highlights: ["Best-in-class mileage", "Segment-first sunroof"],
+      specifications: {
+        engine: { maxPower: "90 bhp", maxTorque: "113 Nm", driveType: "Front-wheel drive", emissionNorm: "BS6 Phase 2" },
+        dimensions: { length: "4255 mm", width: "1745 mm", height: "1490 mm", wheelbase: "2600 mm", bootSpace: "318 litres" },
+        safety: { airbags: "6 airbags", abs: "ABS with EBD", camera: "Rear camera" },
+        interior: { infotainment: "7-inch touchscreen", airConditioning: "Automatic climate control" },
+        exterior: { headlamps: "LED headlamps", wheels: "16-inch alloy wheels" },
+      },
+    },
+  ],
+  null,
+  2,
+);
+
 function isCommercialCategory(category?: VehicleCategory) {
   return category?.slug.includes("commercial") ?? false;
 }
@@ -241,6 +270,7 @@ export function AdminVariantsManager({
   initialModelId?: string;
 }) {
   const router = useRouter();
+  const createFormRef = useRef<HTMLElement>(null);
   const [modelId, setModelId] = useState(initialModelId || models[0]?.id || "");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -280,9 +310,104 @@ export function AdminVariantsManager({
   const [uploadMediaType, setUploadMediaType] = useState<VehicleMedia["mediaType"]>("exterior");
   const [uploadAlt, setUploadAlt] = useState("");
   const [uploadDisplayOrder, setUploadDisplayOrder] = useState("0");
+  const [bulkJson, setBulkJson] = useState("");
+  const [bulkMessage, setBulkMessage] = useState("");
+  const [bulkError, setBulkError] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  function copyVariant(variant: VehicleVariant) {
+    const copySections = buildSectionsFor(variant.fuelType, selectedCategory);
+    setModelId(variant.modelId);
+    setName(`${variant.name} (copy)`);
+    setSlug("");
+    setExShowroomPrice(String(variant.exShowroomPrice));
+    setFuelType(variant.fuelType);
+    setTransmission(variant.transmission);
+    setEngineCapacity(variant.engineCapacity);
+    setMileage(variant.mileage);
+    setSeatingCapacity(String(variant.seatingCapacity));
+    setDisplayOrder(String((variant.displayOrder ?? 0) + 1));
+    setIsDefault(false);
+    setColors(formatColorLines(variant.specifications));
+    setFeatures(stringList(variant.specifications.features).join("\n"));
+    setHighlights(stringList(variant.specifications.highlights).join("\n"));
+    setSpecValues(valuesFromSpecifications(copySections, variant.specifications as Record<string, unknown>));
+    setSpecJson("");
+    setMessage("");
+    setError("");
+    createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function handleBulkImport(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setBulkMessage("");
+    setBulkError("");
+
+    let items: unknown[];
+    try {
+      items = JSON.parse(bulkJson);
+      if (!Array.isArray(items)) throw new Error("JSON must be an array [ ... ]");
+    } catch (caught) {
+      setBulkError(caught instanceof Error ? caught.message : "Invalid JSON");
+      setSaving(false);
+      return;
+    }
+
+    let saved = 0;
+    const errors: string[] = [];
+
+    for (const [i, item] of items.entries()) {
+      const raw = item as Record<string, unknown>;
+      const colorLines = Array.isArray(raw.colors) ? (raw.colors as string[]).join("\n") : "";
+      const colorData = parseColorLines(colorLines);
+      const extraSpecs = raw.specifications && typeof raw.specifications === "object" && !Array.isArray(raw.specifications)
+        ? (raw.specifications as Record<string, unknown>)
+        : {};
+
+      try {
+        await postAdminJson("/api/admin/variants", {
+          modelId,
+          name: String(raw.name ?? ""),
+          slug: String(raw.slug ?? ""),
+          exShowroomPrice: String(raw.exShowroomPrice ?? 0),
+          fuelType: String(raw.fuelType ?? "Petrol"),
+          transmission: String(raw.transmission ?? "Manual"),
+          engineCapacity: String(raw.engineCapacity ?? ""),
+          mileage: String(raw.mileage ?? ""),
+          seatingCapacity: String(raw.seatingCapacity ?? 5),
+          displayOrder: String(raw.displayOrder ?? 0),
+          isDefault: Boolean(raw.isDefault),
+          specifications: {
+            ...extraSpecs,
+            engine: {
+              ...((extraSpecs.engine as Record<string, unknown> | undefined) ?? {}),
+              displacement: String(raw.engineCapacity ?? ""),
+            },
+            colors: colorData.colors,
+            colorHexMap: colorData.colorHexMap,
+            features: Array.isArray(raw.features) ? raw.features.filter((f): f is string => typeof f === "string") : [],
+            highlights: Array.isArray(raw.highlights) ? raw.highlights.filter((h): h is string => typeof h === "string") : [],
+          },
+          specificationGroups: [],
+          active: true,
+        });
+        saved++;
+      } catch (caught) {
+        errors.push(`Item ${i + 1} (${String(raw.name ?? "?")}): ${caught instanceof Error ? caught.message : "Failed"}`);
+      }
+    }
+
+    if (saved > 0) {
+      setBulkMessage(`${saved} variant${saved !== 1 ? "s" : ""} imported successfully.`);
+      setBulkJson("");
+      router.refresh();
+    }
+    if (errors.length > 0) setBulkError(errors.join(" · "));
+    setSaving(false);
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -565,9 +690,48 @@ export function AdminVariantsManager({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="text-xs font-black uppercase text-emerald-700">Variant master</p>
-        <h1 className="mt-1 text-2xl font-black text-slate-950">Create variant</h1>
+      <div className="grid gap-6">
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-black uppercase text-indigo-700">Bulk JSON import</p>
+          <h2 className="mt-1 text-xl font-black text-slate-950">Add multiple variants at once</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Paste a JSON array to import several variants for the selected model. Click{" "}
+            <strong className="font-black text-slate-700">Load template</strong> to see the field format.
+          </p>
+          <form className="mt-4 grid gap-3" onSubmit={handleBulkImport}>
+            <select className={adminFieldClass} value={modelId} onChange={(event) => setModelId(event.target.value)} required>
+              {models.map((model) => <option value={model.id} key={model.id}>{model.name}</option>)}
+            </select>
+            <textarea
+              className={`${adminFieldClass} min-h-48 py-3 font-mono text-xs`}
+              value={bulkJson}
+              onChange={(event) => setBulkJson(event.target.value)}
+              placeholder='[ { "name": "Base", "exShowroomPrice": 1000000, "fuelType": "Petrol", ... } ]'
+              required
+            />
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:border-emerald-300 hover:bg-emerald-50"
+                onClick={() => setBulkJson(BULK_TEMPLATE)}
+              >
+                Load template
+              </button>
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-black text-white hover:bg-indigo-700"
+                disabled={saving}
+              >
+                <Upload size={14} /> {saving ? "Importing…" : "Import variants"}
+              </button>
+            </div>
+            {bulkMessage ? <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">{bulkMessage}</p> : null}
+            {bulkError ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{bulkError}</p> : null}
+          </form>
+        </section>
+
+        <section ref={createFormRef} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-black uppercase text-emerald-700">Variant master</p>
+          <h1 className="mt-1 text-2xl font-black text-slate-950">Create variant</h1>
         <form className="mt-5 grid gap-3" onSubmit={handleSubmit}>
           <select className={adminFieldClass} value={modelId} onChange={(event) => setModelId(event.target.value)} required>
             {models.map((model) => <option value={model.id} key={model.id}>{model.name}</option>)}
@@ -626,7 +790,8 @@ export function AdminVariantsManager({
             <Plus size={16} /> {saving ? "Saving" : "Save variant"}
           </button>
         </form>
-      </section>
+        </section>
+      </div>
 
       <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-xl font-black text-slate-950">Variants for selected model</h2>
@@ -659,6 +824,13 @@ export function AdminVariantsManager({
                   type="button"
                 >
                   <Pencil size={14} /> Edit
+                </button>
+                <button
+                  className="inline-flex items-center justify-center gap-1 rounded-md border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-700 hover:border-indigo-300"
+                  onClick={() => copyVariant(variant)}
+                  type="button"
+                >
+                  <Copy size={14} /> Copy
                 </button>
                 <button
                   className="inline-flex items-center justify-center gap-1 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:border-red-300"

@@ -595,11 +595,10 @@ function SearchableQuickFilters({
                           {model.bodyType} {variant ? `from ${formatShortPrice(variant.exShowroomPrice)} ex-showroom` : ""}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          {variant ? (
-                            <>
-                              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">{variant.fuelType}</span>
-                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{variant.transmission}</span>
-                            </>
+                          {model.variants.length > 0 ? (
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                              {model.variants.length} variant{model.variants.length !== 1 ? "s" : ""}
+                            </span>
                           ) : null}
                         </div>
                       </div>
@@ -1056,7 +1055,9 @@ export function HomeVehicleDiscovery({
       <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-bold text-emerald-700">Models</p>
-          <h3 className="text-2xl font-black text-slate-950">{activeTab.label} models</h3>
+          <h3 className="text-2xl font-black text-slate-950">
+            Explore All {activeCarouselTabConfig.key === "all" ? activeTab.label : `${activeCarouselTabConfig.label}s`}
+          </h3>
         </div>
         <a className="text-sm font-black text-emerald-700" href={discoverHref}>
           See all
@@ -1122,12 +1123,10 @@ export function HomeVehicleDiscovery({
                         {model.loaderSize ? (
                           <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-bold text-lime-900">{model.loaderSize} loader</span>
                         ) : null}
-                        {variant ? (
-                          <>
-                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">{variant.fuelType}</span>
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{variant.transmission}</span>
-                            <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-bold text-lime-900">{variant.mileage}</span>
-                          </>
+                        {model.variants.length > 0 ? (
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                            {model.variants.length} variant{model.variants.length !== 1 ? "s" : ""}
+                          </span>
                         ) : null}
                       </div>
                     </div>

@@ -18,15 +18,6 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
-  icons: {
-    icon: [
-      { url: "/icon.png", type: "image/png" },
-    ],
-    apple: [
-      { url: "/apple-icon.png", type: "image/png" },
-    ],
-    shortcut: "/favicon.ico",
-  },
   openGraph: {
     title: "Gaadieasy | On-Road Vehicle Pricing",
     description: "Check city-wise on-road vehicle prices, compare models, and connect with verified dealers.",
