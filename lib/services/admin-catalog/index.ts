@@ -431,8 +431,7 @@ export async function createBrand(input: {
     .single();
 
   if (error) throw error;
-  revalidatePath("/");
-  revalidatePath("/admin");
+  revalidatePath("/", "layout");
   return mapBrand(data as DbRow);
 }
 
@@ -465,8 +464,7 @@ export async function updateBrand(input: {
 
   const { data, error } = await supabase.from("brands").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;
-  revalidatePath("/");
-  revalidatePath("/admin");
+  revalidatePath("/", "layout");
   return mapBrand(data as DbRow);
 }
 
@@ -502,9 +500,7 @@ export async function deleteBrand(id: string) {
   const { error } = await supabase.from("brands").delete().eq("id", id);
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/admin/brands");
+  revalidatePath("/", "layout");
 
   return { id };
 }
@@ -732,10 +728,7 @@ export async function createModel(input: {
     .single();
 
   if (error) throw error;
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/admin/models");
-  revalidatePath("/admin/variants");
+  revalidatePath("/", "layout");
   return mapModel(data as DbRow);
 }
 
@@ -761,10 +754,7 @@ export async function updateModel(input: Partial<Parameters<typeof createModel>[
 
   const { data, error } = await supabase.from("vehicle_models").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/admin/models");
-  revalidatePath("/admin/variants");
+  revalidatePath("/", "layout");
   return mapModel(data as DbRow);
 }
 
@@ -857,11 +847,7 @@ export async function deleteModel(id: string) {
   const { error } = await supabase.from("vehicle_models").delete().eq("id", id);
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/admin/models");
-  revalidatePath("/admin/variants");
-  revalidatePath("/on-road-price");
+  revalidatePath("/", "layout");
 
   return { id, deletedVariants: variantIds.length, deletedMedia: mediaRows?.length ?? 0 };
 }
@@ -908,9 +894,7 @@ export async function createVariant(input: {
     .single();
 
   if (error) throw error;
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/admin/variants");
+  revalidatePath("/", "layout");
   return mapVariant(data as DbRow);
 }
 
@@ -946,9 +930,7 @@ export async function updateVariant(input: Partial<Parameters<typeof createVaria
 
   const { data, error } = await supabase.from("vehicle_variants").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/admin/variants");
+  revalidatePath("/", "layout");
   return mapVariant(data as DbRow);
 }
 
@@ -991,9 +973,7 @@ export async function deleteVariant(id: string) {
   const { error } = await supabase.from("vehicle_variants").delete().eq("id", id);
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/admin/variants");
+  revalidatePath("/", "layout");
 
   return { id };
 }
@@ -1105,10 +1085,7 @@ export async function createModelWithVariants(input: {
     createdVariants.push(variant);
   }
 
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/admin/models");
-  revalidatePath("/admin/variants");
+  revalidatePath("/", "layout");
 
   return { model, variants: createdVariants };
 }
