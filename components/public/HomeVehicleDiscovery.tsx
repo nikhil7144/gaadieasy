@@ -572,7 +572,7 @@ function SearchableQuickFilters({
             >
               {filteredModels.length ? (
                 filteredModels.map((model) => {
-                  const variant = model.variants[0];
+                  const variant = model.variants.find((v) => v.isDefault) ?? model.variants[0];
                   const category = categories.find((item) => item.id === model.categoryId);
                   const launchLabel = model.launchLabel?.trim();
                   return (
@@ -1023,7 +1023,7 @@ export function HomeVehicleDiscovery({
           </div>
           <div id={`ev-${activeTab.key}`} className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {evModels.map((model) => {
-              const variant = model.variants[0];
+              const variant = model.variants.find((v) => v.isDefault) ?? model.variants[0];
               return (
                 <div className="overflow-hidden rounded-lg border border-slate-100 bg-slate-50 shadow-sm" key={model.id}>
                   <Link href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`}>
@@ -1090,7 +1090,7 @@ export function HomeVehicleDiscovery({
           <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth" ref={carouselRef} style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {filteredCarouselModels.length ? (
               filteredCarouselModels.map((model) => {
-                const variant = model.variants[0];
+                const variant = model.variants.find((v) => v.isDefault) ?? model.variants[0];
                 const category = categories.find((item) => item.id === model.categoryId);
                 const launchLabel = model.launchLabel?.trim();
                 return (
@@ -1262,7 +1262,7 @@ export function HomepageQuickFilterSections({
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {section.models.map((model) => {
-                const variant = model.variants[0];
+                const variant = model.variants.find((v) => v.isDefault) ?? model.variants[0];
                 const spec = variant?.specifications;
                 return (
                   <a

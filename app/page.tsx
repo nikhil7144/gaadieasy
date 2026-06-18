@@ -186,7 +186,7 @@ export default async function Home({
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {selectedModels.slice(0, 6).map((model) => {
-              const firstVariant = model.variants[0];
+              const firstVariant = model.variants.find((v) => v.isDefault) ?? model.variants[0];
               return (
                 <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg" key={model.id}>
                   <Link href={modelPriceHref(model)}>

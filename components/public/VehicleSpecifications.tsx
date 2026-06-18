@@ -144,7 +144,7 @@ export function VehicleSpecifications({
         : [],
     }))
     .filter((group) => group.rows.length > 0);
-  const visibleGroups = mergeGroups([...dynamicGroups, ...fallbackGroups]);
+  const visibleGroups = mergeGroups([...fallbackGroups, ...dynamicGroups]);
 
   return (
     <div className="space-y-6">

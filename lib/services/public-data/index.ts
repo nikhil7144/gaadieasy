@@ -10,6 +10,14 @@ import {
   variants,
 } from "@/lib/data";
 import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import type { VehicleVariant } from "@/types/automobile";
+
+function sortVariants(list: VehicleVariant[]): VehicleVariant[] {
+  return [...list].sort((a, b) => {
+    if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+    return (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.exShowroomPrice - b.exShowroomPrice;
+  });
+}
 
 export type PublicSearchResult = {
   id: string;
@@ -48,7 +56,7 @@ export function getPublicHomepageData() {
     models: featuredModels.map((model) => ({
       ...model,
       brand: brands.find((brand) => brand.id === model.brandId),
-      variants: variants.filter((variant) => variant.modelId === model.id),
+      variants: sortVariants(variants.filter((variant) => variant.modelId === model.id)),
     })),
     cities,
   };
@@ -68,7 +76,7 @@ export async function getPublicHomepageDataForApi() {
       imageUrl: primaryMedia?.url || model.imageUrl,
       brand: data.brands.find((brand) => brand.id === model.brandId),
       category: data.categories.find((category) => category.id === model.categoryId),
-      variants: data.variants.filter((variant) => variant.active && variant.modelId === model.id),
+      variants: sortVariants(data.variants.filter((variant) => variant.active && variant.modelId === model.id)),
     };
   });
 
@@ -92,7 +100,7 @@ export function getPublicDiscoveryData() {
     models: activeModels.map((model) => ({
       ...model,
       brand: brands.find((brand) => brand.id === model.brandId),
-      variants: variants.filter((variant) => variant.active && variant.modelId === model.id),
+      variants: sortVariants(variants.filter((variant) => variant.active && variant.modelId === model.id)),
     })),
     cities,
   };
@@ -116,7 +124,7 @@ export async function getPublicDiscoveryDataForApi() {
         imageUrl: primaryMedia?.url || model.imageUrl,
         brand: data.brands.find((brand) => brand.id === model.brandId),
         category: data.categories.find((category) => category.id === model.categoryId),
-        variants: data.variants.filter((variant) => variant.active && variant.modelId === model.id),
+        variants: sortVariants(data.variants.filter((variant) => variant.active && variant.modelId === model.id)),
       };
     }),
     variants: data.variants.filter((variant) => variant.active),

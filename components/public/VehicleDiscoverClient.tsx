@@ -209,7 +209,7 @@ function groupedFilters(activeTab: ReturnType<typeof getDiscoveryTab>): TruckFin
 }
 
 function getPrimaryVariant(model: DiscoveryModel) {
-  return model.variants[0];
+  return model.variants.find((v) => v.active && v.isDefault) ?? model.variants.find((v) => v.active) ?? model.variants[0];
 }
 
 function getEngineCc(model: DiscoveryModel) {

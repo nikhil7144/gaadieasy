@@ -809,23 +809,21 @@ export async function deleteModel(id: string) {
   }
 
   const comparisonDeleteFilters = [
-    `vehicle_1_model_id.eq.${id}`,
-    `vehicle_2_model_id.eq.${id}`,
-    `vehicle_3_model_id.eq.${id}`,
+    `v1_model_id.eq.${id}`,
+    `v2_model_id.eq.${id}`,
+    `v3_model_id.eq.${id}`,
     ...variantIds.flatMap((variantId) => [
-      `vehicle_1_variant_id.eq.${variantId}`,
-      `vehicle_2_variant_id.eq.${variantId}`,
-      `vehicle_3_variant_id.eq.${variantId}`,
+      `v1_variant_id.eq.${variantId}`,
+      `v2_variant_id.eq.${variantId}`,
+      `v3_variant_id.eq.${variantId}`,
     ]),
   ];
 
-  if (comparisonDeleteFilters.length) {
-    const { error: comparisonError } = await supabase
-      .from("comparison_pages")
-      .delete()
-      .or(comparisonDeleteFilters.join(","));
-    if (comparisonError) throw comparisonError;
-  }
+  const { error: comparisonError } = await supabase
+    .from("comparison_pages")
+    .delete()
+    .or(comparisonDeleteFilters.join(","));
+  if (comparisonError) throw comparisonError;
 
   const { error: offerError } = await supabase.from("offers").delete().eq("model_id", id);
   if (offerError) throw offerError;
@@ -837,6 +835,9 @@ export async function deleteModel(id: string) {
     const { error: variantPromotionError } = await supabase.from("hero_promotions").delete().in("variant_id", variantIds);
     if (variantPromotionError) throw variantPromotionError;
   }
+
+  const { error: storyError } = await supabase.from("vehicle_stories").delete().eq("model_id", id);
+  if (storyError) throw storyError;
 
   const { error: mediaError } = await supabase.from("vehicle_media").delete().eq("model_id", id);
   if (mediaError) throw mediaError;
