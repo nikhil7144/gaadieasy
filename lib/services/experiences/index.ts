@@ -110,7 +110,7 @@ export async function getExperiences(filters?: {
 
   const { data, error } = await query;
   if (error || !data) return [];
-  return (data as DbRow[]).map(mapExperience);
+  return (data as unknown as DbRow[]).map(mapExperience);
 }
 
 export async function getExperiencesByVehicleModel(modelId: string, modelName: string): Promise<Experience[]> {
@@ -125,7 +125,7 @@ export async function getExperiencesByVehicleModel(modelId: string, modelName: s
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];
-  return (data as DbRow[]).map(mapExperience);
+  return (data as unknown as DbRow[]).map(mapExperience);
 }
 
 export async function getExperiencesByDealerSlug(slug: string): Promise<Experience[]> {
@@ -140,7 +140,7 @@ export async function getExperiencesByDealerSlug(slug: string): Promise<Experien
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];
-  return (data as DbRow[]).map(mapExperience);
+  return (data as unknown as DbRow[]).map(mapExperience);
 }
 
 export function summariseExperiences(experiences: Experience[]): ExperienceSummary | null {
@@ -220,5 +220,5 @@ export async function submitExperience(input: {
     .single();
 
   if (error) throw new Error(error.message);
-  return mapExperience(data as DbRow);
+  return mapExperience(data as unknown as DbRow);
 }
