@@ -7,7 +7,6 @@ import { BrandLogo } from "@/components/public/BrandLogo";
 import { VehicleCompareModal } from "@/components/public/VehicleCompareModal";
 import { VehicleImage } from "@/components/public/VehicleImage";
 import {
-  filterDiscoveryModels,
   getDiscoveryTab,
   parseFilterParam,
   type DiscoveryFilter,
@@ -586,6 +585,8 @@ export function VehicleDiscoverClient({
   );
 
   const skipUrlSync = useRef(true);
+  const skipFetch = useRef(true);
+  const fetchSeq = useRef(0);
   const [citySlug, setCitySlug] = useState(initialCity);
   const [brandQuery, setBrandQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState(() => parseFilterParam(initialFilters));
@@ -604,6 +605,7 @@ export function VehicleDiscoverClient({
     }),
   );
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [apiModels, setApiModels] = useState<DiscoveryModel[]>(models);
 
   // Sync URL on every filter change via replaceState (no back-button history spam)
   useEffect(() => {
@@ -618,6 +620,26 @@ export function VehicleDiscoverClient({
     );
   }, [activeTab.key, citySlug, activeFilters, activeBrands, activeRanges, activeSort]);
 
+  // Re-fetch from API when chip filters or brand selection changes (skip initial mount — SSR models already filtered)
+  useEffect(() => {
+    if (skipFetch.current) {
+      skipFetch.current = false;
+      return;
+    }
+    const seq = ++fetchSeq.current;
+    const params = new URLSearchParams({ type: activeTab.key });
+    if (activeFilters.length) params.set("filters", activeFilters.join(","));
+    if (activeBrands.length) params.set("brands", activeBrands.join(","));
+    fetch(`/api/public/discovery?${params}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { models: DiscoveryModel[] } | null) => {
+        if (data && seq === fetchSeq.current) setApiModels(data.models);
+      })
+      .catch(() => {});
+  // activeTab.key can't change mid-lifecycle (tab switch = full page nav); intentionally excluded
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilters, activeBrands]);
+
   const activeFilterObjects = activeTab.filters.filter((f) => activeFilters.includes(f.slug));
   const rangeSections = rangeSectionsForType(activeTab.key);
   const sortOptions = sortOptionsForType(activeTab.key);
@@ -627,9 +649,7 @@ export function VehicleDiscoverClient({
   );
 
   const results = sortModels(
-    filterDiscoveryModels(models, activeTab, activeFilters)
-      .filter((model) => !activeBrands.length || activeBrands.includes(model.brand?.slug ?? ""))
-      .filter((model) => passesRanges(model, activeRanges)),
+    apiModels.filter((model) => passesRanges(model, activeRanges)),
     activeSort,
   );
 
@@ -942,7 +962,9 @@ export function VehicleDiscoverClient({
           {results.length ? (
             <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {results.map((model) => {
-                const variant = getPrimaryVariant(model);
+                const variant = activeTab.key === "ev"
+                  ? (model.variants.find((v) => v.active && v.fuelType === "Electric") ?? getPrimaryVariant(model))
+                  : getPrimaryVariant(model);
                 const href = variant?.slug
                   ? `/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant.slug}&city=${citySlug}`
                   : `/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&city=${citySlug}`;
@@ -953,8 +975,13 @@ export function VehicleDiscoverClient({
                     key={model.id}
                   >
                     <Link href={href}>
-                      <div className="aspect-[16/10] bg-slate-100">
+                      <div className="relative aspect-[16/10] bg-slate-100">
                         <VehicleImage className="h-full w-full object-cover" src={model.imageUrl} alt={model.name} />
+                        {variant?.fuelType === "Electric" ? (
+                          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-lime-300 px-2.5 py-1 text-[10px] font-black text-slate-950">
+                            ⚡ EV
+                          </span>
+                        ) : null}
                       </div>
                     </Link>
                     <div className="p-4">

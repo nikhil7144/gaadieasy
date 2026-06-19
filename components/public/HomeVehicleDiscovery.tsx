@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { Zap } from "lucide-react";
 import { BrandLogo } from "@/components/public/BrandLogo";
 import { VehicleCompareModal } from "@/components/public/VehicleCompareModal";
 import { VehicleImage } from "@/components/public/VehicleImage";
@@ -147,7 +148,7 @@ const tabs = [
   {
     key: "bikes",
     label: "Bikes",
-    categoryIds: ["cat-bike", "cat-scooter", "cat-ev"],
+    categoryIds: ["cat-bike", "cat-ev"],
     evCategoryIds: ["cat-ev"],
     eyebrow: "Bike discovery",
     headline: "Find bikes by type, engine, mileage and EV range",
@@ -157,7 +158,6 @@ const tabs = [
       { label: "Commuter", slug: "commuter" },
       { label: "Sports", slug: "sports" },
       { label: "Naked sports", slug: "naked-sports" },
-      { label: "Scooter", slug: "scooter" },
       { label: "Under 125cc", slug: "under-125cc" },
       { label: "Under 250cc", slug: "under-250cc" },
       { label: "200cc+", slug: "200cc-plus" },
@@ -462,14 +462,139 @@ const tabs = [
 ];
 
 const evCategorySlugMap: Record<string, string[]> = {
-  cars: ["ev-vehicles"],
-  bikes: ["ev-vehicles"],
-  scooters: ["ev-vehicles"],
-  ev: ["ev-vehicles"],
+  cars: [],
+  bikes: [],
+  scooters: [],
+  ev: [],
   commercial: ["ev-commercial-vehicles"],
   "ev-commercial": ["ev-commercial-vehicles"],
   "passenger-ev": ["passenger-ev-vehicles"],
 };
+
+const evSubTypeList = [
+  { key: "all", label: "All EVs" },
+  { key: "electric-cars", label: "EV Cars" },
+  { key: "electric-bikes", label: "EV Bikes" },
+  { key: "electric-scooters", label: "EV Scooters" },
+];
+
+const evBodyTypeMap: Record<string, { label: string; slug: string }[]> = {
+  "all": [],
+  "electric-cars": [
+    { label: "SUV", slug: "suv" },
+    { label: "Hatchback", slug: "hatchback" },
+    { label: "Sedan", slug: "sedan" },
+    { label: "MUV", slug: "muv" },
+  ],
+  "electric-bikes": [
+    { label: "Commuter", slug: "commuter" },
+    { label: "Cruiser", slug: "cruiser" },
+    { label: "Sports", slug: "sports" },
+  ],
+  "electric-scooters": [],
+};
+
+const evSubTypeBrowseTabsMap: Record<string, { label: string; items: { label: string; subtitle?: string; href: string; logoUrl?: string }[] }[]> = {
+  "electric-cars": [
+    {
+      label: "Brand",
+      items: [
+        { label: "Tata", subtitle: "Electric cars & SUVs", href: "/brands/tata" },
+        { label: "Mahindra", subtitle: "Electric SUVs", href: "/brands/mahindra" },
+        { label: "Hyundai", subtitle: "Electric cars", href: "/brands/hyundai" },
+        { label: "Kia", subtitle: "Electric cars", href: "/brands/kia" },
+        { label: "MG", subtitle: "Electric cars", href: "/brands/mg" },
+        { label: "BYD", subtitle: "Electric cars", href: "/brands/byd" },
+      ],
+    },
+    {
+      label: "Body style",
+      items: [
+        { label: "SUV", href: "/discover?type=ev&filters=electric-cars,suv" },
+        { label: "Hatchback", href: "/discover?type=ev&filters=electric-cars,hatchback" },
+        { label: "Sedan", href: "/discover?type=ev&filters=electric-cars,sedan" },
+        { label: "MUV", href: "/discover?type=ev&filters=electric-cars,muv" },
+      ],
+    },
+    {
+      label: "Range",
+      items: [
+        { label: "Under 200 km", href: "/discover?type=ev&filters=electric-cars,under-100-km" },
+        { label: "200–400 km", href: "/discover?type=ev&filters=electric-cars,100-km-range" },
+        { label: "400 km+", href: "/discover?type=ev&filters=electric-cars,300-km-range" },
+      ],
+    },
+    {
+      label: "Budget",
+      items: [
+        { label: "Under ₹15L", href: "/discover?type=ev&filters=electric-cars,under-15-lakh" },
+        { label: "₹15L – ₹30L", href: "/discover?type=ev&filters=electric-cars,15-25-lakh" },
+        { label: "Above ₹30L", href: "/discover?type=ev&filters=electric-cars,above-25-lakh" },
+      ],
+    },
+  ],
+  "electric-bikes": [
+    {
+      label: "Brand",
+      items: [
+        { label: "Ola Electric", subtitle: "Electric bikes", href: "/brands/ola-electric" },
+        { label: "Revolt", subtitle: "Electric bikes", href: "/brands/revolt" },
+        { label: "Ultraviolette", subtitle: "Performance EV bikes", href: "/brands/ultraviolette" },
+        { label: "Tork", subtitle: "Electric bikes", href: "/brands/tork" },
+      ],
+    },
+    {
+      label: "Body style",
+      items: [
+        { label: "Commuter", href: "/discover?type=ev&filters=electric-bikes,commuter" },
+        { label: "Cruiser", href: "/discover?type=ev&filters=electric-bikes,cruiser" },
+        { label: "Sports", href: "/discover?type=ev&filters=electric-bikes,sports" },
+      ],
+    },
+    {
+      label: "Range",
+      items: [
+        { label: "Under 100 km", href: "/discover?type=ev&filters=electric-bikes,under-100-km" },
+        { label: "100 km+", href: "/discover?type=ev&filters=electric-bikes,100-km-range" },
+      ],
+    },
+  ],
+  "electric-scooters": [
+    {
+      label: "Brand",
+      items: [
+        { label: "Ather", subtitle: "Electric scooters", href: "/brands/ather" },
+        { label: "Ola Electric", subtitle: "Electric scooters", href: "/brands/ola-electric" },
+        { label: "TVS", subtitle: "iQube electric", href: "/brands/tvs" },
+        { label: "Bajaj", subtitle: "Chetak electric", href: "/brands/bajaj" },
+        { label: "Hero Electric", subtitle: "Electric scooters", href: "/brands/hero-electric" },
+      ],
+    },
+    {
+      label: "Range",
+      items: [
+        { label: "Under 100 km", href: "/discover?type=ev&filters=electric-scooters,under-100-km" },
+        { label: "100 km+", href: "/discover?type=ev&filters=electric-scooters,100-km-range" },
+      ],
+    },
+    {
+      label: "Budget",
+      items: [
+        { label: "Under ₹1L", href: "/discover?type=ev&filters=electric-scooters,under-1-lakh" },
+        { label: "₹1L – ₹1.5L", href: "/discover?type=ev&filters=electric-scooters,1-1-5-lakh" },
+        { label: "Above ₹1.5L", href: "/discover?type=ev&filters=electric-scooters,above-1-5-lakh" },
+      ],
+    },
+  ],
+};
+
+function pickDisplayVariant(model: HomeModel, preferElectric: boolean) {
+  if (preferElectric) {
+    const ev = model.variants.find((v) => v.active && v.fuelType === "Electric");
+    if (ev) return ev;
+  }
+  return model.variants.find((v) => v.active && v.isDefault) ?? model.variants.find((v) => v.active) ?? model.variants[0];
+}
 
 function slugifyValue(value: string) {
   return value
@@ -484,11 +609,15 @@ function SearchableQuickFilters({
   citySlug,
   models,
   categories,
+  hiddenFilterSlugs = [],
+  contextLabel,
 }: {
   activeTab: (typeof tabs)[number];
   citySlug: string;
   models: HomeModel[];
   categories: VehicleCategory[];
+  hiddenFilterSlugs?: string[];
+  contextLabel?: string;
 }) {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -513,8 +642,8 @@ function SearchableQuickFilters({
               <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">{selectedFilters.length} selected</span>
             ) : null}
           </div>
-          <h3 className="mt-1 text-lg font-black text-slate-950">Refine by what matters</h3>
-          <p className="mt-1 text-sm text-slate-600">Pick a filter and the matching models appear right here.</p>
+          <h3 className="mt-1 text-lg font-black text-slate-950">{contextLabel ? `Filter ${contextLabel}` : "Refine by what matters"}</h3>
+          <p className="mt-1 text-sm text-slate-600">{contextLabel ? `Pick a filter to narrow ${contextLabel} models.` : "Pick a filter and the matching models appear right here."}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {selectedFilters.length ? (
@@ -534,7 +663,7 @@ function SearchableQuickFilters({
 
       <div className="px-4 py-4 sm:px-5">
         <div className="flex flex-wrap gap-2">
-          {activeTab.filters.map((filter) => {
+          {activeTab.filters.filter((f) => !hiddenFilterSlugs.includes(f.slug)).map((filter) => {
             const selected = selectedFilters.includes(filter.slug);
             return (
               <button
@@ -572,7 +701,7 @@ function SearchableQuickFilters({
             >
               {filteredModels.length ? (
                 filteredModels.map((model) => {
-                  const variant = model.variants.find((v) => v.isDefault) ?? model.variants[0];
+                  const variant = pickDisplayVariant(model, activeTab.key === "ev");
                   const category = categories.find((item) => item.id === model.categoryId);
                   const launchLabel = model.launchLabel?.trim();
                   return (
@@ -584,7 +713,9 @@ function SearchableQuickFilters({
                       <div className="relative aspect-[16/10] bg-slate-100">
                         <VehicleImage className="h-full w-full object-cover transition duration-500 group-hover:scale-105" src={model.imageUrl} alt={model.name} />
                         <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-emerald-800">{category?.name}</span>
-                        {launchLabel ? (
+                        {model.variants.some((v) => v.fuelType === "Electric") ? (
+                          <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-lime-300 px-2.5 py-1 text-[10px] font-black text-slate-950">⚡ EV</span>
+                        ) : launchLabel ? (
                           <span className="absolute right-3 top-3 rounded-full bg-lime-300 px-3 py-1 text-[11px] font-black text-slate-950">{launchLabel}</span>
                         ) : null}
                       </div>
@@ -885,20 +1016,50 @@ export function HomeVehicleDiscovery({
     .map((category) => category.id);
   const typeModels = models;
   const [citySlug, setCitySlug] = useState(cities[0]?.slug ?? "bangalore");
+  const [evSubType, setEvSubType] = useState("all");
+  const [evBodyType, setEvBodyType] = useState("");
   const [activeCarouselState, setActiveCarouselState] = useState({ tabKey: activeTab.key, value: "all" });
   const activeCarouselTab = activeCarouselState.tabKey === activeTab.key ? activeCarouselState.value : "all";
   const carouselRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  useEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return;
+    const update = () => setHeaderHeight(header.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(header);
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => {
     carouselRef.current?.scrollTo({ left: 0, behavior: "smooth" });
   }, [activeCarouselTab]);
+  useEffect(() => {
+    if (activeTab.key === "ev") setActiveCarouselState({ tabKey: "ev", value: "all" });
+  }, [evSubType, evBodyType, activeTab.key]);
+  const evFilteredModels = useMemo(() => {
+    if (activeTab.key !== "ev") return typeModels;
+    const evDiscoveryTab = getDiscoveryTab("ev");
+    let result = typeModels;
+    if (evSubType !== "all") {
+      const f = evDiscoveryTab.filters.find((fi) => fi.slug === evSubType) ?? { slug: evSubType, label: evSubType };
+      result = result.filter((m) => matchesDiscoveryFilter(m, f));
+    }
+    if (evBodyType) {
+      result = result.filter((m) => matchesDiscoveryFilter(m, { slug: evBodyType, label: evBodyType }));
+    }
+    return result;
+  }, [activeTab.key, typeModels, evSubType, evBodyType]);
+
   const carouselTabs = useMemo<Array<{ key: string; label: string; filter: (model: HomeModel) => boolean }>>(() => {
+    const sourceModels = activeTab.key === "ev" ? evFilteredModels : typeModels;
     const nextTabs: Array<{ key: string; label: string; filter: (model: HomeModel) => boolean }> = [{ key: "all", label: "All", filter: () => true }];
 
-    if (typeModels.some((model) => Boolean(model.launchLabel?.trim()))) {
+    if (sourceModels.some((model) => Boolean(model.launchLabel?.trim()))) {
       nextTabs.push({ key: "new-launch", label: "New launch", filter: (model) => Boolean(model.launchLabel?.trim()) });
     }
 
-    const bodyTypes = Array.from(new Set(typeModels.map((model) => model.bodyType.trim()).filter(Boolean))).slice(0, 3);
+    const bodyTypes = Array.from(new Set(sourceModels.map((model) => model.bodyType.trim()).filter(Boolean))).slice(0, 3);
     bodyTypes.forEach((bodyType) => {
       nextTabs.push({
         key: slugifyValue(bodyType),
@@ -908,16 +1069,35 @@ export function HomeVehicleDiscovery({
     });
 
     return nextTabs;
-  }, [typeModels]);
+  }, [activeTab.key, evFilteredModels, typeModels]);
   const activeCarouselTabConfig = carouselTabs.find((tab) => tab.key === activeCarouselTab) ?? carouselTabs[0];
-  const filteredCarouselModels = useMemo(() => typeModels.filter(activeCarouselTabConfig.filter).slice(0, 8), [activeCarouselTabConfig, typeModels]);
+
+  const ev100kmModels = useMemo(
+    () => (activeTab.key === "ev" ? evFilteredModels.filter((m) => m.tags?.includes("100-km-range") || m.tags?.includes("300-km-range")).slice(0, 6) : []),
+    [activeTab.key, evFilteredModels],
+  );
+
+  const displayModels = useMemo(
+    () => (activeTab.key === "ev" ? evFilteredModels : typeModels),
+    [activeTab.key, evFilteredModels, typeModels],
+  );
+
+  const hiddenQuickFilterSlugs = useMemo(
+    () =>
+      activeTab.key === "ev" && evSubType !== "all"
+        ? (["electric-cars", "electric-bikes", "electric-scooters"] as string[]).filter((s) => s !== evSubType)
+        : ([] as string[]),
+    [activeTab.key, evSubType],
+  );
+
+  const filteredCarouselModels = useMemo(() => displayModels.filter(activeCarouselTabConfig.filter).slice(0, 8), [activeCarouselTabConfig, displayModels]);
   const discoverHref = `/discover?type=${activeTab.key}&city=${citySlug}`;
   const scrollCarousel = (direction: "left" | "right") => {
     carouselRef.current?.scrollBy({ left: direction === "left" ? -320 : 320, behavior: "smooth" });
   };
   const evModels = useMemo(
     () =>
-      typeModels
+      evFilteredModels
         .filter(
           (model) =>
             modelBelongsToDiscoveryType(model, activeDiscoveryTab) &&
@@ -925,7 +1105,7 @@ export function HomeVehicleDiscovery({
               model.variants.some((variant) => variant.active && variant.fuelType === "Electric")),
         )
         .slice(0, 4),
-    [activeDiscoveryTab, activeEvCategoryIds, typeModels],
+    [activeDiscoveryTab, activeEvCategoryIds, evFilteredModels],
   );
   const browseTabs = useMemo(() => {
     const brandItems = brands
@@ -938,8 +1118,18 @@ export function HomeVehicleDiscovery({
         logoUrl: brand.logoUrl,
       }));
 
-    return activeTab.browseTabs.map((tab) => (tab.label === "Brand" && brandItems.length ? { ...tab, items: brandItems } : tab));
-  }, [activeTab, brands]);
+    const sourceTabs =
+      activeTab.key === "ev" && evSubType !== "all"
+        ? (evSubTypeBrowseTabsMap[evSubType] ?? activeTab.browseTabs)
+        : activeTab.browseTabs;
+
+    return sourceTabs.map((tab) => (tab.label === "Brand" && brandItems.length ? { ...tab, items: brandItems } : tab));
+  }, [activeTab, brands, evSubType]);
+  const evSectionLabel =
+    activeTab.key === "ev" && evSubType !== "all"
+      ? (evSubTypeList.find((s) => s.key === evSubType)?.label ?? activeTab.label)
+      : activeTab.label;
+
   const activeBanner = heroPromotions.find(
     (promotion) =>
       promotion.active &&
@@ -949,7 +1139,7 @@ export function HomeVehicleDiscovery({
 
   return (
     <section className="border-b border-emerald-100 bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 pt-10 sm:px-6">
       <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-end">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -990,12 +1180,123 @@ export function HomeVehicleDiscovery({
           </a>
         ) : null}
       </div>
+      </div>
 
-      <SearchableQuickFilters activeTab={activeTab} citySlug={citySlug} models={typeModels} categories={categories} key={activeTab.key} />
+      {activeTab.key === "ev" ? (
+        <div
+          className="sticky z-30 border-b border-emerald-900 bg-gradient-to-r from-slate-950 to-emerald-950 shadow-md"
+          style={{ top: headerHeight }}
+        >
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <div className="flex flex-wrap items-center gap-2 py-3">
+              {evSubTypeList.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`rounded-full border px-4 py-2 text-sm font-black transition ${
+                    evSubType === key
+                      ? "border-lime-300 bg-lime-300 text-slate-950"
+                      : "border-white/20 bg-white/10 text-white hover:border-lime-300 hover:bg-lime-300 hover:text-slate-950"
+                  }`}
+                  onClick={() => { setEvSubType(key); setEvBodyType(""); }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {(evBodyTypeMap[evSubType]?.length ?? 0) > 0 ? (
+              <div className="flex flex-wrap gap-2 border-t border-white/10 py-2">
+                {evBodyTypeMap[evSubType].map(({ label, slug }) => (
+                  <button
+                    key={slug}
+                    type="button"
+                    className={`rounded-full border px-3 py-1.5 text-xs font-black transition ${
+                      evBodyType === slug
+                        ? "border-lime-300 bg-lime-300 text-slate-950"
+                        : "border-white/15 bg-white/5 text-white/80 hover:border-lime-300 hover:bg-lime-300 hover:text-slate-950"
+                    }`}
+                    onClick={() => setEvBodyType(evBodyType === slug ? "" : slug)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mx-auto max-w-7xl px-4 pb-10 sm:px-6">
+      <SearchableQuickFilters
+        activeTab={activeTab}
+        citySlug={citySlug}
+        models={activeTab.key === "ev" ? displayModels : typeModels}
+        categories={categories}
+        hiddenFilterSlugs={hiddenQuickFilterSlugs}
+        contextLabel={activeTab.key === "ev" ? evSectionLabel : undefined}
+        key={`${activeTab.key}-${evSubType}-${evBodyType}`}
+      />
 
       <CommercialTruckFinder activeType={activeTab.key} citySlug={citySlug} models={typeModels} />
 
-      <BrowseByTabs citySlug={citySlug} title={activeTab.label} typeKey={activeTab.key} tabs={browseTabs} />
+      <BrowseByTabs
+        citySlug={citySlug}
+        title={activeTab.key === "ev" && evSubType !== "all" ? (evSubTypeList.find((s) => s.key === evSubType)?.label ?? activeTab.label) : activeTab.label}
+        typeKey={activeTab.key}
+        tabs={browseTabs}
+        key={`browse-${activeTab.key}-${evSubType}`}
+      />
+
+      {activeTab.key === "ev" && ev100kmModels.length > 0 ? (
+        <div className="mt-6 overflow-hidden rounded-lg border border-lime-200 bg-white shadow-sm">
+          <div className="bg-gradient-to-r from-emerald-950 to-slate-950 px-5 py-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-lime-300" />
+                  <p className="text-xs font-black uppercase tracking-wide text-lime-300">Long range {evSectionLabel}</p>
+                </div>
+                <h3 className="mt-1 text-xl font-black text-white">100 km+ Range {evSectionLabel}</h3>
+                <p className="mt-1 text-sm text-emerald-50">Models ready for longer commutes and intercity runs.</p>
+              </div>
+              <a
+                href={`/discover?type=ev&city=${citySlug}&filters=100-km-range`}
+                className="shrink-0 rounded-full bg-lime-300 px-4 py-2 text-xs font-black text-slate-950 hover:bg-lime-200"
+              >
+                View all
+              </a>
+            </div>
+          </div>
+          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+            {ev100kmModels.map((model) => {
+              const variant = pickDisplayVariant(model, true);
+              const rangeTag = model.tags?.includes("300-km-range") ? "300 km+" : "100 km+";
+              return (
+                <a
+                  key={model.id}
+                  href={`/on-road-price?brand=${model.brand?.slug}&model=${model.slug}&variant=${variant?.slug}&city=${citySlug}`}
+                  className="group overflow-hidden rounded-lg border border-slate-100 bg-slate-50 transition hover:-translate-y-1 hover:shadow-md"
+                >
+                  <div className="relative aspect-[16/10] bg-slate-200">
+                    <VehicleImage className="h-full w-full object-cover transition duration-500 group-hover:scale-105" src={model.imageUrl} alt={model.name} />
+                    <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-lime-300 px-2.5 py-1 text-[11px] font-black text-slate-950">
+                      ⚡ {rangeTag}
+                    </span>
+                  </div>
+                  <div className="p-3">
+                    <div className="text-xs font-bold text-emerald-700">{model.brand?.name}</div>
+                    <div className="mt-1 font-black text-slate-950">{model.name}</div>
+                    <div className="mt-0.5 text-xs text-slate-500">{model.bodyType}</div>
+                    {variant ? (
+                      <div className="mt-2 text-sm font-black text-emerald-800">{formatShortPrice(variant.exShowroomPrice)}</div>
+                    ) : null}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {evModels.length ? (
         <div className="mt-6 overflow-hidden rounded-lg border border-lime-200 bg-white shadow-sm">
@@ -1004,10 +1305,10 @@ export function HomeVehicleDiscovery({
               <VehicleImage className="h-full w-full object-cover opacity-75" src={evModels[0].imageUrl} alt={evModels[0].name} />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
               <div className="absolute bottom-4 left-4 right-4 text-white">
-                <p className="text-xs font-bold uppercase tracking-wide text-lime-300">EV subsection</p>
-                <h3 className="mt-1 text-2xl font-black">Electric options in {activeTab.label}</h3>
+                <p className="text-xs font-bold uppercase tracking-wide text-lime-300">{evSectionLabel}</p>
+                <h3 className="mt-1 text-2xl font-black">Top {evSectionLabel} picks</h3>
                 <p className="mt-2 text-sm leading-6 text-emerald-50">
-                  EV choices stay inside the selected category with range, battery, running cost and city benefit context.
+                  Compare range, battery, running cost and city on-road price before visiting a showroom.
                 </p>
               </div>
             </div>
@@ -1015,7 +1316,7 @@ export function HomeVehicleDiscovery({
               <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Low running cost</p>
-              <h4 className="text-xl font-black text-slate-950">EV picks for this category</h4>
+              <h4 className="text-xl font-black text-slate-950">{evSectionLabel} price highlights</h4>
             </div>
             <a className="rounded-full bg-slate-950 px-4 py-2 text-xs font-black text-white" href={`/discover?type=${activeTab.key}&city=${citySlug}&filters=electric`}>
               View all
@@ -1061,7 +1362,7 @@ export function HomeVehicleDiscovery({
         <div>
           <p className="text-sm font-bold text-emerald-700">Models</p>
           <h3 className="text-2xl font-black text-slate-950">
-            Explore All {activeCarouselTabConfig.key === "all" ? activeTab.label : `${activeCarouselTabConfig.label}s`}
+            Explore All {activeCarouselTabConfig.key === "all" ? evSectionLabel : `${activeCarouselTabConfig.label}s`}
           </h3>
         </div>
         <a className="text-sm font-black text-emerald-700" href={discoverHref}>
@@ -1090,7 +1391,7 @@ export function HomeVehicleDiscovery({
           <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth" ref={carouselRef} style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {filteredCarouselModels.length ? (
               filteredCarouselModels.map((model) => {
-                const variant = model.variants.find((v) => v.isDefault) ?? model.variants[0];
+                const variant = pickDisplayVariant(model, activeTab.key === "ev");
                 const category = categories.find((item) => item.id === model.categoryId);
                 const launchLabel = model.launchLabel?.trim();
                 return (
@@ -1104,7 +1405,11 @@ export function HomeVehicleDiscovery({
                         <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-emerald-800">
                           {category?.name}
                         </span>
-                        {launchLabel ? (
+                        {model.variants.some((v) => v.fuelType === "Electric") ? (
+                          <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-lime-300 px-2.5 py-1 text-[10px] font-black text-slate-950">
+                            ⚡ EV
+                          </span>
+                        ) : launchLabel ? (
                           <span className="absolute right-3 top-3 rounded-full bg-lime-300 px-3 py-1 text-[11px] font-black text-slate-950">
                             {launchLabel}
                           </span>

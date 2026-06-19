@@ -87,7 +87,7 @@ export function HeaderSearch() {
   }
 
   return (
-    <div className="w-full max-w-[760px]" ref={containerRef}>
+    <div className="relative w-full max-w-[760px]" ref={containerRef}>
       <div className="relative">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
         <input

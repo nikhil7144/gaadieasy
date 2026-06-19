@@ -34,6 +34,8 @@ export type VehicleModel = {
   slug: string;
   bodyType: string;
   loaderSize?: "Small" | "Medium" | "Large";
+  noOfWheels?: number;
+  tags?: string[];
   imageUrl: string;
   overview?: string;
   pros?: string[];
@@ -54,6 +56,9 @@ export type VehicleVariant = {
   fuelType: "Petrol" | "Diesel" | "CNG" | "Hybrid" | "Electric";
   transmission: "Manual" | "Automatic" | "AMT" | "CVT" | "DCT";
   engineCapacity: string;
+  engineCc?: number;
+  maxPowerPs?: number;
+  payloadCapacityKg?: number;
   mileage: string;
   seatingCapacity: number;
   specifications: VehicleSpecifications;
@@ -415,6 +420,7 @@ export type PricingResult = {
 };
 
 export type VehicleStoryLaunchStatus = "upcoming" | "launched" | "updated" | "discontinued";
+export type VehicleStoryType = "vehicle_story" | "brand_update";
 
 export type VehicleStory = {
   id: string;
@@ -422,6 +428,7 @@ export type VehicleStory = {
   brandSlug: string;
   brandName: string;
   modelId?: string;
+  storyType: VehicleStoryType;
   title: string;
   tagline?: string;
   heroImageUrl?: string;

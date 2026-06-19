@@ -438,6 +438,11 @@ export function AdminVariantsManager({
         })
         .filter((group) => group.fields.length);
 
+      const mergedSpecs: Record<string, unknown> = { ...extraSpecs };
+      for (const [group, fields] of Object.entries(nestedSpecs)) {
+        mergedSpecs[group] = { ...((mergedSpecs[group] as Record<string, unknown>) ?? {}), ...(fields as Record<string, unknown>) };
+      }
+
       await postAdminJson("/api/admin/variants", {
         modelId,
         name,
@@ -451,10 +456,9 @@ export function AdminVariantsManager({
         displayOrder,
         isDefault,
         specifications: {
-          ...extraSpecs,
-          ...nestedSpecs,
+          ...mergedSpecs,
           engine: {
-            ...((nestedSpecs.engine as Record<string, unknown> | undefined) ?? {}),
+            ...((mergedSpecs.engine as Record<string, unknown>) ?? {}),
             displacement: engineCapacity,
           },
           colors: colorData.colors,
@@ -549,6 +553,13 @@ export function AdminVariantsManager({
         })
         .filter((group) => group.fields.length);
 
+      // Deep-merge: start from existing spec, then layer form fields on top section-by-section
+      // so custom keys not in the form are never silently dropped.
+      const mergedSpecs: Record<string, unknown> = { ...extraSpecs };
+      for (const [group, fields] of Object.entries(nestedSpecs)) {
+        mergedSpecs[group] = { ...((mergedSpecs[group] as Record<string, unknown>) ?? {}), ...(fields as Record<string, unknown>) };
+      }
+
       await patchAdminJson("/api/admin/variants", {
         id: variant.id,
         modelId: editModelId,
@@ -563,10 +574,9 @@ export function AdminVariantsManager({
         displayOrder: editDisplayOrder,
         isDefault: editIsDefault,
         specifications: {
-          ...extraSpecs,
-          ...nestedSpecs,
+          ...mergedSpecs,
           engine: {
-            ...((nestedSpecs.engine as Record<string, unknown> | undefined) ?? {}),
+            ...((mergedSpecs.engine as Record<string, unknown>) ?? {}),
             displacement: editEngineCapacity,
           },
           colors: colorData.colors,
@@ -574,7 +584,7 @@ export function AdminVariantsManager({
           features: splitLines(editFeatures),
           highlights: splitLines(editHighlights),
         },
-        specificationGroups: groups,
+        specificationGroups: variant.specificationGroups?.length ? variant.specificationGroups : groups,
         active: editActive,
       });
       setMessage("Variant updated.");

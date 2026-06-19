@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { VehicleDiscoverClient } from "@/components/public/VehicleDiscoverClient";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
-import { getDiscoveryDatasetForType } from "@/lib/services/discovery";
+import { filterDiscoveryModels, getDiscoveryDatasetForType, parseFilterParam } from "@/lib/services/discovery";
 import { getPublicDiscoveryDataForApi } from "@/lib/services/public-data";
 
 export const metadata: Metadata = {
@@ -36,9 +36,15 @@ export default async function DiscoverPage({
   const data = await getPublicDiscoveryDataForApi();
   const selectedData = getDiscoveryDatasetForType(data, params.type);
 
+  const chipFiltered = filterDiscoveryModels(selectedData.models, selectedData.tab, parseFilterParam(params.filters));
+  const brandSlugs = parseFilterParam(params.brands);
+  const serverModels = brandSlugs.length
+    ? chipFiltered.filter((m) => brandSlugs.includes(m.brand?.slug ?? ""))
+    : chipFiltered;
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
+      <SiteHeader activeType={selectedData.tab.key} />
       <VehicleDiscoverClient
         brands={selectedData.brands}
         cities={data.cities}
@@ -55,7 +61,7 @@ export default async function DiscoverPage({
         initialPriceMin={params.priceMin}
         initialSort={params.sort}
         initialType={selectedData.tab.key}
-        models={selectedData.models}
+        models={serverModels}
       />
       <SiteFooter />
     </div>

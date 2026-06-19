@@ -28,7 +28,6 @@ export const categories: VehicleCategory[] = [
   { id: "cat-car", name: "Cars", slug: "cars", description: "Hatchbacks, sedans, SUVs and MUVs." },
   { id: "cat-bike", name: "Bikes", slug: "bikes", description: "Commuter, cruiser and performance bikes." },
   { id: "cat-scooter", name: "Scooters", slug: "scooters", description: "ICE and electric scooters." },
-  { id: "cat-ev", name: "EV Vehicles", slug: "ev-vehicles", description: "Electric cars, scooters and bikes." },
   { id: "cat-commercial", name: "Commercial Vehicles", slug: "commercial-vehicles", description: "Trucks, pickups, buses and fleet vehicles." },
   { id: "cat-ev-commercial", name: "EV Commercial Vehicles", slug: "ev-commercial-vehicles", description: "Electric cargo, fleet and commercial mobility." },
 ];

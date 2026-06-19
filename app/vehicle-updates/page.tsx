@@ -26,7 +26,7 @@ function storyHref(story: VehicleStory) {
 }
 
 export default async function VehicleUpdatesPage() {
-  const stories = await getVehicleStories({ activeOnly: true, featuredFirst: true });
+  const stories = await getVehicleStories({ activeOnly: true, featuredFirst: true, storyType: "vehicle_story" });
   const featured = stories.find((s) => s.featured);
   const rest = stories.filter((s) => !s.featured || s.id !== featured?.id);
 

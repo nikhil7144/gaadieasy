@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileJson, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { adminFieldClass, deleteAdminJson, parseFaqLines, patchAdminJson, postAdminJson, splitLines } from "@/components/admin/admin-form-utils";
@@ -10,22 +10,89 @@ import type { Brand, VehicleCategory, VehicleModel } from "@/types/automobile";
 
 const loaderSizeOptions: NonNullable<VehicleModel["loaderSize"]>[] = ["Small", "Medium", "Large"];
 
+const tagOptions: Record<string, { slug: string; label: string }[]> = {
+  cars: [
+    { slug: "fast-charging", label: "Fast charging" },
+    { slug: "100-km-range", label: "100 km+ range" },
+    { slug: "300-km-range", label: "300 km+ range" },
+  ],
+  bikes: [
+    { slug: "abs", label: "ABS" },
+    { slug: "high-mileage", label: "High mileage" },
+    { slug: "fast-charging", label: "Fast charging" },
+    { slug: "100-km-range", label: "100 km+ range" },
+    { slug: "300-km-range", label: "300 km+ range" },
+  ],
+  scooters: [
+    { slug: "fast-charging", label: "Fast charging" },
+    { slug: "100-km-range", label: "100 km+ range" },
+    { slug: "300-km-range", label: "300 km+ range" },
+    { slug: "family-scooter", label: "Family scooter" },
+    { slug: "connected-tech", label: "Connected tech" },
+  ],
+  commercial: [
+    { slug: "tanker", label: "Tanker" },
+    { slug: "reefer", label: "Reefer / refrigerated" },
+    { slug: "haulage", label: "Haulage / tractor trailer" },
+    { slug: "open-body", label: "Open body" },
+    { slug: "closed-container", label: "Closed container" },
+    { slug: "flatbed", label: "Flatbed" },
+    { slug: "tipper-body", label: "Tipper body" },
+    { slug: "tanker-body", label: "Tanker body" },
+    { slug: "reefer-body", label: "Reefer body" },
+    { slug: "box-body", label: "Box body" },
+    { slug: "cab-chassis", label: "Cab chassis" },
+    { slug: "e-commerce-goods", label: "E-commerce goods" },
+    { slug: "fmcg-logistics", label: "FMCG logistics" },
+    { slug: "agricultural-products", label: "Agricultural products" },
+    { slug: "construction-material", label: "Construction material" },
+    { slug: "cold-chain", label: "Cold chain" },
+    { slug: "city-delivery", label: "City delivery" },
+    { slug: "mining", label: "Mining" },
+    { slug: "steel-logistics", label: "Steel logistics" },
+    { slug: "container-logistics", label: "Container logistics" },
+  ],
+  "ev-commercial": [
+    { slug: "fast-charging", label: "Fast charging" },
+    { slug: "e-commerce-goods", label: "E-commerce goods" },
+    { slug: "city-delivery", label: "City delivery" },
+    { slug: "cold-chain", label: "Cold chain" },
+    { slug: "fmcg-logistics", label: "FMCG logistics" },
+  ],
+  "passenger-ev": [
+    { slug: "passenger-seating", label: "Passenger seating" },
+    { slug: "route-use", label: "Route use" },
+    { slug: "fast-charging", label: "Fast charging" },
+  ],
+};
+
+function tagsForCategory(category?: VehicleCategory) {
+  const slug = category?.slug ?? "";
+  if (slug.includes("passenger-ev")) return tagOptions["passenger-ev"] ?? [];
+  if (slug.includes("ev-commercial")) return tagOptions["ev-commercial"] ?? [];
+  if (slug.includes("commercial")) return tagOptions["commercial"] ?? [];
+  if (slug.includes("scooter")) return tagOptions["scooters"] ?? [];
+  if (slug.includes("bike")) return tagOptions["bikes"] ?? [];
+  if (slug === "cars") return tagOptions["cars"] ?? [];
+  return [];
+}
+
 const bodyTypeOptions = {
-  cars: ["Hatchback", "Sedan", "SUV", "Compact SUV", "Micro SUV", "MUV", "MPV", "Pickup"],
-  bikes: ["Commuter Bike", "Cruiser Bike", "Sports Bike", "Naked Sports", "Adventure Bike", "Cafe Racer", "Electric Bike"],
+  cars: ["Hatchback", "Sedan", "SUV", "SUV Coupe", "Compact SUV", "Micro SUV", "MUV", "MPV", "Pickup"],
+  bikes: ["Commuter Bike", "Cruiser Bike", "Sports Bike", "Naked Sports", "Super Bike", "Adventure Bike", "Cafe Racer", "Electric Bike"],
   scooters: ["Petrol Scooter", "Electric Scooter", "Maxi Scooter"],
-  ev: ["Electric Hatchback", "Electric Sedan", "Electric SUV", "Electric Micro SUV", "Electric Scooter", "Electric Bike"],
-  commercial: ["Cargo three-wheeler", "Passenger three-wheeler", "Pickup", "Mini truck", "Light Commercial Truck", "Medium Commercial Truck", "Heavy Truck", "Tipper", "Tractor", "Bus"],
-  passengerEv: ["E-rickshaw", "E-auto", "Electric passenger three-wheeler"],
+  commercial: ["Cargo Three-Wheeler", "Passenger Three-Wheeler", "Pickup", "Mini Truck", "Light Commercial Truck", "Medium Commercial Truck", "Heavy Truck", "Tipper", "Tractor", "Bus"],
+  evCommercial: ["Electric Cargo Three-Wheeler", "Electric Cargo Four-Wheeler", "Electric Pickup", "Electric Mini Truck", "Electric Light Truck"],
+  passengerEv: ["E-Rickshaw", "E-Auto", "Electric Passenger Three-Wheeler"],
 };
 
 function bodyOptionsForCategory(category?: VehicleCategory) {
   const slug = category?.slug ?? "";
   if (slug.includes("passenger-ev")) return bodyTypeOptions.passengerEv;
+  if (slug.includes("ev-commercial")) return bodyTypeOptions.evCommercial;
   if (slug.includes("commercial")) return bodyTypeOptions.commercial;
   if (slug.includes("scooter")) return bodyTypeOptions.scooters;
   if (slug.includes("bike")) return bodyTypeOptions.bikes;
-  if (slug === "ev-vehicles") return bodyTypeOptions.ev;
   return bodyTypeOptions.cars;
 }
 
@@ -60,6 +127,7 @@ export function AdminModelsManager({
   const [pros, setPros] = useState("");
   const [cons, setCons] = useState("");
   const [faq, setFaq] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [featured, setFeatured] = useState(false);
   const [isUpcoming, setIsUpcoming] = useState(false);
   const [createdModel, setCreatedModel] = useState<VehicleModel | null>(null);
@@ -86,14 +154,40 @@ export function AdminModelsManager({
   const [editPros, setEditPros] = useState("");
   const [editCons, setEditCons] = useState("");
   const [editFaq, setEditFaq] = useState("");
+  const [editTags, setEditTags] = useState<string[]>([]);
   const [editFeatured, setEditFeatured] = useState(false);
   const [editActive, setEditActive] = useState(true);
   const [editIsUpcoming, setEditIsUpcoming] = useState(false);
   const [editError, setEditError] = useState("");
   const [editMessage, setEditMessage] = useState("");
 
+  const [listSearch, setListSearch] = useState("");
+  const [listCategory, setListCategory] = useState("");
+  const [listBodyType, setListBodyType] = useState("");
+  const [listStatus, setListStatus] = useState<"all" | "active" | "inactive">("all");
+
   const selectedCategory = categories.find((category) => category.id === categoryId);
   const selectedEditCategory = categories.find((category) => category.id === editCategoryId);
+
+  const allBodyTypes = useMemo(() => {
+    const types = [...new Set(models.map((m) => m.bodyType).filter(Boolean))].sort();
+    return types as string[];
+  }, [models]);
+
+  const filteredModels = useMemo(() => {
+    const q = listSearch.trim().toLowerCase();
+    return models.filter((m) => {
+      if (q) {
+        const brand = brands.find((b) => b.id === m.brandId)?.name ?? "";
+        if (!m.name.toLowerCase().includes(q) && !brand.toLowerCase().includes(q)) return false;
+      }
+      if (listCategory && m.categoryId !== listCategory) return false;
+      if (listBodyType && m.bodyType !== listBodyType) return false;
+      if (listStatus === "active" && !m.active) return false;
+      if (listStatus === "inactive" && m.active) return false;
+      return true;
+    });
+  }, [models, brands, listSearch, listCategory, listBodyType, listStatus]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -115,6 +209,7 @@ export function AdminModelsManager({
         pros: splitLines(pros),
         cons: splitLines(cons),
         faq: parseFaqLines(faq),
+        tags,
         active: true,
         featured,
         isUpcoming,
@@ -130,6 +225,7 @@ export function AdminModelsManager({
       setPros("");
       setCons("");
       setFaq("");
+      setTags([]);
       setFeatured(false);
       setIsUpcoming(false);
       router.refresh();
@@ -154,6 +250,7 @@ export function AdminModelsManager({
     setEditPros((model.pros ?? []).join("\n"));
     setEditCons((model.cons ?? []).join("\n"));
     setEditFaq(faqToLines(model.faq));
+    setEditTags(model.tags ?? []);
     setEditFeatured(Boolean(model.featured));
     setEditActive(Boolean(model.active));
     setEditIsUpcoming(Boolean(model.isUpcoming));
@@ -184,6 +281,7 @@ export function AdminModelsManager({
         pros: splitLines(editPros),
         cons: splitLines(editCons),
         faq: parseFaqLines(editFaq),
+        tags: editTags,
         active: editActive,
         featured: editFeatured,
         isUpcoming: editIsUpcoming,
@@ -274,6 +372,23 @@ export function AdminModelsManager({
             onChange={(event) => setFaq(event.target.value)}
             placeholder="FAQs, one per line. Format: Question | Answer"
           />
+          {tagsForCategory(selectedCategory).length > 0 && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="mb-2 text-xs font-black uppercase text-slate-500">Filter tags</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {tagsForCategory(selectedCategory).map((opt) => (
+                  <label key={opt.slug} className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={tags.includes(opt.slug)}
+                      onChange={(e) => setTags(e.target.checked ? [...tags, opt.slug] : tags.filter((t) => t !== opt.slug))}
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
             <input type="checkbox" checked={featured} onChange={(event) => setFeatured(event.target.checked)} />
             Featured model
@@ -303,19 +418,50 @@ export function AdminModelsManager({
             <p className="text-xs font-black uppercase text-emerald-700">Model list</p>
             <h2 className="text-xl font-black text-slate-950">Existing models</h2>
           </div>
-          <p className="text-xs font-bold text-slate-500">{models.length} model{models.length === 1 ? "" : "s"}</p>
+          <p className="text-xs font-bold text-slate-500">
+            {filteredModels.length}{filteredModels.length !== models.length ? ` of ${models.length}` : ""} model{models.length === 1 ? "" : "s"}
+          </p>
         </div>
+
+        {/* Filters */}
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <input
+            className={adminFieldClass}
+            placeholder="Search name or brand…"
+            value={listSearch}
+            onChange={(e) => setListSearch(e.target.value)}
+          />
+          <select className={adminFieldClass} value={listCategory} onChange={(e) => setListCategory(e.target.value)}>
+            <option value="">All categories</option>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select className={adminFieldClass} value={listBodyType} onChange={(e) => setListBodyType(e.target.value)}>
+            <option value="">All body types</option>
+            {allBodyTypes.map((bt) => <option key={bt} value={bt}>{bt}</option>)}
+          </select>
+          <select className={adminFieldClass} value={listStatus} onChange={(e) => setListStatus(e.target.value as "all" | "active" | "inactive")}>
+            <option value="all">Active + Inactive</option>
+            <option value="active">Active only</option>
+            <option value="inactive">Inactive only</option>
+          </select>
+        </div>
+
         {deleteError ? <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{deleteError}</p> : null}
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {models.map((model) => (
-            <article className="rounded-lg border border-slate-200 p-3 transition hover:border-emerald-200 hover:bg-emerald-50" key={model.id}>
+          {filteredModels.map((model) => {
+            const brandName = brands.find((b) => b.id === model.brandId)?.name;
+            return (
+            <article className={`rounded-lg border p-3 transition hover:border-emerald-200 hover:bg-emerald-50 ${model.active ? "border-slate-200" : "border-slate-200 bg-slate-50 opacity-60"}`} key={model.id}>
               <div className="flex items-start justify-between gap-3">
                 <Link className="min-w-0 flex-1" href={`/admin/variants?modelId=${model.id}`}>
                   <div className="flex flex-wrap gap-2 text-xs font-black uppercase text-emerald-700">
                     <span>{model.bodyType}</span>
                     {model.loaderSize ? <span className="rounded-full bg-lime-100 px-2 text-lime-900">{model.loaderSize}</span> : null}
+                    {!model.active ? <span className="rounded-full bg-slate-300 px-2 text-slate-700">Inactive</span> : null}
+                    {(model.tags ?? []).map((t) => <span key={t} className="rounded-full bg-slate-100 px-2 text-slate-600">{t}</span>)}
                   </div>
-                  <div className="mt-1 font-black text-slate-950">{model.name}</div>
+                  {brandName && <div className="mt-1 text-xs font-bold text-slate-400">{brandName}</div>}
+                  <div className="mt-0.5 font-black text-slate-950">{model.name}</div>
                   <div className="mt-1 break-all text-xs font-bold text-slate-500">/{model.slug}</div>
                   {model.faq?.length ? <div className="mt-2 text-xs font-bold text-emerald-700">{model.faq.length} FAQ items</div> : null}
                 </Link>
@@ -340,7 +486,8 @@ export function AdminModelsManager({
                 </div>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
 
         {editingModelId ? (
@@ -395,6 +542,23 @@ export function AdminModelsManager({
               <textarea className={`${adminFieldClass} min-h-20 py-3`} value={editCons} onChange={(event) => setEditCons(event.target.value)} placeholder="Cons, one per line" />
             </div>
             <textarea className={`${adminFieldClass} min-h-24 py-3`} value={editFaq} onChange={(event) => setEditFaq(event.target.value)} placeholder="FAQs, one per line. Format: Question | Answer" />
+            {tagsForCategory(selectedEditCategory).length > 0 && (
+              <div className="rounded-lg border border-slate-200 bg-white p-3">
+                <p className="mb-2 text-xs font-black uppercase text-slate-500">Filter tags</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {tagsForCategory(selectedEditCategory).map((opt) => (
+                    <label key={opt.slug} className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={editTags.includes(opt.slug)}
+                        onChange={(e) => setEditTags(e.target.checked ? [...editTags, opt.slug] : editTags.filter((t) => t !== opt.slug))}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
                 <input type="checkbox" checked={editFeatured} onChange={(event) => setEditFeatured(event.target.checked)} />

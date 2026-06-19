@@ -695,6 +695,8 @@ export async function createModel(input: {
   bodyType: string;
   launchLabel?: string;
   loaderSize?: VehicleModel["loaderSize"] | "";
+  noOfWheels?: number;
+  tags?: string[];
   imageUrl?: string;
   overview?: string;
   pros?: string[];
@@ -715,6 +717,8 @@ export async function createModel(input: {
       body_type: input.bodyType,
       launch_label: optionalText(input.launchLabel),
       loader_size: optionalText(input.loaderSize),
+      no_of_wheels: input.noOfWheels ?? null,
+      tags: input.tags ?? [],
       image_url: optionalText(input.imageUrl),
       overview: optionalText(input.overview),
       pros: arrayFromText(input.pros),
@@ -743,6 +747,8 @@ export async function updateModel(input: Partial<Parameters<typeof createModel>[
   if (input.bodyType !== undefined) patch.body_type = input.bodyType;
   if (input.launchLabel !== undefined) patch.launch_label = optionalText(input.launchLabel);
   if (input.loaderSize !== undefined) patch.loader_size = optionalText(input.loaderSize);
+  if (input.noOfWheels !== undefined) patch.no_of_wheels = input.noOfWheels ?? null;
+  if (input.tags !== undefined) patch.tags = input.tags;
   if (input.imageUrl !== undefined) patch.image_url = optionalText(input.imageUrl);
   if (input.overview !== undefined) patch.overview = optionalText(input.overview);
   if (input.pros !== undefined) patch.pros = arrayFromText(input.pros);
@@ -861,6 +867,9 @@ export async function createVariant(input: {
   fuelType: VehicleVariant["fuelType"];
   transmission: VehicleVariant["transmission"];
   engineCapacity: string;
+  engineCc?: number;
+  maxPowerPs?: number;
+  payloadCapacityKg?: number;
   mileage: string;
   seatingCapacity: number;
   specifications: Record<string, unknown>;
@@ -883,6 +892,9 @@ export async function createVariant(input: {
       fuel_type: input.fuelType,
       transmission: input.transmission,
       engine_capacity: input.engineCapacity,
+      engine_cc: input.engineCc ?? null,
+      max_power_ps: input.maxPowerPs ?? null,
+      payload_capacity_kg: input.payloadCapacityKg ?? null,
       mileage: input.mileage,
       seating_capacity: input.seatingCapacity,
       specifications: input.specifications,
@@ -921,6 +933,9 @@ export async function updateVariant(input: Partial<Parameters<typeof createVaria
   if (input.fuelType !== undefined) patch.fuel_type = input.fuelType;
   if (input.transmission !== undefined) patch.transmission = input.transmission;
   if (input.engineCapacity !== undefined) patch.engine_capacity = input.engineCapacity;
+  if (input.engineCc !== undefined) patch.engine_cc = input.engineCc ?? null;
+  if (input.maxPowerPs !== undefined) patch.max_power_ps = input.maxPowerPs ?? null;
+  if (input.payloadCapacityKg !== undefined) patch.payload_capacity_kg = input.payloadCapacityKg ?? null;
   if (input.mileage !== undefined) patch.mileage = input.mileage;
   if (input.seatingCapacity !== undefined) patch.seating_capacity = input.seatingCapacity;
   if (input.specifications !== undefined) patch.specifications = input.specifications;
@@ -988,6 +1003,8 @@ export async function createModelWithVariants(input: {
     bodyType: string;
     launchLabel?: string;
     loaderSize?: VehicleModel["loaderSize"] | "";
+    noOfWheels?: number;
+    tags?: string[];
     imageUrl?: string;
     overview?: string;
     pros?: string[];
@@ -1003,6 +1020,9 @@ export async function createModelWithVariants(input: {
     fuelType: VehicleVariant["fuelType"];
     transmission: VehicleVariant["transmission"];
     engineCapacity?: string;
+    engineCc?: number;
+    maxPowerPs?: number;
+    payloadCapacityKg?: number;
     mileage?: string;
     seatingCapacity?: number;
     colors?: string[];
@@ -1027,6 +1047,8 @@ export async function createModelWithVariants(input: {
         bodyType: input.model.bodyType,
         launchLabel: input.model.launchLabel,
         loaderSize: input.model.loaderSize,
+        noOfWheels: input.model.noOfWheels,
+        tags: input.model.tags,
         imageUrl: input.model.imageUrl,
         overview: input.model.overview,
         pros: input.model.pros,
@@ -1043,6 +1065,8 @@ export async function createModelWithVariants(input: {
         bodyType: input.model.bodyType,
         launchLabel: input.model.launchLabel,
         loaderSize: input.model.loaderSize,
+        noOfWheels: input.model.noOfWheels,
+        tags: input.model.tags,
         imageUrl: input.model.imageUrl,
         overview: input.model.overview,
         pros: input.model.pros,
@@ -1069,6 +1093,9 @@ export async function createModelWithVariants(input: {
       fuelType: item.fuelType,
       transmission: item.transmission,
       engineCapacity: resolveEngineCapacity({ engineCapacity: item.engineCapacity, fuelType: item.fuelType, specifications }),
+      engineCc: item.engineCc,
+      maxPowerPs: item.maxPowerPs,
+      payloadCapacityKg: item.payloadCapacityKg,
       mileage: resolveMileage({ mileage: item.mileage, specifications }),
       seatingCapacity: item.seatingCapacity ?? 5,
       specifications,

@@ -81,7 +81,7 @@ export default async function Home({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
+      <SiteHeader activeType={selectedType} />
       <main>
         <section className="relative overflow-hidden bg-slate-950">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#84cc16_0,transparent_34%),linear-gradient(135deg,#022c22,#0f172a_60%)] opacity-90" />

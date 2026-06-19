@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils/format";
-import type { VehicleStory, VehicleStoryMedia, VehicleStoryUpdate } from "@/types/automobile";
+import type { VehicleStory, VehicleStoryMedia, VehicleStoryType, VehicleStoryUpdate } from "@/types/automobile";
 
 type DbRow = Record<string, unknown>;
 
@@ -26,6 +26,7 @@ function mapStory(row: DbRow): VehicleStory {
     brandSlug: String(row.brand_slug),
     brandName: String(row.brand_name),
     modelId: typeof row.model_id === "string" ? row.model_id : undefined,
+    storyType: (row.story_type === "brand_update" ? "brand_update" : "vehicle_story") as VehicleStoryType,
     title: String(row.title),
     tagline: typeof row.tagline === "string" ? row.tagline : undefined,
     heroImageUrl: typeof row.hero_image_url === "string" ? row.hero_image_url : undefined,
@@ -69,10 +70,11 @@ function mapStoryMedia(row: DbRow): VehicleStoryMedia {
   };
 }
 
-export async function getVehicleStories(options?: { activeOnly?: boolean; featuredFirst?: boolean }): Promise<VehicleStory[]> {
+export async function getVehicleStories(options?: { activeOnly?: boolean; featuredFirst?: boolean; storyType?: VehicleStoryType }): Promise<VehicleStory[]> {
   const supabase = getAdminClient();
   let query = supabase.from("vehicle_stories").select("*").order("created_at", { ascending: false });
   if (options?.activeOnly) query = query.eq("active", true);
+  if (options?.storyType) query = query.eq("story_type", options.storyType);
   if (options?.featuredFirst) query = query.order("featured", { ascending: false });
   const { data, error } = await query;
   if (error) throw error;
@@ -120,6 +122,7 @@ export async function createVehicleStory(input: {
   brandSlug: string;
   brandName: string;
   modelId?: string;
+  storyType?: VehicleStoryType;
   title: string;
   tagline?: string;
   heroImageUrl?: string;
@@ -146,6 +149,7 @@ export async function createVehicleStory(input: {
       brand_slug: brandSlug,
       brand_name: input.brandName.trim(),
       model_id: optionalText(input.modelId),
+      story_type: input.storyType ?? "vehicle_story",
       title: input.title.trim(),
       tagline: optionalText(input.tagline),
       hero_image_url: optionalText(input.heroImageUrl),
@@ -174,6 +178,7 @@ export async function updateVehicleStory(input: {
   brandSlug?: string;
   brandName?: string;
   modelId?: string;
+  storyType?: VehicleStoryType;
   title?: string;
   tagline?: string;
   heroImageUrl?: string;
@@ -194,6 +199,7 @@ export async function updateVehicleStory(input: {
   if (input.brandSlug !== undefined) patch.brand_slug = input.brandSlug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-");
   if (input.brandName !== undefined) patch.brand_name = input.brandName.trim();
   if (input.modelId !== undefined) patch.model_id = optionalText(input.modelId);
+  if (input.storyType !== undefined) patch.story_type = input.storyType;
   if (input.title !== undefined) patch.title = input.title.trim();
   if (input.tagline !== undefined) patch.tagline = optionalText(input.tagline);
   if (input.heroImageUrl !== undefined) patch.hero_image_url = optionalText(input.heroImageUrl);

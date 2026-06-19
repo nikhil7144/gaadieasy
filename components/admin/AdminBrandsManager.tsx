@@ -368,6 +368,7 @@ function BrandUpdatesSection({
       const payload = {
         brandSlug: selectedBrand.slug,
         brandName: selectedBrand.name,
+        storyType: "brand_update",
         title: storyTitle,
         tagline: storyTagline,
         intro: introText.length < 10 ? introText.padEnd(10, " ") : introText,

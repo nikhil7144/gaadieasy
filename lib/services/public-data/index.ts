@@ -153,6 +153,52 @@ export async function getPublicBrandsForApi() {
   return data.brands.filter((brand) => brand.active);
 }
 
+export async function getPublicBrandsWithModels(): Promise<
+  { displayName: string; models: { id: string; name: string }[] }[]
+> {
+  const data = await getVehicleDataSet();
+  const active = data.brands.filter((b) => b.active);
+
+  const nameCounts = new Map<string, number>();
+  active.forEach((b) => nameCounts.set(b.name, (nameCounts.get(b.name) ?? 0) + 1));
+
+  return active.map((brand) => {
+    const isDuplicate = (nameCounts.get(brand.name) ?? 0) > 1;
+    let displayName = brand.name;
+    if (isDuplicate) {
+      const catNames = (brand.categoryIds ?? [])
+        .map((id) => data.categories.find((c) => c.id === id)?.name)
+        .filter(Boolean)
+        .join(", ");
+      displayName = catNames ? `${brand.name} (${catNames})` : brand.name;
+    }
+    const models = data.models
+      .filter((m) => m.active && m.brandId === brand.id)
+      .map((m) => ({ id: m.id, name: m.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return { displayName, models };
+  });
+}
+
+export async function getPublicBrandDisplayNames(): Promise<string[]> {
+  const data = await getVehicleDataSet();
+  const active = data.brands.filter((b) => b.active);
+
+  const nameCounts = new Map<string, number>();
+  active.forEach((b) => nameCounts.set(b.name, (nameCounts.get(b.name) ?? 0) + 1));
+
+  return active.map((brand) => {
+    if ((nameCounts.get(brand.name) ?? 0) <= 1) return brand.name;
+
+    const catNames = (brand.categoryIds ?? [])
+      .map((id) => data.categories.find((c) => c.id === id)?.name)
+      .filter(Boolean)
+      .join(", ");
+
+    return catNames ? `${brand.name} (${catNames})` : brand.name;
+  });
+}
+
 export async function getPublicModelsForApi(brandId?: string) {
   const data = await getVehicleDataSet();
   return data.models.filter((model) => model.active && (!brandId || model.brandId === brandId));

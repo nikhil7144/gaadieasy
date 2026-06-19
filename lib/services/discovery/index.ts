@@ -40,10 +40,6 @@ export type DiscoveryDataSet = {
   cities?: City[];
 };
 
-function numberFromText(value?: string) {
-  const match = value?.replaceAll(",", "").match(/\d+(\.\d+)?/);
-  return match ? Number(match[0]) : undefined;
-}
 
 const commercialTruckFinderGroups: TruckFinderGroup[] = [
   {
@@ -132,7 +128,7 @@ export const discoveryTabs: DiscoveryTab[] = [
     label: "Cars",
     primaryCategorySlugs: ["cars"],
     includedCategorySlugs: ["cars"],
-    evCategorySlugs: ["ev-vehicles"],
+    evCategorySlugs: [],
     filters: [
       { label: "Under 8 lakh", slug: "under-8-lakh" },
       { label: "8-15 lakh", slug: "8-15-lakh" },
@@ -158,7 +154,7 @@ export const discoveryTabs: DiscoveryTab[] = [
     label: "Bikes",
     primaryCategorySlugs: ["bikes"],
     includedCategorySlugs: ["bikes"],
-    evCategorySlugs: ["ev-vehicles"],
+    evCategorySlugs: [],
     filters: [
       { label: "Under 1 lakh", slug: "under-1-lakh" },
       { label: "1-2 lakh", slug: "1-2-lakh" },
@@ -178,7 +174,10 @@ export const discoveryTabs: DiscoveryTab[] = [
       { label: "20-40 PS", slug: "20-40-ps" },
       { label: "Above 40 PS", slug: "above-40-ps" },
       { label: "Super bikes", slug: "super-bikes" },
+      { label: "ABS", slug: "abs" },
+      { label: "High mileage", slug: "high-mileage" },
       { label: "Electric", slug: "electric" },
+      { label: "Fast charging", slug: "fast-charging" },
       { label: "Dealer offers", slug: "dealer-offers" },
     ],
   },
@@ -187,7 +186,7 @@ export const discoveryTabs: DiscoveryTab[] = [
     label: "Scooters",
     primaryCategorySlugs: ["scooters"],
     includedCategorySlugs: ["scooters"],
-    evCategorySlugs: ["ev-vehicles"],
+    evCategorySlugs: [],
     filters: [
       { label: "Electric", slug: "electric" },
       { label: "Petrol", slug: "petrol" },
@@ -201,9 +200,9 @@ export const discoveryTabs: DiscoveryTab[] = [
   {
     key: "ev",
     label: "EV Vehicles",
-    primaryCategorySlugs: ["ev-vehicles"],
-    includedCategorySlugs: ["ev-vehicles", "cars", "bikes", "scooters"],
-    evCategorySlugs: ["ev-vehicles"],
+    primaryCategorySlugs: [],
+    includedCategorySlugs: ["cars", "bikes", "scooters"],
+    evCategorySlugs: [],
     filters: [
       { label: "Electric cars", slug: "electric-cars" },
       { label: "Electric scooters", slug: "electric-scooters" },
@@ -302,142 +301,11 @@ export function parseFilterParam(value?: string) {
     .filter(Boolean);
 }
 
-function engineNumber(value?: string) {
-  const match = value?.match(/\d+/);
-  return match ? Number(match[0]) : undefined;
-}
-
-function slugText(value?: string) {
-  return (value ?? "").toLowerCase().replaceAll("/", " ").replaceAll("-", " ");
-}
-
-function normalizeMatchText(value?: string) {
-  return (value ?? "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function matchesBodyStyleFilter(model: DiscoveryModel, slug: string) {
-  const normalizedSlug = normalizeMatchText(slug);
-  if (!normalizedSlug) return false;
-
-  const aliases: Record<string, string[]> = {
-    suv: ["suv", "sports utility vehicle"],
-    hatchback: ["hatchback"],
-    sedan: ["sedan"],
-    muv: ["muv", "multi utility vehicle"],
-    commuter: ["commuter"],
-    cruiser: ["cruiser"],
-    sports: ["sports", "sport"],
-    "naked-sports": ["naked sports", "naked sport", "streetfighter"],
-    scooter: ["scooter"],
-    "super-bikes": ["super bike", "superbike", "super bikes"],
-    pickup: ["pickup"],
-    "mini-truck": ["mini truck", "mini-truck"],
-    cargo: ["cargo"],
-  };
-
-  const candidateTexts = [model.bodyType, ...model.variants.map((variant) => variant.name)].filter(Boolean);
-  const normalizedCandidates = candidateTexts.map((value) => normalizeMatchText(value));
-  const expectedAliases = aliases[normalizedSlug] ?? [normalizedSlug];
-
-  return normalizedCandidates.some((candidate) => expectedAliases.some((alias) => candidate.includes(alias)));
-}
-
-function commercialValues(model: DiscoveryModel) {
-  const variant = model.variants[0];
-  const specs = variant?.specifications;
-  const commercial = specs && "commercial" in specs ? (specs.commercial as Record<string, unknown>) : {};
-  return Object.values(commercial ?? {}).filter((value): value is string => typeof value === "string");
-}
-
-function commercialText(model: DiscoveryModel) {
-  return [
-    model.loaderSize,
-    model.name,
-    model.bodyType,
-    model.variants[0]?.fuelType,
-    model.variants[0]?.engineCapacity,
-    model.variants[0]?.mileage,
-    ...commercialValues(model),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
-function variantPowerNumberFromVariant(variant?: VehicleVariant) {
-  const engine = variant?.specifications?.engine as Record<string, unknown> | undefined;
-  const bike = variant?.specifications?.bike as Record<string, unknown> | undefined;
-  const commercial = variant?.specifications?.commercial as Record<string, unknown> | undefined;
-
-  const candidates = [
-    typeof engine?.maxPower === "string" ? engine.maxPower : undefined,
-    typeof bike?.power === "string" ? bike.power : undefined,
-    typeof commercial?.power === "string" ? commercial.power : undefined,
-  ];
-
-  for (const value of candidates) {
-    const parsed = numberFromText(value);
-    if (typeof parsed === "number") return parsed;
-  }
-
-  return undefined;
-}
-
-function inferredLoaderSize(model: DiscoveryModel) {
-  if (model.loaderSize) return model.loaderSize.toLowerCase();
-
-  const text = commercialText(model);
-  if (
-    text.includes("3 wheeler") ||
-    text.includes("three-wheeler") ||
-    text.includes("mini truck") ||
-    text.includes("mini-truck") ||
-    text.includes("under 750") ||
-    text.includes("750 kg")
-  ) {
-    return "small";
-  }
-
-  if (
-    text.includes("hcv") ||
-    text.includes("haulage") ||
-    text.includes("tipper") ||
-    text.includes("tractor") ||
-    text.includes("20 to 55") ||
-    text.includes("large")
-  ) {
-    return "large";
-  }
-
-  if (
-    text.includes("medium") ||
-    text.includes("lcv") ||
-    text.includes("icv") ||
-    text.includes("pickup") ||
-    text.includes("4 wheeler") ||
-    text.includes("6 wheeler") ||
-    text.includes("1.5 to 3") ||
-    text.includes("3 to 7.5")
-  ) {
-    return "medium";
-  }
-
-  return "";
-}
-
 function commercialSortRank(model: DiscoveryModel) {
-  const text = commercialText(model);
-  const size = inferredLoaderSize(model);
-
+  const size = model.loaderSize?.toLowerCase() ?? "";
   if (size === "small") return 0;
   if (size === "medium") return 1;
   if (size === "large") return 2;
-  if (text.includes("pickup")) return 3;
-  if (text.includes("mini truck") || text.includes("mini-truck")) return 4;
-  if (text.includes("truck")) return 5;
   return 99;
 }
 
@@ -465,10 +333,7 @@ function isPassengerEvModel(model: DiscoveryModel) {
 }
 
 function isScooterModel(model: DiscoveryModel) {
-  const categorySlug = model.category?.slug;
-  const text = modelSearchText(model);
-
-  return categorySlug === "scooters" || text.includes("scooter");
+  return model.category?.slug === "scooters";
 }
 
 export function modelBelongsToDiscoveryType(model: DiscoveryModel, tab: DiscoveryTab) {
@@ -547,75 +412,101 @@ export function modelSearchText(model: DiscoveryModel) {
     .toLowerCase();
 }
 
+function hasTag(model: DiscoveryModel, slug: string) {
+  return model.tags?.includes(slug) ?? false;
+}
+
 export function matchesDiscoveryFilter(model: DiscoveryModel, filter: DiscoveryFilter) {
-  const text = modelSearchText(model);
-  const label = filter.label.toLowerCase();
   const slug = filter.slug.toLowerCase();
   const variants = model.variants ?? [];
-  const primaryVariant = variants.find((variant) => variant.active && variant.isDefault) ?? variants.find((variant) => variant.active) ?? variants[0];
+  const primaryVariant = variants.find((v) => v.active && v.isDefault) ?? variants.find((v) => v.active) ?? variants[0];
   const variantPool = primaryVariant ? [primaryVariant] : variants;
+  const bt = model.bodyType?.toLowerCase() ?? "";
 
-  if (slug === "dealer-offers") return true;
-  if (slug === "fleet-operations") return true; // advisory — any commercial vehicle can serve fleet use
-  if (slug === "small-loader") return inferredLoaderSize(model) === "small";
-  if (slug === "medium-loader") return inferredLoaderSize(model) === "medium";
-  if (slug === "large-loader") return inferredLoaderSize(model) === "large";
-  if (slug === "trucks") return text.includes("truck") || text.includes("haulage") || text.includes("tipper");
+  if (slug === "dealer-offers" || slug === "fleet-operations" || slug === "fleet-use") return true;
 
-  // Truck finder — truck type slugs
-  if (slug === "lcv") return text.includes("lcv") || text.includes("light commercial");
-  if (slug === "icv") return text.includes("icv") || text.includes("intermediate");
-  if (slug === "hcv") return text.includes("hcv") || text.includes("heavy commercial") || text.includes("heavy duty");
-  if (slug === "haulage") return text.includes("haulage") || text.includes("tractor") || text.includes("trailer");
-  if (slug === "tipper") return text.includes("tipper");
-  if (slug === "tractor-trailer") return text.includes("tractor") || text.includes("trailer");
-  if (slug === "tanker") return text.includes("tanker");
-  if (slug === "reefer") return text.includes("reefer") || text.includes("refriger");
+  // Loader size
+  if (slug === "small-loader") return model.loaderSize?.toLowerCase() === "small";
+  if (slug === "medium-loader") return model.loaderSize?.toLowerCase() === "medium";
+  if (slug === "large-loader") return model.loaderSize?.toLowerCase() === "large";
 
-  // Truck finder — body type slugs
-  if (slug === "open-body") return text.includes("open") || text.includes("flatbed") || text.includes("tipper");
-  if (slug === "closed-container") return text.includes("closed") || text.includes("container") || text.includes("box");
-  if (slug === "flatbed") return text.includes("flatbed") || text.includes("flat bed");
-  if (slug === "tipper-body") return text.includes("tipper");
-  if (slug === "tanker-body") return text.includes("tanker");
-  if (slug === "reefer-body") return text.includes("reefer") || text.includes("refriger") || text.includes("cold");
-  if (slug === "box-body") return text.includes("box");
-  if (slug === "cab-chassis") return text.includes("cab") || text.includes("chassis");
+  // Wheel count — noOfWheels from DB, with body_type fallback for models not yet migrated
+  if (slug === "2-wheeler") return model.noOfWheels === 2 || hasTag(model, "2-wheeler");
+  if (slug === "3-wheeler") {
+    if (model.noOfWheels !== undefined) return model.noOfWheels === 3;
+    return bt.includes("three-wheeler") || bt.includes("3-wheeler") || bt.includes("rickshaw") || bt.includes("e-auto");
+  }
+  if (slug === "4-wheeler") {
+    if (model.noOfWheels !== undefined) return model.noOfWheels === 4;
+    return bt.includes("pickup") || bt.includes("mini truck") || bt.includes("truck") || bt.includes("tipper") || bt.includes("tractor");
+  }
+  if (slug === "6-wheeler") return model.noOfWheels === 6 || hasTag(model, "6-wheeler");
 
-  // Truck finder — application/use-case slugs (broad inference from truck type)
-  if (slug === "cold-chain") return text.includes("reefer") || text.includes("refriger") || text.includes("cold");
-  if (slug === "e-commerce-goods") return text.includes("cargo") || text.includes("delivery") || text.includes("pickup") || text.includes("mini truck") || text.includes("closed") || text.includes("lcv");
-  if (slug === "fmcg-logistics") return text.includes("cargo") || text.includes("lcv") || text.includes("delivery") || text.includes("pickup") || text.includes("closed");
-  if (slug === "agricultural-products") return text.includes("tipper") || text.includes("flatbed") || text.includes("open") || text.includes("pickup");
-  if (slug === "construction-material") return text.includes("tipper") || text.includes("flatbed") || text.includes("hcv") || text.includes("heavy");
-  if (slug === "city-delivery") return inferredLoaderSize(model) === "small" || text.includes("mini") || text.includes("pickup") || text.includes("cargo");
-  if (slug === "mining") return text.includes("tipper") || text.includes("hcv") || text.includes("heavy") || text.includes("mining");
-  if (slug === "steel-logistics") return text.includes("flatbed") || text.includes("haulage") || text.includes("heavy") || text.includes("trailer");
-  if (slug === "container-logistics") return text.includes("container") || text.includes("hcv") || text.includes("haulage") || text.includes("trailer");
+  // Fuel type
+  if (["electric", "diesel", "petrol", "cng", "lng", "hybrid"].includes(slug)) {
+    return variantPool.some((v) => v.fuelType?.toLowerCase() === slug);
+  }
 
-  // Truck finder — tonnage / GVW slugs
-  if (slug === "under-750-kg") return text.includes("under 750") || text.includes("750 kg") || text.includes("three wheeler") || text.includes("3 wheeler") || inferredLoaderSize(model) === "small";
-  if (slug === "750-kg-1-5-ton") return text.includes("750") || text.includes("1.5 ton") || text.includes("1 ton") || (inferredLoaderSize(model) === "small" && !text.includes("3 wheeler"));
-  if (slug === "1-5-3-ton") return text.includes("1.5") || text.includes("2 ton") || text.includes("3 ton") || inferredLoaderSize(model) === "medium";
-  if (slug === "3-7-5-ton") return text.includes("3.5") || text.includes("5 ton") || text.includes("7.5") || inferredLoaderSize(model) === "medium";
-  if (slug === "7-5-19-ton") return text.includes("10 ton") || text.includes("12 ton") || text.includes("16 ton") || text.includes("icv") || text.includes("hcv");
-  if (slug === "20-55-ton") return text.includes("hcv") || text.includes("heavy") || text.includes("haulage") || text.includes("tractor") || inferredLoaderSize(model) === "large";
+  // Transmission
   if (slug === "automatic" || slug === "manual") {
-    return variantPool.some((variant) => variant?.transmission?.toLowerCase() === slug);
-  }
-  if (["electric", "diesel", "petrol", "cng", "lng"].includes(slug)) {
-    return variantPool.some((variant) => variant?.fuelType?.toLowerCase() === slug);
-  }
-  if (slug === "5-seater") return variantPool.some((variant) => variant?.seatingCapacity === 5);
-  if (slug === "6-seater") return variantPool.some((variant) => variant?.seatingCapacity === 6);
-  if (slug === "7-seater") return variantPool.some((variant) => variant?.seatingCapacity === 7);
-
-  if (["suv", "hatchback", "sedan", "muv", "commuter", "cruiser", "sports", "naked-sports", "scooter", "super-bikes", "pickup", "mini-truck", "cargo"].includes(slug)) {
-    return matchesBodyStyleFilter(model, slug);
+    return variantPool.some((v) => v.transmission?.toLowerCase() === slug);
   }
 
-  const priceMatches = variantPool.some((variant) => {
-    const price = variant?.exShowroomPrice ?? 0;
+  // Seating capacity
+  const seatingMatch = slug.match(/^(\d+)-seater$/);
+  if (seatingMatch) {
+    const seats = Number(seatingMatch[1]);
+    return variantPool.some((v) => v.seatingCapacity === seats);
+  }
+
+  // Body style — body_type field is the source of truth; tags extend it
+  if (slug === "suv") return bt.includes("suv") || hasTag(model, "suv");
+  if (slug === "hatchback") return bt.includes("hatchback") || hasTag(model, "hatchback");
+  if (slug === "sedan") return bt.includes("sedan") || hasTag(model, "sedan");
+  if (slug === "muv") return bt.includes("muv") || bt.includes("mpv") || hasTag(model, "muv");
+  if (slug === "commuter") return bt.includes("commuter") || hasTag(model, "commuter");
+  if (slug === "cruiser") return bt.includes("cruiser") || hasTag(model, "cruiser");
+  if (slug === "sports") return (bt.includes("sports") && !bt.includes("naked")) || hasTag(model, "sports");
+  if (slug === "naked-sports") return bt.includes("naked") || bt.includes("streetfighter") || hasTag(model, "naked-sports");
+  if (slug === "super-bikes") return bt.includes("super bike") || bt.includes("superbike") || hasTag(model, "super-bikes");
+  if (slug === "scooter") return bt.includes("scooter") || hasTag(model, "scooter");
+
+  // Commercial vehicle types — body_type values: "Pickup", "Mini truck", "Light Commercial Truck", etc.
+  if (slug === "pickup") return bt.includes("pickup") || hasTag(model, "pickup");
+  if (slug === "mini-truck") return bt.includes("mini truck") || bt.includes("mini-truck") || bt.includes("mini pickup") || hasTag(model, "mini-truck");
+  if (slug === "cargo") return bt.includes("cargo") || hasTag(model, "cargo");
+  if (slug === "trucks") return bt.includes("truck") || bt.includes("tipper") || bt.includes("tractor") || hasTag(model, "trucks");
+  if (slug === "light-commercial") return bt.includes("light commercial") || hasTag(model, "light-commercial");
+  if (slug === "lcv") return bt.includes("light commercial") || hasTag(model, "lcv");
+  if (slug === "icv") return bt.includes("medium commercial") || hasTag(model, "icv");
+  if (slug === "hcv") return bt.includes("heavy") || hasTag(model, "hcv");
+  if (slug === "tipper") return bt.includes("tipper") || hasTag(model, "tipper");
+  if (slug === "tractor-trailer") return bt.includes("tractor") || hasTag(model, "tractor-trailer");
+
+  // Passenger EV body types
+  if (slug === "e-rickshaw") return bt.includes("rickshaw") || model.name.toLowerCase().includes("rickshaw") || hasTag(model, "e-rickshaw");
+  if (slug === "e-auto") return bt.includes("e-auto") || model.name.toLowerCase().includes("e-auto") || hasTag(model, "e-auto");
+
+  // ABS / high mileage — tag based
+  if (slug === "abs") return hasTag(model, "abs");
+  if (slug === "high-mileage") return hasTag(model, "high-mileage");
+
+  // EV sub-category filters — check ALL active variants (not just primary) so dual-fuel models
+  // like Nexon (petrol default + electric variant) are not excluded from EV sub-filters
+  const hasElectric = variants.some((v) => v.active !== false && v.fuelType === "Electric");
+  if (slug === "electric-cars") {
+    return hasElectric && (model.category?.slug === "cars" || bt.includes("hatchback") || bt.includes("sedan") || bt.includes("suv") || bt.includes("muv") || bt.includes("mpv"));
+  }
+  if (slug === "electric-scooters") {
+    return hasElectric && (model.category?.slug === "scooters" || bt.includes("scooter"));
+  }
+  if (slug === "electric-bikes") {
+    return hasElectric && (model.category?.slug === "bikes" || bt.includes("bike") || bt.includes("e-bike"));
+  }
+
+  // Price ranges
+  const priceMatches = variantPool.some((v) => {
+    const price = v.exShowroomPrice ?? 0;
     if (slug === "under-8-lakh") return price > 0 && price < 800000;
     if (slug === "8-15-lakh") return price >= 800000 && price <= 1500000;
     if (slug === "15-25-lakh") return price > 1500000 && price <= 2500000;
@@ -628,29 +519,48 @@ export function matchesDiscoveryFilter(model: DiscoveryModel, filter: DiscoveryF
   });
   if (priceMatches) return true;
 
-  const engineCcMatches = variantPool.some((variant) => {
-    const engineCc = engineNumber(variant?.engineCapacity);
-    if (slug === "under-125cc") return typeof engineCc === "number" && engineCc < 125;
-    if (slug === "under-250cc") return typeof engineCc === "number" && engineCc < 250;
-    if (slug === "200cc-plus") return typeof engineCc === "number" && engineCc >= 200;
-    if (slug === "250-500cc") return typeof engineCc === "number" && engineCc >= 250 && engineCc < 500;
-    if (slug === "above-500cc") return typeof engineCc === "number" && engineCc >= 500;
-    if (slug === "above-650cc") return typeof engineCc === "number" && engineCc >= 650;
-    if (slug === "above-900cc") return typeof engineCc === "number" && engineCc >= 900;
+  // Engine CC ranges (uses engineCc field)
+  const ccMatches = variantPool.some((v) => {
+    const cc = v.engineCc;
+    if (cc === undefined) return false;
+    if (slug === "under-125cc") return cc < 125;
+    if (slug === "under-250cc") return cc < 250;
+    if (slug === "200cc-plus") return cc >= 200;
+    if (slug === "250-500cc") return cc >= 250 && cc < 500;
+    if (slug === "above-500cc") return cc >= 500;
+    if (slug === "above-650cc") return cc >= 650;
+    if (slug === "above-900cc") return cc >= 900;
     return false;
   });
-  if (engineCcMatches) return true;
+  if (ccMatches) return true;
 
-  const powerMatches = variantPool.some((variant) => {
-    const power = variantPowerNumberFromVariant(variant);
-    if (slug === "under-20-ps") return typeof power === "number" && power < 20;
-    if (slug === "20-40-ps") return typeof power === "number" && power >= 20 && power <= 40;
-    if (slug === "above-40-ps") return typeof power === "number" && power > 40;
+  // Power ranges (uses maxPowerPs field)
+  const powerMatches = variantPool.some((v) => {
+    const ps = v.maxPowerPs;
+    if (ps === undefined) return false;
+    if (slug === "under-20-ps") return ps < 20;
+    if (slug === "20-40-ps") return ps >= 20 && ps <= 40;
+    if (slug === "above-40-ps") return ps > 40;
     return false;
   });
   if (powerMatches) return true;
 
-  return text.includes(label) || text.includes(slugText(slug));
+  // Payload / tonnage ranges (uses payloadCapacityKg field)
+  const payloadMatches = variantPool.some((v) => {
+    const kg = v.payloadCapacityKg;
+    if (kg === undefined) return false;
+    if (slug === "under-750-kg") return kg < 750;
+    if (slug === "750-kg-1-5-ton") return kg >= 750 && kg <= 1500;
+    if (slug === "1-5-3-ton") return kg > 1500 && kg <= 3000;
+    if (slug === "3-7-5-ton") return kg > 3000 && kg <= 7500;
+    if (slug === "7-5-19-ton") return kg > 7500 && kg <= 19000;
+    if (slug === "20-55-ton") return kg > 20000;
+    return false;
+  });
+  if (payloadMatches) return true;
+
+  // Remaining filters (fast-charging, 100-km-range, cold-chain, family-scooter, etc.) — require model tags
+  return hasTag(model, slug);
 }
 
 export function sortDiscoveryModels(models: DiscoveryModel[], tab: DiscoveryTab) {

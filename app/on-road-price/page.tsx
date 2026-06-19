@@ -17,6 +17,8 @@ import { getVehicleMediaForApi } from "@/lib/services/media";
 import { calculateOnRoadPriceFromData } from "@/lib/services/pricing";
 import { formatIndianPrice, formatShortPrice } from "@/lib/utils/format";
 import { BadgeIndianRupee, Gauge, MapPin, ShieldCheck, Zap } from "lucide-react";
+import { VehicleReviews } from "@/components/public/VehicleReviews";
+import { getReviewsForModel, summariseReviews } from "@/lib/services/reviews";
 
 export async function generateMetadata({
   searchParams,
@@ -90,6 +92,8 @@ export default async function OnRoadPricePage({
   const pricing = calculateOnRoadPriceFromData(params, data);
   const modelVariants = data.variants.filter((variant) => variant.active && variant.modelId === pricing.model.id);
   const media = await getVehicleMediaForApi(pricing.model.id, pricing.variant.id);
+  const reviews = await getReviewsForModel(pricing.model.id);
+  const reviewSummary = summariseReviews(reviews);
   const heroImage = media[0]?.url ?? pricing.model.imageUrl;
   const variantPrices = modelVariants
     .map((variant) =>
@@ -131,9 +135,18 @@ export default async function OnRoadPricePage({
       "@context": "https://schema.org",
       "@type": "Product",
       name: `${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name}`,
-      description: `${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name} on-road price in ${pricing.city.name} is ${formatIndianPrice(pricing.breakdown.totalOnRoadPrice)}. Includes RTO, tax and insurance.`,
+      description: `${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name} on-road price in ${pricing.city.name} is ${formatIndianPrice(pricing.breakdown.totalOnRoadPrice)}. Includes RTO registration charges, road tax, and insurance as per government rates. Ex-showroom price sourced directly from manufacturer. Road tax and RTO charges calculated from state government and RTO portal data.`,
       ...(heroImage ? { image: [heroImage] } : {}),
       brand: { "@type": "Brand", name: pricing.brand.name },
+      ...(reviewSummary && reviewSummary.count >= 3 ? {
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: reviewSummary.averageOverall.toFixed(1),
+          reviewCount: reviewSummary.count,
+          bestRating: 5,
+          worstRating: 1,
+        },
+      } : {}),
       offers: {
         "@type": "Offer",
         url: canonicalUrl,
@@ -141,6 +154,23 @@ export default async function OnRoadPricePage({
         price: pricing.breakdown.totalOnRoadPrice,
         availability: "https://schema.org/InStock",
         seller: { "@type": "Organization", name: "Gaadieasy" },
+        shippingDetails: {
+          "@type": "OfferShippingDetails",
+          doesNotShip: true,
+          shippingDestination: {
+            "@type": "DefinedRegion",
+            addressCountry: "IN",
+          },
+        },
+        hasMerchantReturnPolicy: {
+          "@type": "MerchantReturnPolicy",
+          applicableCountry: "IN",
+          returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
+          merchantReturnDays: 0,
+          returnMethod: "https://schema.org/ReturnNotPermitted",
+          returnFees: "https://schema.org/NotSupportedBusiness",
+          description: "Gaadieasy is a vehicle price information and dealer discovery platform. It does not sell vehicles or process payments. All purchase, return and exchange policies are set solely by the authorised dealer. Please contact the respective dealer directly for their terms.",
+        },
       },
     },
     {
@@ -384,6 +414,31 @@ export default async function OnRoadPricePage({
             <LeadForm pricing={pricing} />
           </aside>
         </section>
+      <VehicleReviews
+        modelId={pricing.model.id}
+        variantId={pricing.variant.id}
+        modelName={`${pricing.brand.name} ${pricing.model.name}`}
+        initialReviews={reviews}
+        summary={reviewSummary}
+      />
+
+      <section className="mx-auto max-w-4xl px-4 pb-10 pt-4 sm:px-6">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-5 py-4 text-xs leading-5 text-slate-500">
+          <p className="font-bold text-slate-700">About the pricing information on Gaadieasy</p>
+          <p className="mt-1">
+            Ex-showroom prices are sourced directly from manufacturer official price lists and authorised dealer networks.
+            Road tax, RTO registration charges, and government levies are calculated using data from state government
+            portals and official RTO fee schedules — updated regularly to reflect the latest rates.
+            Insurance estimates are based on IRDAI-regulated premium guidelines for the vehicle category and city.
+          </p>
+          <p className="mt-2">
+            Gaadieasy is a vehicle price research and dealer discovery platform. We do not sell vehicles or
+            process payments. Actual on-road price may vary slightly based on dealer handling charges, RTO office,
+            and applicable state government notifications. All purchase decisions and transactions are between the
+            buyer and the authorised dealer.
+          </p>
+        </div>
+      </section>
       </main>
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-emerald-100 bg-white p-3 shadow-lg md:hidden">
         <a className="block rounded-md bg-emerald-500 px-4 py-3 text-center text-sm font-black text-slate-950" href="#lead">

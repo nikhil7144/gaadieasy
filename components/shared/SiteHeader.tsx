@@ -2,25 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Car, Bike, Zap, Truck, BatteryCharging, Users } from "lucide-react";
 import { HeaderSearch } from "@/components/public/HeaderSearch";
 import { BrandLockup } from "@/components/shared/BrandLockup";
 
 const vehicleTypes = [
-  ["Cars", "/?type=cars"],
-  ["Bikes", "/?type=bikes"],
-  ["Scooters", "/?type=scooters"],
-  ["EV Vehicles", "/?type=ev"],
-  ["Commercial", "/?type=commercial"],
-  ["EV Commercial", "/?type=ev-commercial"],
-  ["Passenger EV", "/?type=passenger-ev"],
+  { label: "Cars", href: "/?type=cars", key: "cars", Icon: Car },
+  { label: "Bikes", href: "/?type=bikes", key: "bikes", Icon: Bike },
+  { label: "Scooters", href: "/?type=scooters", key: "scooters", Icon: Bike },
+  { label: "EV Vehicles", href: "/?type=ev", key: "ev", Icon: Zap },
+  { label: "Commercial", href: "/?type=commercial", key: "commercial", Icon: Truck },
+  { label: "EV Commercial", href: "/?type=ev-commercial", key: "ev-commercial", Icon: BatteryCharging },
+  { label: "Passenger EV", href: "/?type=passenger-ev", key: "passenger-ev", Icon: Users },
 ];
 
-export function SiteHeader({ scrollable = false }: { scrollable?: boolean }) {
+export function SiteHeader({ scrollable = false, activeType }: { scrollable?: boolean; activeType?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className={`border-b-2 border-lime-300/60 bg-white/90 backdrop-blur ${scrollable ? "" : "sticky top-0 z-40"}`}>
+    <header className={`border-b-2 border-lime-300/60 bg-white/90 backdrop-blur z-40 ${scrollable ? "relative" : "sticky top-0"}`}>
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
 
         {/* Top row */}
@@ -38,6 +38,9 @@ export function SiteHeader({ scrollable = false }: { scrollable?: boolean }) {
 
           {/* Desktop nav links */}
           <nav className="hidden shrink-0 items-center gap-6 text-sm font-medium text-slate-600 lg:flex">
+            <Link className="transition hover:text-slate-950" href="/experiences">
+              Experiences
+            </Link>
             <Link className="transition hover:text-slate-950" href="/vehicle-updates">
               Vehicle Updates
             </Link>
@@ -65,15 +68,23 @@ export function SiteHeader({ scrollable = false }: { scrollable?: boolean }) {
         {/* Desktop vehicle type pills */}
         <div className="mt-3 hidden lg:flex">
           <nav className="flex min-w-0 flex-1 flex-wrap gap-2">
-            {vehicleTypes.map(([label, href]) => (
-              <Link
-                className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600 transition hover:border-lime-300 hover:bg-lime-300 hover:text-slate-950"
-                href={href}
-                key={label}
-              >
-                {label}
-              </Link>
-            ))}
+            {vehicleTypes.map(({ label, href, key, Icon }) => {
+              const isActive = activeType === key;
+              return (
+                <Link
+                  className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black transition ${
+                    isActive
+                      ? "border-lime-400 bg-lime-300 text-slate-950"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-lime-300 hover:bg-lime-300 hover:text-slate-950"
+                  }`}
+                  href={href}
+                  key={label}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
@@ -82,18 +93,33 @@ export function SiteHeader({ scrollable = false }: { scrollable?: boolean }) {
           <div className="border-t border-slate-100 pb-2 pt-4">
             <p className="mb-2.5 text-[10px] font-black uppercase tracking-wider text-slate-400">Browse by type</p>
             <div className="grid grid-cols-2 gap-2">
-              {vehicleTypes.map(([label, href]) => (
-                <Link
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-black text-slate-700 transition hover:border-lime-300 hover:bg-lime-300 hover:text-slate-950"
-                  href={href}
-                  key={label}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {label}
-                </Link>
-              ))}
+              {vehicleTypes.map(({ label, href, key, Icon }) => {
+                const isActive = activeType === key;
+                return (
+                  <Link
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-black transition ${
+                      isActive
+                        ? "border-lime-400 bg-lime-300 text-slate-950"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-lime-300 hover:bg-lime-300 hover:text-slate-950"
+                    }`}
+                    href={href}
+                    key={label}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {label}
+                  </Link>
+                );
+              })}
             </div>
             <div className="mt-4 flex gap-5 border-t border-slate-100 pb-1 pt-3">
+              <Link
+                className="text-sm font-bold text-slate-600 transition hover:text-slate-950"
+                href="/experiences"
+                onClick={() => setMenuOpen(false)}
+              >
+                Experiences
+              </Link>
               <Link
                 className="text-sm font-bold text-slate-600 transition hover:text-slate-950"
                 href="/vehicle-updates"

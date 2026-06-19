@@ -5,9 +5,13 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const type = getDiscoveryTab(searchParams.get("type") ?? undefined).key;
   const filters = parseFilterParam(searchParams.get("filters") ?? undefined);
+  const brandSlugs = parseFilterParam(searchParams.get("brands") ?? undefined);
   const data = await getPublicDiscoveryDataForApi();
   const selectedData = getDiscoveryDatasetForType(data, type);
-  const models = filterDiscoveryModels(selectedData.models, selectedData.tab, filters);
+  const chipFiltered = filterDiscoveryModels(selectedData.models, selectedData.tab, filters);
+  const models = brandSlugs.length
+    ? chipFiltered.filter((m) => brandSlugs.includes(m.brand?.slug ?? ""))
+    : chipFiltered;
 
   return Response.json({
     type,

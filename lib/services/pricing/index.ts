@@ -267,7 +267,7 @@ function inferVehicleTaxKind(input: {
     Boolean((input.specs as { bike?: unknown } | undefined)?.bike);
 
   if (isBikeLike) {
-    if (isElectric || categorySlug === "ev-vehicles") return "ev_two_wheeler";
+    if (isElectric) return "ev_two_wheeler";
     return categorySlug === "scooters" ? "scooter" : "bike";
   }
 
