@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import {
   brands as seedBrands,
   categories as seedCategories,
@@ -439,7 +440,7 @@ function mapOffer(row: DbRow): Offer {
   };
 }
 
-export async function getVehicleDataSet(): Promise<VehicleDataSet> {
+async function fetchVehicleDataSet(): Promise<VehicleDataSet> {
   const [
     categories,
     brands,
@@ -511,3 +512,9 @@ export async function getVehicleDataSet(): Promise<VehicleDataSet> {
     cityPages: cityPages?.map(mapCityPage) ?? seedCityPages,
   };
 }
+
+export const getVehicleDataSet = unstable_cache(
+  fetchVehicleDataSet,
+  ["vehicle-dataset"],
+  { revalidate: 60 },
+);

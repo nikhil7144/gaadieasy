@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils/format";
 import type { VehicleStory, VehicleStoryMedia, VehicleStoryType, VehicleStoryUpdate } from "@/types/automobile";
@@ -70,15 +70,24 @@ function mapStoryMedia(row: DbRow): VehicleStoryMedia {
   };
 }
 
-export async function getVehicleStories(options?: { activeOnly?: boolean; featuredFirst?: boolean; storyType?: VehicleStoryType }): Promise<VehicleStory[]> {
-  const supabase = getAdminClient();
-  let query = supabase.from("vehicle_stories").select("*").order("created_at", { ascending: false });
-  if (options?.activeOnly) query = query.eq("active", true);
-  if (options?.storyType) query = query.eq("story_type", options.storyType);
-  if (options?.featuredFirst) query = query.order("featured", { ascending: false });
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []).map(mapStory);
+export const getVehicleStories = unstable_cache(
+  async (options?: { activeOnly?: boolean; featuredFirst?: boolean; storyType?: VehicleStoryType }): Promise<VehicleStory[]> => {
+    const supabase = getAdminClient();
+    let query = supabase.from("vehicle_stories").select("*").order("created_at", { ascending: false });
+    if (options?.activeOnly) query = query.eq("active", true);
+    if (options?.storyType) query = query.eq("story_type", options.storyType);
+    if (options?.featuredFirst) query = query.order("featured", { ascending: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []).map(mapStory);
+  },
+  ["vehicle-stories"],
+  { revalidate: 60, tags: ["vehicle-stories"] },
+);
+
+function invalidateStoriesCache() {
+  revalidateTag("vehicle-stories");
+  invalidateStoriesCache();
 }
 
 export async function getVehicleStoryBySlug(brandSlug: string, modelSlug: string): Promise<VehicleStory | null> {
@@ -168,8 +177,7 @@ export async function createVehicleStory(input: {
     .single();
 
   if (error) throw error;
-  revalidatePath("/vehicle-updates");
-  revalidatePath("/admin/vehicle-updates");
+  invalidateStoriesCache();
   return mapStory(data as DbRow);
 }
 
@@ -217,8 +225,7 @@ export async function updateVehicleStory(input: {
   const { data, error } = await supabase.from("vehicle_stories").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;
 
-  revalidatePath("/vehicle-updates");
-  revalidatePath("/admin/vehicle-updates");
+  invalidateStoriesCache();
   return mapStory(data as DbRow);
 }
 
@@ -243,8 +250,7 @@ export async function deleteVehicleStory(id: string) {
   const { error } = await supabase.from("vehicle_stories").delete().eq("id", id);
   if (error) throw error;
 
-  revalidatePath("/vehicle-updates");
-  revalidatePath("/admin/vehicle-updates");
+  invalidateStoriesCache();
   return { id };
 }
 
@@ -271,7 +277,7 @@ export async function createVehicleStoryUpdate(input: {
     .single();
 
   if (error) throw error;
-  revalidatePath("/vehicle-updates");
+  invalidateStoriesCache();
   return mapStoryUpdate(data as DbRow);
 }
 
@@ -293,7 +299,7 @@ export async function updateVehicleStoryUpdate(input: {
 
   const { data, error } = await supabase.from("vehicle_story_updates").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;
-  revalidatePath("/vehicle-updates");
+  invalidateStoriesCache();
   return mapStoryUpdate(data as DbRow);
 }
 
@@ -301,7 +307,7 @@ export async function deleteVehicleStoryUpdate(id: string) {
   const supabase = getAdminClient();
   const { error } = await supabase.from("vehicle_story_updates").delete().eq("id", id);
   if (error) throw error;
-  revalidatePath("/vehicle-updates");
+  invalidateStoriesCache();
   return { id };
 }
 
@@ -337,7 +343,7 @@ export async function uploadVehicleStoryMediaFile(input: {
     .single();
 
   if (error) throw error;
-  revalidatePath("/vehicle-updates");
+  invalidateStoriesCache();
   return mapStoryMedia(data as DbRow);
 }
 
@@ -361,6 +367,6 @@ export async function deleteVehicleStoryMedia(id: string) {
 
   const { error } = await supabase.from("vehicle_story_media").delete().eq("id", id);
   if (error) throw error;
-  revalidatePath("/vehicle-updates");
+  invalidateStoriesCache();
   return { id };
 }
