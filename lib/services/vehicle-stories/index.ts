@@ -1,4 +1,4 @@
-import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils/format";
 import type { VehicleStory, VehicleStoryMedia, VehicleStoryType, VehicleStoryUpdate } from "@/types/automobile";
@@ -82,12 +82,12 @@ export const getVehicleStories = unstable_cache(
     return (data ?? []).map(mapStory);
   },
   ["vehicle-stories"],
-  { revalidate: 60, tags: ["vehicle-stories"] },
+  { revalidate: 60 },
 );
 
 function invalidateStoriesCache() {
-  revalidateTag("vehicle-stories");
-  invalidateStoriesCache();
+  revalidatePath("/vehicle-updates");
+  revalidatePath("/admin/vehicle-updates");
 }
 
 export async function getVehicleStoryBySlug(brandSlug: string, modelSlug: string): Promise<VehicleStory | null> {
