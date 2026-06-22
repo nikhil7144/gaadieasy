@@ -42,8 +42,9 @@ function isSearchEngineBot(ua: string): boolean {
 }
 
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
-// 30 requests per minute per IP for regular users
-const LIMIT = 30;
+// 120 requests per minute per IP — high enough for real users with Next.js
+// prefetching, low enough to stop scrapers
+const LIMIT = 120;
 const WINDOW = "1 m";
 
 let ratelimit: Ratelimit | null = null;
@@ -86,7 +87,13 @@ export async function middleware(req: NextRequest) {
     });
   }
 
-  // 3. Rate limit Indian users by IP
+  // 3. Skip rate limiting for Next.js prefetch requests — these fire automatically
+  //    for every visible link on page load and would false-positive real users
+  if (req.headers.get("Next-Router-Prefetch") === "1") {
+    return NextResponse.next();
+  }
+
+  // 4. Rate limit by IP
   const rl = getRatelimit();
   if (!rl) return NextResponse.next();
 
