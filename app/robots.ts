@@ -4,10 +4,17 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https:/
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-    },
+    rules: [
+      {
+        userAgent: ["AhrefsBot", "SemrushBot", "MJ12bot", "DotBot", "BLEXBot", "serpstatbot", "PetalBot", "BaiduSpider", "YandexBot", "Majestic", "RogerBot"],
+        disallow: "/",
+      },
+      {
+        userAgent: "*",
+        allow: "/",
+        crawlDelay: 10,
+      },
+    ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };
 }

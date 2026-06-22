@@ -1,3 +1,4 @@
+import { revalidatePath, unstable_cache } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@supabase/supabase-js";
 
@@ -55,21 +56,25 @@ function getAnonClient() {
   return createClient(url, key);
 }
 
-export async function getReviewsForModel(modelId: string): Promise<VehicleReview[]> {
-  const supabase = getAnonClient();
-  if (!supabase) return [];
+export const getReviewsForModel = unstable_cache(
+  async (modelId: string): Promise<VehicleReview[]> => {
+    const supabase = getAnonClient();
+    if (!supabase) return [];
 
-  const { data, error } = await supabase
-    .from("vehicle_reviews")
-    .select("*")
-    .eq("model_id", modelId)
-    .eq("active", true)
-    .order("created_at", { ascending: false })
-    .limit(50);
+    const { data, error } = await supabase
+      .from("vehicle_reviews")
+      .select("*")
+      .eq("model_id", modelId)
+      .eq("active", true)
+      .order("created_at", { ascending: false })
+      .limit(50);
 
-  if (error || !data) return [];
-  return data.map(mapReview);
-}
+    if (error || !data) return [];
+    return (data as unknown as DbRow[]).map(mapReview);
+  },
+  ["vehicle-reviews"],
+  { revalidate: 60 },
+);
 
 export type ReviewSummary = {
   count: number;
@@ -145,5 +150,6 @@ export async function submitReview(input: {
     .single();
 
   if (error) throw new Error(error.message);
+  revalidatePath("/on-road-price");
   return mapReview(data as DbRow);
 }
