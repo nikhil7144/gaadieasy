@@ -3,6 +3,13 @@ import { createVariant, deleteVariant, updateVariant } from "@/lib/services/admi
 import { variantSchema } from "@/lib/validations/admin";
 import { z } from "zod";
 
+function extractMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error !== null && typeof error === "object" && "message" in error)
+    return String((error as { message: unknown }).message);
+  return JSON.stringify(error);
+}
+
 export async function POST(request: Request) {
   const guard = await requirePlatformAdmin();
   if (guard.response) return guard.response;
@@ -13,7 +20,8 @@ export async function POST(request: Request) {
   try {
     return Response.json({ variant: await createVariant(parsed.data) }, { status: 201 });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Unable to create variant" }, { status: 500 });
+    console.error("[POST /api/admin/variants] error:", JSON.stringify(error));
+    return Response.json({ error: extractMessage(error) }, { status: 500 });
   }
 }
 
@@ -27,7 +35,8 @@ export async function PATCH(request: Request) {
   try {
     return Response.json({ variant: await updateVariant(parsed.data) });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Unable to update variant" }, { status: 500 });
+    console.error("[PATCH /api/admin/variants] error:", JSON.stringify(error));
+    return Response.json({ error: extractMessage(error) }, { status: 500 });
   }
 }
 
@@ -41,6 +50,7 @@ export async function DELETE(request: Request) {
   try {
     return Response.json({ deleted: await deleteVariant(parsed.data.id) });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Unable to delete variant" }, { status: 500 });
+    console.error("[DELETE /api/admin/variants] error:", JSON.stringify(error));
+    return Response.json({ error: extractMessage(error) }, { status: 500 });
   }
 }

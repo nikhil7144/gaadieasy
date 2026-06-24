@@ -16,6 +16,8 @@ const categoryOptions: Array<{ value: HeroPromotion["categoryKey"]; label: strin
   { value: "passenger-ev", label: "Passenger EV" },
 ];
 
+type PickerModel = { id: string; name: string; slug: string; imageUrl: string; brandName: string; brandSlug: string };
+
 type BannerFormState = {
   placement: "homepage_hero" | "mini_home_banner";
   categoryKey: HeroPromotion["categoryKey"];
@@ -31,6 +33,7 @@ type BannerFormState = {
   stat2Value: string;
   stat3Label: string;
   stat3Value: string;
+  modelId: string;
   imageUrl: string;
   targetUrl: string;
   active: boolean;
@@ -51,6 +54,7 @@ const emptyBannerForm: BannerFormState = {
   stat2Value: "",
   stat3Label: "",
   stat3Value: "",
+  modelId: "",
   imageUrl: "",
   targetUrl: "",
   active: true,
@@ -72,14 +76,16 @@ function formFromBanner(banner: HeroPromotion): BannerFormState {
     stat2Value: banner.stat2Value ?? "",
     stat3Label: banner.stat3Label ?? "",
     stat3Value: banner.stat3Value ?? "",
+    modelId: banner.modelId ?? "",
     imageUrl: banner.imageUrl ?? "",
     targetUrl: banner.targetUrl ?? "",
     active: banner.active,
   };
 }
 
-function BannerImagePreview({ imageUrl, title }: { imageUrl?: string; title: string }) {
-  if (!imageUrl?.trim()) {
+function BannerImagePreview({ imageUrl, modelImageUrl, title }: { imageUrl?: string; modelImageUrl?: string; title: string }) {
+  const src = imageUrl?.trim() || modelImageUrl?.trim();
+  if (!src) {
     return (
       <div className="grid h-full w-full place-items-center bg-slate-100 text-center">
         <div className="px-4">
@@ -91,10 +97,10 @@ function BannerImagePreview({ imageUrl, title }: { imageUrl?: string; title: str
   }
 
   // eslint-disable-next-line @next/next/no-img-element
-  return <img className="h-full w-full object-cover" src={imageUrl} alt={title || "Homepage banner"} />;
+  return <img className="h-full w-full object-cover" src={src} alt={title || "Homepage banner"} />;
 }
 
-export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotion[] }) {
+export function AdminHomepageBannersManager({ banners, models }: { banners: HeroPromotion[]; models: PickerModel[] }) {
   const router = useRouter();
   const [selectedBannerId, setSelectedBannerId] = useState("");
   const [form, setForm] = useState<BannerFormState>(emptyBannerForm);
@@ -107,6 +113,7 @@ export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotio
     [banners, selectedBannerId],
   );
   const isEditing = Boolean(selectedBannerId);
+  const pinnedModel = useMemo(() => models.find((m) => m.id === form.modelId), [models, form.modelId]);
 
   function updateField<Key extends keyof BannerFormState>(key: Key, value: BannerFormState[Key]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -130,6 +137,17 @@ export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotio
     setSaving(true);
     setError("");
 
+    if (!form.modelId && !form.imageUrl.trim()) {
+      setError("Either select a featured model or provide a banner image URL.");
+      setSaving(false);
+      return;
+    }
+    if (!form.modelId && !form.targetUrl.trim()) {
+      setError("Either select a featured model or provide a target URL.");
+      setSaving(false);
+      return;
+    }
+
     const payload = {
       ...form,
       eyebrow: form.eyebrow.trim(),
@@ -144,6 +162,7 @@ export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotio
       stat2Value: form.stat2Value.trim(),
       stat3Label: form.stat3Label.trim(),
       stat3Value: form.stat3Value.trim(),
+      modelId: form.modelId || undefined,
       imageUrl: form.imageUrl.trim(),
       targetUrl: form.targetUrl.trim(),
     };
@@ -238,6 +257,31 @@ export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotio
               </label>
             </div>
 
+            <div className="rounded-md border border-emerald-100 bg-emerald-50 p-3">
+              <p className="text-xs font-black uppercase text-emerald-700">Featured model (optional)</p>
+              <p className="mt-1 text-xs text-slate-500">Pick a model to use its image and price page as the hero. Overridden by custom image/URL below.</p>
+              <select
+                className={`${adminFieldClass} mt-2`}
+                value={form.modelId}
+                onChange={(event) => {
+                  const picked = models.find((m) => m.id === event.target.value);
+                  updateField("modelId", event.target.value);
+                  if (picked && !form.targetUrl) {
+                    updateField("targetUrl", `/on-road-price?model=${picked.slug}&brand=${picked.brandSlug}`);
+                  }
+                }}
+              >
+                <option value="">— No model selected —</option>
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>{m.brandName} {m.name}</option>
+                ))}
+              </select>
+              {pinnedModel?.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="mt-2 h-20 w-full rounded object-cover" src={pinnedModel.imageUrl} alt={pinnedModel.name} />
+              ) : null}
+            </div>
+
             <input className={adminFieldClass} value={form.eyebrow} onChange={(event) => updateField("eyebrow", event.target.value)} placeholder="Eyebrow / label" />
             <input className={adminFieldClass} value={form.headline} onChange={(event) => updateField("headline", event.target.value)} placeholder="Homepage hero bold headline" />
             <textarea className={`${adminFieldClass} min-h-20 py-3`} value={form.supportingCopy} onChange={(event) => updateField("supportingCopy", event.target.value)} placeholder="Homepage hero supporting line" />
@@ -257,8 +301,18 @@ export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotio
               </div>
             </div>
 
-            <input className={adminFieldClass} value={form.imageUrl} onChange={(event) => updateField("imageUrl", event.target.value)} placeholder="Banner image URL" required />
-            <input className={adminFieldClass} value={form.targetUrl} onChange={(event) => updateField("targetUrl", event.target.value)} placeholder="Target URL, e.g. /on-road-price?brand=..." required />
+            <input
+              className={adminFieldClass}
+              value={form.imageUrl}
+              onChange={(event) => updateField("imageUrl", event.target.value)}
+              placeholder={pinnedModel ? `Image URL (optional — using ${pinnedModel.name} image as fallback)` : "Banner image URL (required)"}
+            />
+            <input
+              className={adminFieldClass}
+              value={form.targetUrl}
+              onChange={(event) => updateField("targetUrl", event.target.value)}
+              placeholder={pinnedModel ? `Target URL (optional — auto-set to ${pinnedModel.name} price page)` : "Target URL, e.g. /on-road-price?brand=... (required)"}
+            />
             <label className="flex items-center gap-2 text-sm font-black text-slate-700">
               <input checked={form.active} onChange={(event) => updateField("active", event.target.checked)} type="checkbox" />
               Active banner
@@ -300,7 +354,11 @@ export function AdminHomepageBannersManager({ banners }: { banners: HeroPromotio
                 key={banner.id}
               >
                 <div className="aspect-[16/9] bg-slate-100">
-                  <BannerImagePreview imageUrl={banner.imageUrl} title={banner.title} />
+                  <BannerImagePreview
+                    imageUrl={banner.imageUrl}
+                    modelImageUrl={models.find((m) => m.id === banner.modelId)?.imageUrl}
+                    title={banner.title}
+                  />
                 </div>
                 <div className="p-4">
                   <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase">

@@ -125,8 +125,9 @@ export const homepageBannerSchema = z.object({
   stat2Value: z.string().optional().default(""),
   stat3Label: z.string().optional().default(""),
   stat3Value: z.string().optional().default(""),
-  imageUrl: z.string().url(),
-  targetUrl: z.string().min(2),
+  modelId: z.string().uuid().optional(),
+  imageUrl: z.string().url().optional().or(z.literal("")).default(""),
+  targetUrl: z.string().optional().default(""),
   active: z.boolean().default(true),
 });
 

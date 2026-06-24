@@ -959,10 +959,10 @@ export async function deleteVariant(id: string) {
     { count: secondComparisonCount, error: secondComparisonError },
     { count: thirdComparisonCount, error: thirdComparisonError },
   ] = await Promise.all([
-    supabase.from("vehicle_leads").select("id", { count: "exact", head: true }).eq("variant_id", id),
-    supabase.from("comparison_pages").select("id", { count: "exact", head: true }).eq("vehicle_1_variant_id", id),
-    supabase.from("comparison_pages").select("id", { count: "exact", head: true }).eq("vehicle_2_variant_id", id),
-    supabase.from("comparison_pages").select("id", { count: "exact", head: true }).eq("vehicle_3_variant_id", id),
+    supabase.from("vehicle_leads").select("id", { count: "exact" }).eq("variant_id", id).limit(0),
+    supabase.from("comparison_pages").select("id", { count: "exact" }).eq("v1_variant_id", id).limit(0),
+    supabase.from("comparison_pages").select("id", { count: "exact" }).eq("v2_variant_id", id).limit(0),
+    supabase.from("comparison_pages").select("id", { count: "exact" }).eq("v3_variant_id", id).limit(0),
   ]);
 
   if (leadError) throw leadError;
@@ -986,13 +986,15 @@ export async function deleteVariant(id: string) {
   const { error: mediaError } = await supabase.from("vehicle_media").delete().eq("variant_id", id);
   if (mediaError) throw mediaError;
 
-  // Unlink reviews — keep the review content, just remove the variant reference
+  // Unlink reviews — keep the review content, just remove the variant reference.
+  // Best-effort: if the column doesn't exist or update fails, log and continue.
   const { error: reviewError } = await supabase.from("vehicle_reviews").update({ variant_id: null }).eq("variant_id", id);
-  if (reviewError) throw reviewError;
+  if (reviewError) console.warn("[deleteVariant] vehicle_reviews unlink skipped:", JSON.stringify(reviewError));
 
   const { error } = await supabase.from("vehicle_variants").delete().eq("id", id);
   if (error) throw error;
 
+  revalidatePath("/admin/variants");
   revalidatePath("/", "layout");
 
   return { id };
@@ -1137,8 +1139,9 @@ export async function createHomepageBanner(input: {
   stat2Value?: string;
   stat3Label?: string;
   stat3Value?: string;
-  imageUrl: string;
-  targetUrl: string;
+  modelId?: string;
+  imageUrl?: string;
+  targetUrl?: string;
   active: boolean;
 }) {
   const supabase = getAdminClient();
@@ -1159,8 +1162,9 @@ export async function createHomepageBanner(input: {
       stat_2_value: optionalText(input.stat2Value),
       stat_3_label: optionalText(input.stat3Label),
       stat_3_value: optionalText(input.stat3Value),
-      image_url: input.imageUrl,
-      target_url: input.targetUrl,
+      model_id: input.modelId || null,
+      image_url: input.imageUrl || "",
+      target_url: input.targetUrl || "",
       active: input.active,
     })
     .select("*")
@@ -1189,6 +1193,7 @@ export async function updateHomepageBanner(input: {
   stat2Value?: string;
   stat3Label?: string;
   stat3Value?: string;
+  modelId?: string;
   imageUrl?: string;
   targetUrl?: string;
   active?: boolean;
@@ -1210,6 +1215,7 @@ export async function updateHomepageBanner(input: {
   if (input.stat2Value !== undefined) patch.stat_2_value = optionalText(input.stat2Value);
   if (input.stat3Label !== undefined) patch.stat_3_label = optionalText(input.stat3Label);
   if (input.stat3Value !== undefined) patch.stat_3_value = optionalText(input.stat3Value);
+  if (input.modelId !== undefined) patch.model_id = input.modelId || null;
   if (input.imageUrl !== undefined) patch.image_url = input.imageUrl;
   if (input.targetUrl !== undefined) patch.target_url = input.targetUrl;
   if (input.active !== undefined) patch.active = input.active;

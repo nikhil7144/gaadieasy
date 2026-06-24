@@ -330,6 +330,14 @@ function fallbackRoadTaxPercent(input: {
   return rules.find((rule) => input.exShowroomPrice >= rule.minPrice && (rule.maxPrice === undefined || input.exShowroomPrice <= rule.maxPrice))?.percent;
 }
 
+function taxRuleSpecificity(rule: StateTaxRule, categoryId: string) {
+  // Lower = higher priority
+  // Same category + specific fuelType = 0 (best)
+  // Cross-category + specific fuelType = 1 (EV override rules)
+  // Same category + null fuelType = 2 (generic fallback)
+  return (rule.fuelType ? 0 : 2) + (rule.categoryId === categoryId ? 0 : 1);
+}
+
 function findTaxRule(input: {
   stateId: string;
   categoryId: string;
@@ -338,15 +346,19 @@ function findTaxRule(input: {
 }) {
   const rules = taxRules.filter((rule) => {
     const maxOk = rule.maxPrice === undefined || input.exShowroomPrice <= rule.maxPrice;
+    const categoryMatch = rule.categoryId === input.categoryId;
+    const fuelMatch = !rule.fuelType || rule.fuelType === input.fuelType;
+    // Cross-category rules apply only when they specify an exact fuel type that matches
+    const crossCategoryOverride = Boolean(rule.fuelType) && rule.fuelType === input.fuelType;
     return (
       rule.active &&
       rule.stateId === input.stateId &&
-      rule.categoryId === input.categoryId &&
+      (categoryMatch || crossCategoryOverride) &&
       input.exShowroomPrice >= rule.minPrice &&
       maxOk &&
-      (!rule.fuelType || rule.fuelType === input.fuelType)
+      fuelMatch
     );
-  });
+  }).sort((a, b) => taxRuleSpecificity(a, input.categoryId) - taxRuleSpecificity(b, input.categoryId));
 
   return rules[0] as StateTaxRule | undefined;
 }
@@ -359,15 +371,18 @@ function findTaxRuleFromData(data: VehicleDataSet, input: {
 }) {
   const rules = data.taxRules.filter((rule) => {
     const maxOk = rule.maxPrice === undefined || input.exShowroomPrice <= rule.maxPrice;
+    const categoryMatch = rule.categoryId === input.categoryId;
+    const fuelMatch = !rule.fuelType || rule.fuelType === input.fuelType;
+    const crossCategoryOverride = Boolean(rule.fuelType) && rule.fuelType === input.fuelType;
     return (
       rule.active &&
       rule.stateId === input.stateId &&
-      rule.categoryId === input.categoryId &&
+      (categoryMatch || crossCategoryOverride) &&
       input.exShowroomPrice >= rule.minPrice &&
       maxOk &&
-      (!rule.fuelType || rule.fuelType === input.fuelType)
+      fuelMatch
     );
-  });
+  }).sort((a, b) => taxRuleSpecificity(a, input.categoryId) - taxRuleSpecificity(b, input.categoryId));
 
   return rules[0] as StateTaxRule | undefined;
 }

@@ -66,7 +66,7 @@ export function VehicleGallery({ media, title }: VehicleGalleryProps) {
 
   return (
     <>
-      <div className="grid gap-3 lg:grid-cols-[1.4fr_.8fr]">
+      <div className={`grid gap-3 ${secondary.length >= 2 ? "lg:grid-cols-[1.4fr_.8fr]" : ""}`}>
         <button
           className="group relative min-h-[320px] overflow-hidden rounded-lg bg-slate-900 text-left"
           onClick={() => openViewer(primary.id)}
@@ -81,21 +81,16 @@ export function VehicleGallery({ media, title }: VehicleGalleryProps) {
             </span>
           </div>
         </button>
-        <div className="grid grid-cols-2 gap-3">
-          {secondary.map((item) => (
-            <button className="relative overflow-hidden rounded-lg bg-slate-900" onClick={() => openViewer(item.id)} type="button" key={item.id}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="h-full min-h-[150px] w-full object-cover transition duration-500 hover:scale-105" src={item.url} alt={item.alt} />
-            </button>
-          ))}
-          <button
-            className="grid min-h-[150px] place-items-center rounded-lg border border-dashed border-emerald-300 bg-emerald-50 p-4 text-center text-sm font-black text-emerald-800"
-            onClick={() => openViewer(primary.id)}
-            type="button"
-          >
-            View {media.length} photos
-          </button>
-        </div>
+        {secondary.length >= 2 && (
+          <div className="grid grid-cols-2 gap-3">
+            {secondary.map((item) => (
+              <button className="relative overflow-hidden rounded-lg bg-slate-900" onClick={() => openViewer(item.id)} type="button" key={item.id}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="h-full min-h-[150px] w-full object-cover transition duration-500 hover:scale-105" src={item.url} alt={item.alt} />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {open ? (

@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import {
   brands as seedBrands,
   categories as seedCategories,
@@ -513,8 +513,7 @@ async function fetchVehicleDataSet(): Promise<VehicleDataSet> {
   };
 }
 
-export const getVehicleDataSet = unstable_cache(
-  fetchVehicleDataSet,
-  ["vehicle-dataset"],
-  { revalidate: 60 },
-);
+// React cache() deduplicates within a single request — if generateMetadata and
+// the page component both call getVehicleDataSet(), Supabase is only hit once.
+// No 2MB size limit, no silent failure.
+export const getVehicleDataSet = cache(fetchVehicleDataSet);

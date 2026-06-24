@@ -63,7 +63,8 @@ export default async function Home({
       promotion.categoryKey === selectedType &&
       (promotion.placement ?? "homepage_hero") === "homepage_hero",
   );
-  const heroImageUrl = heroPromotion?.imageUrl?.trim() || heroModel?.imageUrl?.trim() || "";
+  const pinnedModel = heroPromotion?.modelId ? data.models.find((m) => m.id === heroPromotion.modelId) : undefined;
+  const heroImageUrl = heroPromotion?.imageUrl?.trim() || pinnedModel?.imageUrl?.trim() || heroModel?.imageUrl?.trim() || "";
   const heroStats = [
     {
       value: heroPromotion?.stat1Value ?? `${data.brands.length}+`,
@@ -107,7 +108,7 @@ export default async function Home({
             </div>
             <a
               className="group rounded-lg border border-white/10 bg-white/10 p-4 text-white shadow-2xl backdrop-blur transition hover:-translate-y-1 hover:border-lime-300"
-              href={heroPromotion?.targetUrl ?? modelPriceHref(heroModel)}
+              href={heroPromotion?.targetUrl || modelPriceHref(pinnedModel ?? heroModel)}
             >
               <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-slate-800">
                 {heroImageUrl ? (
@@ -135,7 +136,7 @@ export default async function Home({
                     </p>
                   ) : null}
                   <h2 className="mt-3 text-2xl font-black text-white">
-                    {heroPromotion?.title ?? `${activeTypeLabel} featured model`}
+                    {heroPromotion?.title ?? pinnedModel?.name ?? `${activeTypeLabel} featured model`}
                   </h2>
                   {heroPromotion?.subtitle ? (
                     <p className="mt-1 text-sm leading-6 text-emerald-50">{heroPromotion.subtitle}</p>

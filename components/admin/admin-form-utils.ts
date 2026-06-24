@@ -48,6 +48,6 @@ async function sendAdminJson(url: string, method: "POST" | "PATCH" | "DELETE", b
     body: JSON.stringify(body),
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error ?? "Request failed");
+  if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}: ${JSON.stringify(payload)}`);
   return payload;
 }

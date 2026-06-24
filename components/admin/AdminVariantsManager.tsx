@@ -644,7 +644,8 @@ export function AdminVariantsManager({
       setMessage("Variant deleted.");
       router.refresh();
     } catch (caught) {
-      setDeleteError(caught instanceof Error ? caught.message : "Unable to delete variant");
+      const msg = caught instanceof Error ? caught.message : String(caught);
+      setDeleteError(msg);
     } finally {
       setSaving(false);
     }

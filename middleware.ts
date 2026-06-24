@@ -3,35 +3,14 @@ import { Redis } from "@upstash/redis";
 import { type NextRequest, NextResponse } from "next/server";
 
 // ─── Bot blocklist ────────────────────────────────────────────────────────────
-// SEO audit tools and scrapers — block before any page function runs.
-// Googlebot, Bingbot, and other real search engine crawlers are NOT listed here.
 const BLOCKED_BOTS = [
-  "serpstatbot",
-  "ahrefsbot",
-  "semrushbot",
-  "mj12bot",
-  "dotbot",
-  "blexbot",
-  "petalbot",
-  "baiduspider",
-  "yandexbot",
-  "majestic",
-  "rogerbot",
-  "exabot",
-  "seznambot",
-  "uptimerobot",
-  "pingdom",
-  "statuscake",
+  "serpstatbot", "ahrefsbot", "semrushbot", "mj12bot", "dotbot",
+  "blexbot", "petalbot", "baiduspider", "yandexbot", "majestic",
+  "rogerbot", "exabot", "seznambot", "uptimerobot", "pingdom", "statuscake",
 ];
 
-// These crawlers must always pass geo-blocking — they index the site for Google/Bing
-const SEARCH_ENGINE_BOTS = [
-  "googlebot",
-  "bingbot",
-  "duckduckbot",
-  "slurp",         // Yahoo
-  "ia_archiver",   // Wayback Machine
-];
+// These must always pass geo-blocking — they index the site
+const SEARCH_ENGINE_BOTS = ["googlebot", "bingbot", "duckduckbot", "slurp", "ia_archiver"];
 
 function isBlockedBot(ua: string): boolean {
   return BLOCKED_BOTS.some((bot) => ua.includes(bot));
@@ -42,8 +21,7 @@ function isSearchEngineBot(ua: string): boolean {
 }
 
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
-// 120 requests per minute per IP — high enough for real users with Next.js
-// prefetching, low enough to stop scrapers
+// 120 requests per minute per IP for public traffic
 const LIMIT = 120;
 const WINDOW = "1 m";
 
@@ -71,53 +49,61 @@ function getIp(req: NextRequest): string {
 }
 
 export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
   const ua = (req.headers.get("user-agent") ?? "").toLowerCase();
 
-  // 1. Block known SEO scrapers immediately — no DB hit, no rate limit check
+  // Admin routes: skip all public-traffic checks — auth is handled by requirePlatformAdmin()
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
+    return NextResponse.next();
+  }
+
+  // 1. Block known SEO scrapers
   if (isBlockedBot(ua)) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  // 2. Geo-block: only serve India, except for real search engine crawlers
-  //    x-vercel-ip-country is set by Vercel's edge network on every request
+  // 2. Geo-block: India only, except real search engine bots
   const country = req.headers.get("x-vercel-ip-country");
   if (country && country !== "IN" && !isSearchEngineBot(ua)) {
-    return new NextResponse("Service not available in your region.", {
-      status: 403,
-    });
+    return new NextResponse("Service not available in your region.", { status: 403 });
   }
 
-  // 3. Skip rate limiting for Next.js prefetch requests — these fire automatically
-  //    for every visible link on page load and would false-positive real users
+  // 3. Skip rate limiting for Next.js prefetch requests
   if (req.headers.get("Next-Router-Prefetch") === "1") {
     return NextResponse.next();
   }
 
-  // 4. Rate limit by IP
+  // 4. Rate limit public traffic by IP — fail open if Redis is unavailable
   const rl = getRatelimit();
   if (!rl) return NextResponse.next();
 
-  const ip = getIp(req);
-  const { success, limit, remaining, reset } = await rl.limit(ip);
+  try {
+    const { success, limit, remaining, reset } = await rl.limit(getIp(req));
 
-  if (!success) {
-    const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-    return new NextResponse("Too many requests. Please slow down.", {
-      status: 429,
-      headers: {
-        "Retry-After": String(retryAfter),
-        "X-RateLimit-Limit": String(limit),
-        "X-RateLimit-Remaining": "0",
-        "X-RateLimit-Reset": String(reset),
-        "Content-Type": "text/plain",
-      },
-    });
+    if (!success) {
+      const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+      return NextResponse.json(
+        { error: "Too many requests. Please slow down." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(retryAfter),
+            "X-RateLimit-Limit": String(limit),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(reset),
+          },
+        },
+      );
+    }
+
+    const res = NextResponse.next();
+    res.headers.set("X-RateLimit-Limit", String(limit));
+    res.headers.set("X-RateLimit-Remaining", String(remaining));
+    return res;
+  } catch {
+    // Redis unavailable — fail open, don't block real users
+    return NextResponse.next();
   }
-
-  const res = NextResponse.next();
-  res.headers.set("X-RateLimit-Limit", String(limit));
-  res.headers.set("X-RateLimit-Remaining", String(remaining));
-  return res;
 }
 
 export const config = {
