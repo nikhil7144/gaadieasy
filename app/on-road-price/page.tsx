@@ -138,7 +138,7 @@ export default async function OnRoadPricePage({
       description: `${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name} on-road price in ${pricing.city.name} is ${formatIndianPrice(pricing.breakdown.totalOnRoadPrice)}. Includes RTO registration charges, road tax, and insurance as per government rates. Ex-showroom price sourced directly from manufacturer. Road tax and RTO charges calculated from state government and RTO portal data.`,
       ...(heroImage ? { image: [heroImage] } : {}),
       brand: { "@type": "Brand", name: pricing.brand.name },
-      ...(reviewSummary && reviewSummary.count >= 3 ? {
+      ...(reviewSummary && reviewSummary.count >= 1 ? {
         aggregateRating: {
           "@type": "AggregateRating",
           ratingValue: reviewSummary.averageOverall.toFixed(1),
@@ -146,6 +146,20 @@ export default async function OnRoadPricePage({
           bestRating: 5,
           worstRating: 1,
         },
+        review: reviews.filter((r) => r.active).slice(0, 5).map((r) => ({
+          "@type": "Review",
+          author: { "@type": "Person", name: r.userName },
+          datePublished: r.createdAt.slice(0, 10),
+          reviewRating: {
+            "@type": "Rating",
+            ratingValue: r.overallRating,
+            bestRating: 5,
+            worstRating: 1,
+          },
+          ...(r.body || r.pros || r.cons ? {
+            reviewBody: [r.body, r.pros ? `Pros: ${r.pros}` : "", r.cons ? `Cons: ${r.cons}` : ""].filter(Boolean).join(" "),
+          } : {}),
+        })),
       } : {}),
       offers: {
         "@type": "Offer",
