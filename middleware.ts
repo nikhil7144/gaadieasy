@@ -10,7 +10,7 @@ const BLOCKED_BOTS = [
 ];
 
 // These must always pass geo-blocking — they index the site
-const SEARCH_ENGINE_BOTS = ["googlebot", "bingbot", "duckduckbot", "slurp", "ia_archiver"];
+const SEARCH_ENGINE_BOTS = ["googlebot", "google-inspectiontool", "bingbot", "duckduckbot", "slurp", "ia_archiver"];
 
 function isBlockedBot(ua: string): boolean {
   return BLOCKED_BOTS.some((bot) => ua.includes(bot));
