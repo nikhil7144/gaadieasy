@@ -986,6 +986,10 @@ export async function deleteVariant(id: string) {
   const { error: mediaError } = await supabase.from("vehicle_media").delete().eq("variant_id", id);
   if (mediaError) throw mediaError;
 
+  // Unlink reviews — keep the review content, just remove the variant reference
+  const { error: reviewError } = await supabase.from("vehicle_reviews").update({ variant_id: null }).eq("variant_id", id);
+  if (reviewError) throw reviewError;
+
   const { error } = await supabase.from("vehicle_variants").delete().eq("id", id);
   if (error) throw error;
 

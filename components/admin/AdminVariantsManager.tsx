@@ -315,6 +315,7 @@ export function AdminVariantsManager({
   const [bulkError, setBulkError] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const [saving, setSaving] = useState(false);
 
   function copyVariant(variant: VehicleVariant) {
@@ -633,6 +634,7 @@ export function AdminVariantsManager({
     if (!window.confirm(`Delete ${variant.name}? This removes the variant and its media records.`)) return;
 
     setSaving(true);
+    setDeleteError("");
     setMessage("");
     setError("");
 
@@ -642,7 +644,7 @@ export function AdminVariantsManager({
       setMessage("Variant deleted.");
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to delete variant");
+      setDeleteError(caught instanceof Error ? caught.message : "Unable to delete variant");
     } finally {
       setSaving(false);
     }
@@ -805,6 +807,9 @@ export function AdminVariantsManager({
 
       <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-xl font-black text-slate-950">Variants for selected model</h2>
+        {deleteError ? (
+          <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{deleteError}</p>
+        ) : null}
         <div className="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200">
           {modelVariants.map((variant) => (
             <div className="grid gap-2 p-3 sm:grid-cols-[1fr_auto]" key={variant.id}>
