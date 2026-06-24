@@ -68,8 +68,12 @@ export async function middleware(req: NextRequest) {
     return new NextResponse("Service not available in your region.", { status: 403 });
   }
 
-  // 3. Skip rate limiting for Next.js prefetch requests
-  if (req.headers.get("Next-Router-Prefetch") === "1") {
+  // 3. Skip rate limiting for Next.js internal navigation (prefetch + RSC payload fetches)
+  if (
+    req.headers.get("Next-Router-Prefetch") === "1" ||
+    req.headers.get("RSC") === "1" ||
+    req.nextUrl.searchParams.has("_rsc")
+  ) {
     return NextResponse.next();
   }
 
