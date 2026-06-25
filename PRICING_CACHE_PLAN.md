@@ -67,7 +67,7 @@ Cache HIT?
 
 ## Implementation Status
 
-### ✅ Done
+### ✅ Done — Infrastructure
 - [x] `vehicle_pricing_cache` table created in Supabase
 - [x] `lib/services/pricing-cache/index.ts` — getCachedPricing, batchGetCachedPricing, setCachedPricing, batchSetCachedPricing, invalidateCacheForVariant, invalidateCacheForState
 - [x] `app/api/admin/pricing-cache/route.ts` — backfill all variants × cities
@@ -78,53 +78,77 @@ Cache HIT?
 - [x] `createTaxRule` invalidation — deletes state's cache rows
 - [x] Backfill executed — 30,650 rows (613 variants × 50 cities) pre-computed
 
-### ❌ Not Done (critical — current implementation is wrong order)
+### ✅ Done — Page-level cache-first flow
+- [x] `lib/services/on-road-price/index.ts` rewritten with 2-tier architecture:
+  - Tier 1: resolveVariantAndCity (targeted slug → ID queries) → getCachedPricing → serve from cache
+  - Tier 2: getVehicleDataSet() fallback on cache miss, with write-back
+- [x] `lib/repositories/vehicle-data.ts` — `getSlimCatalog()` added: targeted fetch of brands/cities/models/variants (no pricing tables, no specifications JSON) for PricingExplorer component
 
-#### 1. On-road price page — cache checked AFTER getVehicleDataSet() (wrong)
-**Current (wrong):**
-```ts
-const data = await getVehicleDataSet();          // 7MB — always runs
-const pricing = await calculateOnRoadPriceWithCache(params, data);  // cache checked here, too late
-```
-**Required:**
-- Check cache BEFORE calling getVehicleDataSet()
-- On cache hit: use targeted Supabase queries for display data only
-- On cache miss: fall through to getVehicleDataSet() + compute + write cache
+### ✅ Done — Bug fixes
+- [x] Variant slug collision: generic slugs like "standard" exist across multiple models. `resolveVariantAndCity` now accepts `modelSlug` and constrains variant lookup by `model_id`.
+- [x] Bare `/on-road-price` in sitemap removed — Google was crawling parameterless URL which showed wrong default vehicle.
 
-#### 2. `createVariant` hook missing
-When a new variant is created, the cache should immediately be filled for all existing cities.
-Currently: new variant always hits Tier 2 until a user visits that variant × each city combination.
-**Required:** After `createVariant` succeeds, compute and insert pricing rows for all cities.
+### ✅ Done — getVehicleMediaForApi egress fix (Jun 2026)
+- [x] `lib/services/media/index.ts` — `getVehicleMediaForApi` rewritten to query `vehicle_media` directly
 
 ---
 
-## Files To Change (pending work)
+## Bug Investigation: Why the cache-first page still triggered getVehicleDataSet() (Jun 2026)
 
-### `app/on-road-price/page.tsx`
-- Remove `getVehicleDataSet()` from the top-level flow
-- Add slug → ID resolution via targeted query
-- Check `vehicle_pricing_cache` first
-- On hit: use targeted display queries (`getVariantDisplayData`)
-- On miss: Tier 2 path with `getVehicleDataSet()`
+**Symptom:** After deploying the 2-tier cache system, Vercel logs still showed ~34 API calls, 2.5s execution, 320MB memory, and all pricing tables (state_tax_rules, rto_charges, insurance_rules, etc.) being fetched.
 
-### `lib/repositories/vehicle-data.ts` (new function)
+**Debugging process:**
+1. Verified cache table: 30,650 rows confirmed. SQL check showed cache row existed for the test variant × city.
+2. Added `console.log("[orp-t1]")` at Tier 1 entry: logs confirmed both `generateMetadata` and the page component hit Tier 1 (NOT Tier 2). `[orp-t1]` appeared twice — once per call.
+3. Inspected the full external API list in Vercel function logs: Tier 1 queries appeared first (cities, models, vehicle_pricing_cache, etc.), then a second group: `vehicle_categories`, `state_tax_rules`, `rto_charges`, `insurance_rules`, `gst_rules`, `registration_fee_rules`, `dealer_businesses`, `dealers`, `dealer_users`, `hero_promotions`, `city_pages`, `comparison_pages`.
+4. That second group is exactly `getVehicleDataSet()`. Since `getOnRoadPriceData` was confirmed NOT calling Tier 2, it had to come from somewhere else on the page.
+5. Grepped all `getVehicleDataSet` imports — found `lib/services/media/index.ts`.
+
+**Root cause:**
 ```ts
-export async function getVariantDisplayData(variantId: string, cityId: string)
+// lib/services/media/index.ts — BEFORE fix
+export async function getVehicleMediaForApi(modelId: string, variantId?: string) {
+  const data = await getVehicleDataSet();  // ← loaded 18 tables just to filter data.media
+  ...
+}
 ```
-Returns: brand, model, variant, city, state, rto, dealer, offer, sibling variants
-Used only on cache hit path. Does NOT fetch pricing tables.
+`getVehicleMediaForApi` was wrapping `getVehicleDataSet()` to get photos, pulling in all pricing, tax, dealer, and rule tables as a side effect. This was called from the on-road-price page component.
 
-### `lib/services/admin-catalog/index.ts` — `createVariant`
-After insert, compute pricing for all cities and bulk-upsert to `vehicle_pricing_cache`.
+**Fix:**
+```ts
+// lib/services/media/index.ts — AFTER fix
+export async function getVehicleMediaForApi(modelId: string, variantId?: string) {
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) return getVehicleMedia(modelId, variantId);  // seed data fallback
+
+  const { data } = await supabase
+    .from("vehicle_media")
+    .select("id, model_id, variant_id, color_name, url, alt, media_type, display_order, active")
+    .eq("model_id", modelId)
+    .eq("active", true)
+    .order("display_order", { ascending: true });
+  ...
+}
+```
+Direct `vehicle_media` query — 1 targeted fetch instead of 18 tables.
+
+**Second bug found during debugging — React `cache()` regression:**
+Wrapping `getOnRoadPriceData` in React `cache()` to deduplicate the double-call (generateMetadata + page) caused a regression (Status 0, Tier 2 behavior) in one deployment. Root cause not fully identified but likely related to module initialization order or React request context availability for `cache()` at module level. The double-call issue (2× Tier 1 queries per render) remains — it is a known inefficiency but not a correctness issue.
+
+---
+
+## Remaining work
+
+### `createVariant` hook (low priority)
+When a new variant is created, it always hits Tier 2 until a user visits that variant × each city combination. To fix: after `createVariant` succeeds, compute and insert pricing rows for all cities via `batchSetCachedPricing`.
 
 ---
 
 ## Egress Comparison
 
-| Scenario | Before | After (target) |
+| Scenario | Before | After |
 |---|---|---|
-| Cache hit (warm) | 7MB | ~15KB |
-| Cache miss (cold/new) | 7MB | 7MB (same, Tier 2) |
-| New variant created | — | 50 rows written (one-time) |
-| Tax rule change | — | State rows deleted, lazy refill |
-| Daily at 28 renders | 198MB | ~420KB |
+| Cache hit (warm) | 7MB (getVehicleDataSet × 2) | ~50KB (Tier 1 × 2 + slim catalog + targeted media) |
+| Cache miss (cold/new) | 7MB | 7MB (Tier 2 fallback, same) |
+| New variant created | — | Always Tier 2 until first user visit |
+| Tax rule change | — | State rows deleted, lazy refill on next visit |
