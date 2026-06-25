@@ -139,8 +139,7 @@ Wrapping `getOnRoadPriceData` in React `cache()` to deduplicate the double-call 
 
 ## Remaining work
 
-### `createVariant` hook (low priority)
-When a new variant is created, it always hits Tier 2 until a user visits that variant × each city combination. To fix: after `createVariant` succeeds, compute and insert pricing rows for all cities via `batchSetCachedPricing`.
+None critical. The architecture is fully implemented as designed.
 
 ---
 
