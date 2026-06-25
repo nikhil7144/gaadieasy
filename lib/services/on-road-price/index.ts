@@ -274,17 +274,15 @@ export async function getOnRoadPriceData(params: {
   variant?: string;
   city?: string;
 }): Promise<OnRoadPageData> {
-  console.log("[orp-entry]", { variant: params.variant, city: params.city });
   if (!params.variant || !params.city) return tier2(params);
 
   const supabase = createSupabaseAdminClient();
-  if (!supabase) { console.log("[orp-t2] no-supabase"); return tier2(params); }
+  if (!supabase) return tier2(params);
 
   const resolved = await resolveVariantAndCity(supabase, params.variant, params.city, params.model);
-  if (!resolved) { console.log("[orp-t2] resolve-null"); return tier2(params); }
+  if (!resolved) return tier2(params);
 
   const { variant, model, brand, city, state } = resolved;
-  console.log("[orp-t1]", { variantId: variant.id, cityId: city.id });
 
   const [cachedBreakdown, siblings, rto, dealer, offersData] = await Promise.all([
     getCachedPricing(variant.id, city.id),
@@ -294,7 +292,7 @@ export async function getOnRoadPriceData(params: {
     fetchOffers(supabase, brand.id, model.id, city.id),
   ]);
 
-  if (!cachedBreakdown) { console.log("[orp-t2] cache-miss"); return tier2(params); }
+  if (!cachedBreakdown) return tier2(params);
 
   // Round 3: sibling prices from cache
   const siblingPriceMap = await batchGetCachedPricing(siblings.map((s) => s.id), city.id);
