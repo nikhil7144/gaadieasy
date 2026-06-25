@@ -32,7 +32,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
     "/",
     "/discover",
-    "/on-road-price",
     "/photos",
     "/dealer",
     "/dealer/login",
