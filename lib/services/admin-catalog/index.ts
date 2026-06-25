@@ -4,6 +4,7 @@ import { invalidateCacheForVariant, invalidateCacheForState } from "@/lib/servic
 import { slugify } from "@/lib/utils/format";
 import type {
   Brand,
+  City,
   CityPage,
   Dealer,
   DealerBrandMapping,
@@ -1574,4 +1575,74 @@ export async function updateInsuranceRule(input: {
   revalidatePath("/admin");
   revalidatePath("/admin/insurance");
   return mapInsuranceRule(data as DbRow);
+}
+
+function mapCity(row: DbRow): City {
+  return {
+    id: String(row.id),
+    stateId: String(row.state_id),
+    name: String(row.name),
+    slug: String(row.slug),
+    defaultRtoId: String(row.default_rto_id ?? ""),
+    tier: typeof row.tier === "string" ? row.tier : undefined,
+    isMetro: Boolean(row.is_metro),
+    rtoStateCode: typeof row.rto_state_code === "string" ? row.rto_state_code : undefined,
+  };
+}
+
+export async function createCity(input: {
+  stateId: string;
+  name: string;
+  slug?: string;
+  defaultRtoId?: string;
+  tier?: string;
+  isMetro: boolean;
+  rtoStateCode?: string;
+}): Promise<City> {
+  const supabase = getAdminClient();
+  const slug = input.slug?.trim() || slugify(input.name);
+  const { data, error } = await supabase
+    .from("cities")
+    .insert({
+      state_id: input.stateId,
+      name: input.name.trim(),
+      slug,
+      default_rto_id: optionalText(input.defaultRtoId) ?? null,
+      tier: optionalText(input.tier),
+      is_metro: input.isMetro,
+      rto_state_code: optionalText(input.rtoStateCode),
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  revalidatePath("/admin/cities");
+  return mapCity(data as DbRow);
+}
+
+export async function updateCity(input: {
+  id: string;
+  stateId?: string;
+  name?: string;
+  slug?: string;
+  defaultRtoId?: string;
+  tier?: string;
+  isMetro?: boolean;
+  rtoStateCode?: string;
+}): Promise<City> {
+  const supabase = getAdminClient();
+  const patch: DbRow = {};
+  if (input.stateId !== undefined) patch.state_id = input.stateId;
+  if (input.name !== undefined) patch.name = input.name.trim();
+  if (input.slug !== undefined) patch.slug = input.slug.trim() || slugify(input.name ?? "");
+  if (input.defaultRtoId !== undefined) patch.default_rto_id = optionalText(input.defaultRtoId) ?? null;
+  if (input.tier !== undefined) patch.tier = optionalText(input.tier);
+  if (input.isMetro !== undefined) patch.is_metro = input.isMetro;
+  if (input.rtoStateCode !== undefined) patch.rto_state_code = optionalText(input.rtoStateCode);
+
+  const { data, error } = await supabase.from("cities").update(patch).eq("id", input.id).select("*").single();
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  revalidatePath("/admin/cities");
+  return mapCity(data as DbRow);
 }

@@ -6,6 +6,7 @@ const nav = [
   ["Brands", "/admin/brands"],
   ["Models", "/admin/models"],
   ["Variants", "/admin/variants"],
+  ["Cities", "/admin/cities"],
   ["Tax rules", "/admin/tax-rules"],
   ["RTO charges", "/admin/rto-charges"],
   ["Insurance", "/admin/insurance"],
@@ -22,17 +23,19 @@ const nav = [
 export function AdminShell({ children, userEmail }: { children: React.ReactNode; userEmail?: string }) {
   return (
     <div className="min-h-screen bg-slate-100">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white p-4 md:block">
-        <div>
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-slate-200 bg-white md:flex">
+        <div className="shrink-0 p-4">
           <BrandLockup href="/" size="sidebar" />
           <div className="mt-2 text-sm font-black text-slate-950">Admin workspace</div>
         </div>
-        <nav className="mt-8 space-y-1">
-          {nav.map(([label, href]) => (
-            <a className="block rounded-md px-3 py-2 text-sm font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-800" href={href} key={href}>
-              {label}
-            </a>
-          ))}
+        <nav className="flex-1 overflow-y-auto px-4 pb-4">
+          <div className="space-y-1">
+            {nav.map(([label, href]) => (
+              <a className="block rounded-md px-3 py-2 text-sm font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-800" href={href} key={href}>
+                {label}
+              </a>
+            ))}
+          </div>
         </nav>
       </aside>
       <div className="md:pl-64">

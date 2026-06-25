@@ -291,3 +291,13 @@ export const insuranceRuleSchema = z.object({
   fixedAmount: z.coerce.number().min(0).default(0),
   active: z.boolean().default(true),
 });
+
+export const citySchema = z.object({
+  stateId: z.string().uuid(),
+  name: z.string().min(2),
+  slug: z.string().min(2).optional(),
+  defaultRtoId: z.string().uuid().optional().or(z.literal("")),
+  tier: z.string().optional().or(z.literal("")),
+  isMetro: z.boolean().default(false),
+  rtoStateCode: z.string().optional().or(z.literal("")),
+});
