@@ -926,7 +926,11 @@ async function prefillVariantPricingCache(variant: VehicleVariant) {
   const brand = dataset.brands.find((b) => b.id === model.brandId);
   if (!brand) return;
 
-  const rows = dataset.cities.map((city) => {
+  // Pre-fill metro cities only — smaller cities warm lazily on first user visit.
+  // To add/remove a city from pre-fill, toggle is_metro in the cities table.
+  const metroCities = dataset.cities.filter((c) => c.isMetro);
+
+  const rows = metroCities.map((city) => {
     const result = calculateOnRoadPriceFromData(
       { brand: brand.slug, model: model.slug, variant: variant.slug, city: city.slug },
       dataset,
