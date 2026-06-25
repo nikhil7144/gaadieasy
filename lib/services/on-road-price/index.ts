@@ -281,11 +281,12 @@ export async function getOnRoadPriceData(params: {
 
   // Round 1: resolve slugs → typed entities (model slug constrains variant lookup to avoid slug collisions)
   const resolved = await resolveVariantAndCity(supabase, params.variant, params.city, params.model);
-  if (!resolved) return tier2(params);
+  if (!resolved) { console.log("[orp-resolve-null]", params); return tier2(params); }
 
   const { variant, model, brand, city, state } = resolved;
 
   // Round 2: cache check + all display data in parallel
+  console.log("[orp-tier1]", { variantId: variant.id, variantSlug: variant.slug, cityId: city.id, citySlug: city.slug });
   const [cachedBreakdown, siblings, rto, dealer, offersData] = await Promise.all([
     getCachedPricing(variant.id, city.id),
     fetchSiblings(supabase, model.id),
@@ -294,6 +295,7 @@ export async function getOnRoadPriceData(params: {
     fetchOffers(supabase, brand.id, model.id, city.id),
   ]);
 
+  console.log("[orp-cache]", { hit: !!cachedBreakdown, variantId: variant.id, cityId: city.id });
   // Cache miss → Tier 2 (targeted data fetched above is discarded, full dataset loaded)
   if (!cachedBreakdown) return tier2(params);
 
