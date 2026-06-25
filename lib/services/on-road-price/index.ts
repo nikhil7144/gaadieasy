@@ -116,24 +116,39 @@ function emptyBreakdown(exShowroomPrice: number): PriceBreakdown {
 
 type Supa = NonNullable<ReturnType<typeof createSupabaseAdminClient>>;
 
-async function resolveVariantAndCity(supabase: Supa, variantSlug: string, citySlug: string) {
-  const [variantRes, cityRes] = await Promise.all([
-    supabase.from("vehicle_variants").select("*").ilike("slug", decodeURIComponent(variantSlug).trim()).eq("active", true).limit(1).maybeSingle(),
+async function resolveVariantAndCity(supabase: Supa, variantSlug: string, citySlug: string, modelSlug?: string) {
+  // Round 1: resolve model (to constrain variant lookup) + city in parallel
+  const [modelRes, cityRes] = await Promise.all([
+    modelSlug
+      ? supabase.from("vehicle_models").select("*").ilike("slug", decodeURIComponent(modelSlug).trim()).eq("active", true).limit(1).maybeSingle()
+      : Promise.resolve({ data: null }),
     supabase.from("cities").select("*").ilike("slug", decodeURIComponent(citySlug).trim()).limit(1).maybeSingle(),
   ]);
-  if (!variantRes.data || !cityRes.data) return null;
-
-  const variant = toVariant(variantRes.data as R);
+  if (!cityRes.data) return null;
   const city = toCity(cityRes.data as R);
 
-  const [modelRes, stateRes] = await Promise.all([
-    supabase.from("vehicle_models").select("*").eq("id", variant.modelId).limit(1).maybeSingle(),
+  // Round 2: variant constrained by model_id (prevents slug collisions across models) + state in parallel
+  let variantQuery = supabase.from("vehicle_variants").select("*").ilike("slug", decodeURIComponent(variantSlug).trim()).eq("active", true);
+  if (modelRes.data) variantQuery = variantQuery.eq("model_id", String((modelRes.data as R).id));
+
+  const [variantRes, stateRes] = await Promise.all([
+    variantQuery.limit(1).maybeSingle(),
     supabase.from("states").select("*").eq("id", city.stateId).limit(1).maybeSingle(),
   ]);
-  if (!modelRes.data || !stateRes.data) return null;
+  if (!variantRes.data || !stateRes.data) return null;
 
-  const model = toModel(modelRes.data as R);
+  const variant = toVariant(variantRes.data as R);
   const state = toState(stateRes.data as R);
+
+  // Use already-fetched model or fall back to fetching by variant.modelId
+  let model: VehicleModel;
+  if (modelRes.data) {
+    model = toModel(modelRes.data as R);
+  } else {
+    const { data: mData } = await supabase.from("vehicle_models").select("*").eq("id", variant.modelId).limit(1).maybeSingle();
+    if (!mData) return null;
+    model = toModel(mData as R);
+  }
 
   const brandRes = await supabase.from("brands").select("*").eq("id", model.brandId).limit(1).maybeSingle();
   if (!brandRes.data) return null;
@@ -264,8 +279,8 @@ export async function getOnRoadPriceData(params: {
   const supabase = createSupabaseAdminClient();
   if (!supabase) return tier2(params);
 
-  // Round 1: resolve slugs → typed entities
-  const resolved = await resolveVariantAndCity(supabase, params.variant, params.city);
+  // Round 1: resolve slugs → typed entities (model slug constrains variant lookup to avoid slug collisions)
+  const resolved = await resolveVariantAndCity(supabase, params.variant, params.city, params.model);
   if (!resolved) return tier2(params);
 
   const { variant, model, brand, city, state } = resolved;
