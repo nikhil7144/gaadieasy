@@ -526,18 +526,25 @@ export type SlimCatalog = {
 };
 
 async function fetchSlimCatalog(): Promise<SlimCatalog> {
-  const [brands, cities, models, variants] = await Promise.all([
+  const supabase = createSupabaseAdminClient();
+
+  const [brands, cities, models, variantsRes] = await Promise.all([
     readTable("brands"),
     readTable("cities"),
     readTable("vehicle_models"),
-    readTable("vehicle_variants"),
+    // Exclude specifications + specification_groups — large JSON columns not needed for listings
+    supabase
+      ? supabase.from("vehicle_variants").select(
+          "id, model_id, name, slug, ex_showroom_price, fuel_type, transmission, engine_capacity, engine_cc, max_power_ps, payload_capacity_kg, mileage, seating_capacity, is_default, display_order, active",
+        )
+      : Promise.resolve({ data: null }),
   ]);
 
   return {
     brands: brands?.map(mapBrand) ?? seedBrands,
     cities: cities?.map(mapCity) ?? seedCities,
     models: models?.map(mapModel) ?? seedModels,
-    variants: variants?.map(mapVariant) ?? seedVariants,
+    variants: (variantsRes.data as DbRow[] | null)?.map(mapVariant) ?? seedVariants,
   };
 }
 
