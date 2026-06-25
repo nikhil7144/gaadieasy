@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
 import { batchCalculateWithCache, calculateOnRoadPriceFromData } from "@/lib/services/pricing";
@@ -268,7 +269,27 @@ async function tier2(params: { brand?: string; model?: string; variant?: string;
 
 // ── Main entry point ──────────────────────────────────────────────────────────
 
-export async function getOnRoadPriceData(params: {
+// Deduplicated per-request: generateMetadata + page component both call this,
+// cache() ensures Supabase queries only fire once per render.
+const fetchOnRoadPriceData = cache(async (
+  brand: string | undefined,
+  model: string | undefined,
+  variant: string | undefined,
+  city: string | undefined,
+): Promise<OnRoadPageData> => {
+  return _getOnRoadPriceData({ brand, model, variant, city });
+});
+
+export function getOnRoadPriceData(params: {
+  brand?: string;
+  model?: string;
+  variant?: string;
+  city?: string;
+}): Promise<OnRoadPageData> {
+  return fetchOnRoadPriceData(params.brand, params.model, params.variant, params.city);
+}
+
+async function _getOnRoadPriceData(params: {
   brand?: string;
   model?: string;
   variant?: string;
@@ -281,12 +302,11 @@ export async function getOnRoadPriceData(params: {
 
   // Round 1: resolve slugs → typed entities (model slug constrains variant lookup to avoid slug collisions)
   const resolved = await resolveVariantAndCity(supabase, params.variant, params.city, params.model);
-  if (!resolved) { console.log("[orp-resolve-null]", params); return tier2(params); }
+  if (!resolved) return tier2(params);
 
   const { variant, model, brand, city, state } = resolved;
 
   // Round 2: cache check + all display data in parallel
-  console.log("[orp-tier1]", { variantId: variant.id, variantSlug: variant.slug, cityId: city.id, citySlug: city.slug });
   const [cachedBreakdown, siblings, rto, dealer, offersData] = await Promise.all([
     getCachedPricing(variant.id, city.id),
     fetchSiblings(supabase, model.id),
@@ -295,7 +315,6 @@ export async function getOnRoadPriceData(params: {
     fetchOffers(supabase, brand.id, model.id, city.id),
   ]);
 
-  console.log("[orp-cache]", { hit: !!cachedBreakdown, variantId: variant.id, cityId: city.id });
   // Cache miss → Tier 2 (targeted data fetched above is discarded, full dataset loaded)
   if (!cachedBreakdown) return tier2(params);
 
