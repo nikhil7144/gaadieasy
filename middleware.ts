@@ -9,15 +9,8 @@ const BLOCKED_BOTS = [
   "rogerbot", "exabot", "seznambot", "uptimerobot", "pingdom", "statuscake",
 ];
 
-// These must always pass geo-blocking — they index the site
-const SEARCH_ENGINE_BOTS = ["googlebot", "google-inspectiontool", "bingbot", "duckduckbot", "slurp", "ia_archiver"];
-
 function isBlockedBot(ua: string): boolean {
   return BLOCKED_BOTS.some((bot) => ua.includes(bot));
-}
-
-function isSearchEngineBot(ua: string): boolean {
-  return SEARCH_ENGINE_BOTS.some((bot) => ua.includes(bot));
 }
 
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
@@ -62,13 +55,7 @@ export async function middleware(req: NextRequest) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  // 2. Geo-block: India only, except real search engine bots
-  const country = req.headers.get("x-vercel-ip-country");
-  if (country && country !== "IN" && !isSearchEngineBot(ua)) {
-    return new NextResponse("Service not available in your region.", { status: 403 });
-  }
-
-  // 3. Skip rate limiting for Next.js internal navigation (prefetch + RSC payload fetches)
+  // 2. Skip rate limiting for Next.js internal navigation (prefetch + RSC payload fetches)
   if (
     req.headers.get("Next-Router-Prefetch") === "1" ||
     req.headers.get("RSC") === "1" ||

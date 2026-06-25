@@ -12,9 +12,9 @@ import { EmiPreview } from "@/components/public/EmiPreview";
 import { VehiclePageNav } from "@/components/public/VehiclePageNav";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
 import { getVehicleMediaForApi } from "@/lib/services/media";
-import { calculateOnRoadPriceFromData } from "@/lib/services/pricing";
+import { getOnRoadPriceData } from "@/lib/services/on-road-price";
+import { getSlimCatalog } from "@/lib/repositories/vehicle-data";
 import { formatIndianPrice, formatShortPrice } from "@/lib/utils/format";
 import { BadgeIndianRupee, Gauge, MapPin, ShieldCheck, Zap } from "lucide-react";
 import { VehicleReviews } from "@/components/public/VehicleReviews";
@@ -26,8 +26,7 @@ export async function generateMetadata({
   searchParams: Promise<{ brand?: string; model?: string; variant?: string; city?: string }>;
 }): Promise<Metadata> {
   const params = await searchParams;
-  const data = await getVehicleDataSet();
-  const pricing = calculateOnRoadPriceFromData(params, data);
+  const pricing = await getOnRoadPriceData(params);
 
   const { brand, model, variant, city } = pricing;
   const price = formatIndianPrice(pricing.breakdown.totalOnRoadPrice);
@@ -88,23 +87,17 @@ export default async function OnRoadPricePage({
   searchParams: Promise<{ brand?: string; model?: string; variant?: string; city?: string }>;
 }) {
   const params = await searchParams;
-  const data = await getVehicleDataSet();
-  const pricing = calculateOnRoadPriceFromData(params, data);
-  const modelVariants = data.variants.filter((variant) => variant.active && variant.modelId === pricing.model.id);
-  const media = await getVehicleMediaForApi(pricing.model.id, pricing.variant.id);
-  const reviews = await getReviewsForModel(pricing.model.id);
+  const [pricing, catalog] = await Promise.all([
+    getOnRoadPriceData(params),
+    getSlimCatalog(),
+  ]);
+  const [media, reviews] = await Promise.all([
+    getVehicleMediaForApi(pricing.model.id, pricing.variant.id),
+    getReviewsForModel(pricing.model.id),
+  ]);
   const reviewSummary = summariseReviews(reviews);
   const heroImage = media[0]?.url ?? pricing.model.imageUrl;
-  const variantPrices = modelVariants
-    .map((variant) =>
-      calculateOnRoadPriceFromData({
-        brand: pricing.brand.slug,
-        model: pricing.model.slug,
-        variant: variant.slug,
-        city: pricing.city.slug,
-      }, data),
-    )
-    .sort((a, b) => a.breakdown.totalOnRoadPrice - b.breakdown.totalOnRoadPrice);
+  const sortedVariantPrices = [...pricing.variantPrices].sort((a, b) => a.breakdown.totalOnRoadPrice - b.breakdown.totalOnRoadPrice);
   const facts = [
     ["Fuel", pricing.variant.fuelType],
     ["Transmission", pricing.variant.transmission],
@@ -272,10 +265,10 @@ export default async function OnRoadPricePage({
 
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
           <PricingExplorer
-            brands={data.brands}
-            cities={data.cities}
-            models={data.models}
-            variants={data.variants}
+            brands={catalog.brands}
+            cities={catalog.cities}
+            models={catalog.models}
+            variants={catalog.variants}
             categoryIds={[pricing.model.categoryId]}
             initialBrandId={pricing.brand.id}
             initialModelId={pricing.model.id}
@@ -293,10 +286,10 @@ export default async function OnRoadPricePage({
                   <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Variant price table</p>
                   <h2 className="mt-1 text-xl font-black text-slate-950">Compare {pricing.model.name} variants in {pricing.city.name}</h2>
                 </div>
-                <span className="rounded-full bg-lime-300 px-3 py-1 text-xs font-black text-slate-950">{modelVariants.length} variants</span>
+                <span className="rounded-full bg-lime-300 px-3 py-1 text-xs font-black text-slate-950">{pricing.modelVariants.length} variants</span>
               </div>
               <VariantsPriceTable
-                rows={variantPrices.map((item) => ({
+                rows={sortedVariantPrices.map((item) => ({
                   id: item.variant.id,
                   name: item.variant.name,
                   slug: item.variant.slug,
@@ -312,7 +305,7 @@ export default async function OnRoadPricePage({
             </div>
 
             <div id="price">
-              <PriceBreakdown pricing={pricing} cities={data.cities} />
+              <PriceBreakdown pricing={pricing} cities={catalog.cities} />
             </div>
             <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-xl font-black text-slate-950">Key specifications</h2>
@@ -373,7 +366,7 @@ export default async function OnRoadPricePage({
               </div>
               <div className="mt-3">
                 <CityPriceSelector
-                  cities={data.cities}
+                  cities={catalog.cities}
                   currentCitySlug={pricing.city.slug}
                   brandSlug={pricing.brand.slug}
                   modelSlug={pricing.model.slug}

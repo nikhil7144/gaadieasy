@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { invalidateCacheForVariant, invalidateCacheForState } from "@/lib/services/pricing-cache";
 import { slugify } from "@/lib/utils/format";
 import type {
   Brand,
@@ -907,8 +908,33 @@ export async function createVariant(input: {
     .single();
 
   if (error) throw error;
+  const savedVariant = mapVariant(data as DbRow);
+  // Pre-fill pricing cache for all cities so first visitors get Tier 1 immediately
+  prefillVariantPricingCache(savedVariant).catch(() => {});
   revalidatePath("/", "layout");
-  return mapVariant(data as DbRow);
+  return savedVariant;
+}
+
+async function prefillVariantPricingCache(variant: VehicleVariant) {
+  const { getVehicleDataSet } = await import("@/lib/repositories/vehicle-data");
+  const { calculateOnRoadPriceFromData } = await import("@/lib/services/pricing");
+  const { batchSetCachedPricing } = await import("@/lib/services/pricing-cache");
+
+  const dataset = await getVehicleDataSet();
+  const model = dataset.models.find((m) => m.id === variant.modelId);
+  if (!model) return;
+  const brand = dataset.brands.find((b) => b.id === model.brandId);
+  if (!brand) return;
+
+  const rows = dataset.cities.map((city) => {
+    const result = calculateOnRoadPriceFromData(
+      { brand: brand.slug, model: model.slug, variant: variant.slug, city: city.slug },
+      dataset,
+    );
+    return { variantId: variant.id, cityId: city.id, breakdown: result.breakdown };
+  });
+
+  await batchSetCachedPricing(rows);
 }
 
 export async function updateVariant(input: Partial<Parameters<typeof createVariant>[0]> & { id: string }) {
@@ -946,6 +972,9 @@ export async function updateVariant(input: Partial<Parameters<typeof createVaria
 
   const { data, error } = await supabase.from("vehicle_variants").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;
+  if (input.exShowroomPrice !== undefined) {
+    invalidateCacheForVariant(input.id).catch(() => {});
+  }
   revalidatePath("/", "layout");
   return mapVariant(data as DbRow);
 }
@@ -994,6 +1023,7 @@ export async function deleteVariant(id: string) {
   const { error } = await supabase.from("vehicle_variants").delete().eq("id", id);
   if (error) throw error;
 
+  invalidateCacheForVariant(id).catch(() => {});
   revalidatePath("/admin/variants");
   revalidatePath("/", "layout");
 
@@ -1373,6 +1403,7 @@ export async function createTaxRule(input: {
     .single();
 
   if (error) throw error;
+  invalidateCacheForState(input.stateId).catch(() => {});
   revalidatePath("/admin");
   revalidatePath("/admin/tax-rules");
   return mapTaxRule(data as DbRow);
@@ -1406,6 +1437,8 @@ export async function updateTaxRule(input: {
 
   const { data, error } = await supabase.from("state_tax_rules").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;
+  const stateId = input.stateId ?? String((data as DbRow).state_id);
+  invalidateCacheForState(stateId).catch(() => {});
   revalidatePath("/admin");
   revalidatePath("/admin/tax-rules");
   return mapTaxRule(data as DbRow);

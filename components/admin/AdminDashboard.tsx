@@ -3,6 +3,7 @@ import { comparisonPages, leads, seoPages } from "@/lib/data";
 import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
 import { getAdminOffers } from "@/lib/services/admin-offers";
 import { formatIndianPrice } from "@/lib/utils/format";
+import { PricingCacheBackfill } from "@/components/admin/PricingCacheBackfill";
 
 export async function AdminDashboard() {
   const [{ brands, cities, dealers, models, taxRules, variants }, offers] = await Promise.all([
@@ -100,6 +101,8 @@ export async function AdminDashboard() {
           </Link>
         ))}
       </section>
+
+      <PricingCacheBackfill />
 
       <section id="tax" className="rounded-lg border border-amber-200 bg-amber-50 p-4">
         <h2 className="font-black text-slate-950">Pricing controls</h2>

@@ -18,6 +18,7 @@ import {
   variants,
 } from "@/lib/data";
 import { getVehicleDataSet, type VehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { batchGetCachedPricing, getCachedPricing, setCachedPricing } from "@/lib/services/pricing-cache";
 import type { PricingResult, PricingVehicleClass, StateTaxRule } from "@/types/automobile";
 
 type PricingQuery = {
@@ -580,4 +581,28 @@ export function calculateOnRoadPrice(query: PricingQuery): PricingResult {
 export async function calculateOnRoadPriceForApi(query: PricingQuery): Promise<PricingResult> {
   const data = await getVehicleDataSet();
   return calculateOnRoadPriceFromData(query, data);
+}
+
+export async function calculateOnRoadPriceWithCache(query: PricingQuery, data: VehicleDataSet): Promise<PricingResult> {
+  const result = calculateOnRoadPriceFromData(query, data);
+  const cached = await getCachedPricing(result.variant.id, result.city.id);
+  if (cached) return { ...result, breakdown: cached };
+  setCachedPricing(result.variant.id, result.city.id, result.breakdown).catch(() => {});
+  return result;
+}
+
+export async function batchCalculateWithCache(
+  queries: Array<{ brand: string; model: string; variant: string; city: string; variantId: string }>,
+  cityId: string,
+  data: VehicleDataSet,
+): Promise<PricingResult[]> {
+  const variantIds = queries.map((q) => q.variantId);
+  const cacheMap = await batchGetCachedPricing(variantIds, cityId);
+  return queries.map((q) => {
+    const result = calculateOnRoadPriceFromData(q, data);
+    const cached = cacheMap.get(q.variantId);
+    if (cached) return { ...result, breakdown: cached };
+    setCachedPricing(q.variantId, cityId, result.breakdown).catch(() => {});
+    return result;
+  });
 }

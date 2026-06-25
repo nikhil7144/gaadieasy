@@ -517,3 +517,28 @@ async function fetchVehicleDataSet(): Promise<VehicleDataSet> {
 // the page component both call getVehicleDataSet(), Supabase is only hit once.
 // No 2MB size limit, no silent failure.
 export const getVehicleDataSet = cache(fetchVehicleDataSet);
+
+export type SlimCatalog = {
+  brands: Brand[];
+  cities: City[];
+  models: VehicleModel[];
+  variants: VehicleVariant[];
+};
+
+async function fetchSlimCatalog(): Promise<SlimCatalog> {
+  const [brands, cities, models, variants] = await Promise.all([
+    readTable("brands"),
+    readTable("cities"),
+    readTable("vehicle_models"),
+    readTable("vehicle_variants"),
+  ]);
+
+  return {
+    brands: brands?.map(mapBrand) ?? seedBrands,
+    cities: cities?.map(mapCity) ?? seedCities,
+    models: models?.map(mapModel) ?? seedModels,
+    variants: variants?.map(mapVariant) ?? seedVariants,
+  };
+}
+
+export const getSlimCatalog = cache(fetchSlimCatalog);
