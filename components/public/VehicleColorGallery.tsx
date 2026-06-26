@@ -7,29 +7,9 @@ import type { VehicleMedia } from "@/types/automobile";
 
 type VehicleColorGalleryProps = {
   colors: string[];
-  colorHexMap?: Record<string, string>;
   media: VehicleMedia[];
   photoPageHref?: string;
 };
-
-const swatchMap: Record<string, string> = {
-  white: "#f8fafc",
-  black: "#111827",
-  grey: "#64748b",
-  gray: "#64748b",
-  silver: "#cbd5e1",
-  red: "#dc2626",
-  blue: "#2563eb",
-  green: "#22c55e",
-  purple: "#7c3aed",
-  khaki: "#a3a380",
-};
-
-function colorValue(name: string, colorHexMap?: Record<string, string>) {
-  if (colorHexMap?.[name]) return colorHexMap[name];
-  const match = Object.entries(swatchMap).find(([key]) => name.toLowerCase().includes(key));
-  return match?.[1] ?? "#84cc16";
-}
 
 function withPhotoParams(href: string, item?: VehicleMedia, color?: string) {
   const params = new URLSearchParams();
@@ -40,7 +20,7 @@ function withPhotoParams(href: string, item?: VehicleMedia, color?: string) {
   return query ? `${href}${separator}${query}` : href;
 }
 
-export function VehicleColorGallery({ colors, colorHexMap, media, photoPageHref }: VehicleColorGalleryProps) {
+export function VehicleColorGallery({ colors, media, photoPageHref }: VehicleColorGalleryProps) {
   const colorOptions = useMemo(
     () => {
       const mediaColors = media.map((item) => item.colorName).filter(Boolean) as string[];
@@ -88,7 +68,6 @@ export function VehicleColorGallery({ colors, colorHexMap, media, photoPageHref 
             type="button"
             key={color}
           >
-            <span className="h-4 w-4 rounded-full border border-slate-200" style={{ background: colorValue(color, colorHexMap) }} />
             <span className="break-words">{color}</span>
           </button>
         ))}

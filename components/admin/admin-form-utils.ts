@@ -48,6 +48,10 @@ async function sendAdminJson(url: string, method: "POST" | "PATCH" | "DELETE", b
     body: JSON.stringify(body),
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}: ${JSON.stringify(payload)}`);
+  if (!response.ok) {
+    const base = payload.error || `HTTP ${response.status}`;
+    const issues = Array.isArray(payload.issues) && payload.issues.length ? `\n${(payload.issues as string[]).join("\n")}` : "";
+    throw new Error(`${base}${issues}`);
+  }
   return payload;
 }

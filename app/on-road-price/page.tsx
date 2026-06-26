@@ -326,7 +326,6 @@ export default async function OnRoadPricePage({
             </div>
             <VehicleColorGallery
               colors={pricing.variant.specifications.colors}
-              colorHexMap={pricing.variant.specifications.colorHexMap}
               media={media}
               photoPageHref={`/photos?brand=${pricing.brand.slug}&model=${pricing.model.slug}&variant=${pricing.variant.slug}&city=${pricing.city.slug}`}
             />

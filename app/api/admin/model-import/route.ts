@@ -17,7 +17,10 @@ export async function POST(request: Request) {
 
   const parsed = modelImportSchema.safeParse(await request.json());
   if (!parsed.success) {
-    return Response.json({ error: "Invalid model import", issues: parsed.error.flatten() }, { status: 400 });
+    const first = parsed.error.issues[0];
+    const path = first?.path.join(".") || "root";
+    const message = first ? `${path}: ${first.message}` : "Invalid model import payload";
+    return Response.json({ error: message, issues: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`) }, { status: 400 });
   }
 
   try {

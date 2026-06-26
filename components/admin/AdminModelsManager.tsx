@@ -616,7 +616,13 @@ export function AdminModelsManager({
             required
           />
           {importResult ? <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">{importResult}</p> : null}
-          {importError ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{importError}</p> : null}
+          {importError ? (
+            <div className="rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">
+              {importError.split("\n").map((line, i) => (
+                <p key={i} className={i === 0 ? "" : "mt-1 font-mono text-xs font-normal"}>{line}</p>
+              ))}
+            </div>
+          ) : null}
           <button className="inline-flex w-fit items-center justify-center gap-2 rounded-md bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700" disabled={importing}>
             <FileJson size={16} /> {importing ? "Importing" : "Import model and variants"}
           </button>

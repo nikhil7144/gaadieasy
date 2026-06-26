@@ -879,6 +879,7 @@ export async function createVariant(input: {
   isDefault?: boolean;
   displayOrder?: number;
   active: boolean;
+  skipCachePrefill?: boolean;
 }) {
   const supabase = getAdminClient();
   if (input.isDefault) {
@@ -910,33 +911,41 @@ export async function createVariant(input: {
 
   if (error) throw error;
   const savedVariant = mapVariant(data as DbRow);
-  // Pre-fill pricing cache for all cities so first visitors get Tier 1 immediately
-  prefillVariantPricingCache(savedVariant).catch(() => {});
+  if (!input.skipCachePrefill) {
+    prefillVariantPricingCache(savedVariant).catch(() => {});
+  }
   revalidatePath("/", "layout");
   return savedVariant;
 }
 
 async function prefillVariantPricingCache(variant: VehicleVariant) {
+  await prefillVariantsPricingCache([variant]);
+}
+
+// Single getVehicleDataSet() load for all variants — used by bulk import to avoid N×7MB egress.
+async function prefillVariantsPricingCache(variants: VehicleVariant[]) {
+  if (!variants.length) return;
   const { getVehicleDataSet } = await import("@/lib/repositories/vehicle-data");
   const { calculateOnRoadPriceFromData } = await import("@/lib/services/pricing");
   const { batchSetCachedPricing } = await import("@/lib/services/pricing-cache");
 
   const dataset = await getVehicleDataSet();
-  const model = dataset.models.find((m) => m.id === variant.modelId);
-  if (!model) return;
-  const brand = dataset.brands.find((b) => b.id === model.brandId);
-  if (!brand) return;
-
   // Pre-fill metro cities only — smaller cities warm lazily on first user visit.
   // To add/remove a city from pre-fill, toggle is_metro in the cities table.
   const metroCities = dataset.cities.filter((c) => c.isMetro);
 
-  const rows = metroCities.map((city) => {
-    const result = calculateOnRoadPriceFromData(
-      { brand: brand.slug, model: model.slug, variant: variant.slug, city: city.slug },
-      dataset,
-    );
-    return { variantId: variant.id, cityId: city.id, breakdown: result.breakdown };
+  const rows = variants.flatMap((variant) => {
+    const model = dataset.models.find((m) => m.id === variant.modelId);
+    if (!model) return [];
+    const brand = dataset.brands.find((b) => b.id === model.brandId);
+    if (!brand) return [];
+    return metroCities.map((city) => {
+      const result = calculateOnRoadPriceFromData(
+        { brand: brand.slug, model: model.slug, variant: variant.slug, city: city.slug },
+        dataset,
+      );
+      return { variantId: variant.id, cityId: city.id, breakdown: result.breakdown };
+    });
   });
 
   await batchSetCachedPricing(rows);
@@ -1149,10 +1158,13 @@ export async function createModelWithVariants(input: {
 
     const variant = existingVariant
       ? await updateVariant({ id: existingVariant.id, modelId: model.id, ...variantInput })
-      : await createVariant({ modelId: model.id, ...variantInput });
+      : await createVariant({ modelId: model.id, ...variantInput, skipCachePrefill: true });
 
     createdVariants.push(variant);
   }
+
+  // One shared getVehicleDataSet() load for all variants instead of N×7MB from per-variant prefill.
+  prefillVariantsPricingCache(createdVariants).catch(() => {});
 
   revalidatePath("/", "layout");
 
