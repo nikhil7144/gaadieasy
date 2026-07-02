@@ -5,7 +5,7 @@ import { BrandLogo } from "@/components/public/BrandLogo";
 import { MarkdownBody } from "@/components/shared/MarkdownBody";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { getVehicleStoryBySlug, getVehicleStoryUpdates } from "@/lib/services/vehicle-stories";
 
 type Props = { params: Promise<{ brand: string; slug: string }> };
@@ -33,7 +33,7 @@ export default async function BrandUpdatePage({ params }: Props) {
 
   const [story, { brands }] = await Promise.all([
     getVehicleStoryBySlug(brandSlug, slug),
-    getVehicleDataSet(),
+    getBrowseDataSet(),
   ]);
 
   if (!story || story.modelId) notFound();

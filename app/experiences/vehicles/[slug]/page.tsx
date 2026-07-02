@@ -4,13 +4,13 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { getExperiencesByVehicleModel, summariseExperiences, type Experience } from "@/lib/services/experiences";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { ArrowLeft, ShieldCheck, PenLine } from "lucide-react";
 
 type RouteProps = { params: Promise<{ slug: string }> };
 
 async function getVehicleModel(slug: string) {
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   const model = data.models.find((m) => m.slug === slug && m.active);
   if (!model) return null;
   const brand = data.brands.find((b) => b.id === model.brandId);

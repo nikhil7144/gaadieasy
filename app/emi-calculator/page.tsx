@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { EmiCalculator } from "@/components/public/EmiCalculator";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
-import { calculateOnRoadPriceFromData } from "@/lib/services/pricing";
+import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
+import { getOnRoadPriceData } from "@/lib/services/on-road-price";
 
 export const metadata: Metadata = {
   title: "Car EMI Calculator — Monthly Payment, Interest & Schedule | Gaadieasy",
@@ -33,7 +33,7 @@ export default async function EmiCalculatorPage({ searchParams }: Props) {
 
   if (params.brand && params.model && params.city) {
     try {
-      const data  = await getVehicleDataSet();
+      const data  = await getBrowseDataSet();
       const brand = data.brands.find((b) => b.slug === params.brand);
       const model = data.models.find((m) => m.slug === params.model && m.brandId === brand?.id);
 
@@ -42,13 +42,16 @@ export default async function EmiCalculatorPage({ searchParams }: Props) {
           .filter((v) => v.modelId === model.id && v.active)
           .sort((a, b) => a.exShowroomPrice - b.exShowroomPrice);
 
-        variants = modelVariants.map((v) => {
-          const pricing = calculateOnRoadPriceFromData(
-            { brand: params.brand, model: params.model, variant: v.slug, city: params.city },
-            data,
-          );
-          return { id: v.id, name: v.name, onRoadPrice: pricing.breakdown.totalOnRoadPrice };
-        });
+        const priced = await Promise.all(
+          modelVariants.map((v) =>
+            getOnRoadPriceData({ brand: params.brand, model: params.model, variant: v.slug, city: params.city }),
+          ),
+        );
+        variants = modelVariants.map((v, index) => ({
+          id: v.id,
+          name: v.name,
+          onRoadPrice: priced[index].breakdown.totalOnRoadPrice,
+        }));
 
         const matched = modelVariants.find((v) => v.slug === params.variant);
         defaultVariantId = matched?.id ?? modelVariants[0]?.id;

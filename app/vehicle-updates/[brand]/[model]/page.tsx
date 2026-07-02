@@ -5,7 +5,7 @@ import { MarkdownBody } from "@/components/shared/MarkdownBody";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { getVehicleStoryBySlug, getVehicleStoryMedia, getVehicleStoryUpdates } from "@/lib/services/vehicle-stories";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { formatShortPrice } from "@/lib/utils/format";
 import type { VehicleStory } from "@/types/automobile";
 
@@ -41,7 +41,7 @@ export default async function VehicleStoryPage({ params }: Props) {
 
   const [story, { models, variants, brands }] = await Promise.all([
     getVehicleStoryBySlug(brand, model),
-    getVehicleDataSet(),
+    getBrowseDataSet(),
   ]);
 
   if (!story) notFound();
