@@ -149,14 +149,14 @@ export function findDealerForBrandCity(brandId: string, cityId: string) {
 }
 
 export async function getPublicBrandsForApi() {
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   return data.brands.filter((brand) => brand.active);
 }
 
 export async function getPublicBrandsWithModels(): Promise<
   { displayName: string; models: { id: string; name: string }[] }[]
 > {
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   const active = data.brands.filter((b) => b.active);
 
   const nameCounts = new Map<string, number>();
@@ -181,7 +181,7 @@ export async function getPublicBrandsWithModels(): Promise<
 }
 
 export async function getPublicBrandDisplayNames(): Promise<string[]> {
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   const active = data.brands.filter((b) => b.active);
 
   const nameCounts = new Map<string, number>();
@@ -200,12 +200,12 @@ export async function getPublicBrandDisplayNames(): Promise<string[]> {
 }
 
 export async function getPublicModelsForApi(brandId?: string) {
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   return data.models.filter((model) => model.active && (!brandId || model.brandId === brandId));
 }
 
 export async function getPublicVariantsForApi(modelId?: string) {
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   return data.variants.filter((variant) => variant.active && (!modelId || variant.modelId === modelId));
 }
 
@@ -255,7 +255,7 @@ export async function searchPublicCatalogForApi(query: string) {
     return [] as PublicSearchResult[];
   }
 
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   const defaultCitySlug = data.cities[0]?.slug ?? "bangalore";
   const activeBrands = data.brands.filter((brand) => brand.active);
   const activeModels = data.models.filter((model) => model.active);

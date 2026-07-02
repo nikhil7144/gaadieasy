@@ -30,7 +30,7 @@ export function HeaderSearch() {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const trimmedQuery = query.trim();
-  const shouldSearch = trimmedQuery.length >= 1;
+  const shouldSearch = trimmedQuery.length >= 2;
   const hasResults = results.length > 0;
 
   useEffect(() => {
