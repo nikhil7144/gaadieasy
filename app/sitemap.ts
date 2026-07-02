@@ -25,8 +25,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const { brands, models, variants, cities } = dataset;
 
-  // Use the top 5 cities for on-road price URL coverage (more city coverage = more search queries indexed)
-  const topCities = cities.slice(0, 5).map((c) => c.slug).filter(Boolean);
+  // Restrict on-road price URL coverage to the 3 highest-traffic metros — keeps the crawl
+  // surface bounded instead of growing with every model added (was top-5-by-table-order).
+  const priceCitySlugs = ["delhi", "mumbai", "bangalore"];
+  const topCities = cities.map((c) => c.slug).filter((slug) => priceCitySlugs.includes(slug));
   const defaultCity = topCities[0] ?? "bangalore";
 
   const staticRoutes = [

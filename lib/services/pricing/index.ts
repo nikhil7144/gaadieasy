@@ -420,13 +420,17 @@ export function calculateOnRoadPriceFromData(query: PricingQuery, data: VehicleD
     matchByIdOrSlug(data.models.filter((item) => item.active), query.model) ??
     matchByIdOrSlug(data.models, query.model);
   const requestedBrand = matchByIdOrSlug(data.brands, query.brand);
-  const brand =
+  const brandCandidate =
     (requestedModel ? data.brands.find((item) => item.id === requestedModel.brandId) : requestedBrand) ??
     requestedBrand ??
     data.brands[0] ??
     brands[0];
-  const brandModels = data.models.filter((item) => item.brandId === brand.id && item.active);
+  const brandModels = data.models.filter((item) => item.brandId === brandCandidate.id && item.active);
   const model = requestedModel ?? brandModels[0] ?? data.models[0] ?? models[0];
+  // Re-derive brand from the final resolved model — brandCandidate above is only a guess used
+  // to narrow brandModels; when it has no active models, `model` falls through to an unrelated
+  // brand's model, so brand must be re-matched to whatever model actually got picked.
+  const brand = data.brands.find((item) => item.id === model.brandId) ?? brandCandidate;
   const modelVariants = data.variants
     .filter((item) => item.modelId === model.id && item.active)
     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.exShowroomPrice - b.exShowroomPrice);
