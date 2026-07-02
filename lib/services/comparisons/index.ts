@@ -1,10 +1,10 @@
 import { comparisonPages as staticPages, cities as staticCities } from "@/lib/data";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { getComparisonPagesFromDb } from "@/lib/services/comparisons/db";
-import { calculateOnRoadPriceFromData } from "@/lib/services/pricing";
-import type { ComparisonPage, PricingResult } from "@/types/automobile";
+import { getOnRoadPriceData, type OnRoadPageData } from "@/lib/services/on-road-price";
+import type { ComparisonPage } from "@/types/automobile";
 
-function isPricingResult(value: PricingResult | undefined): value is PricingResult {
+function isOnRoadPageData(value: OnRoadPageData | undefined): value is OnRoadPageData {
   return Boolean(value);
 }
 
@@ -19,37 +19,36 @@ async function loadAllPages(): Promise<ComparisonPage[]> {
 }
 
 export async function getComparisonPage(slug: string) {
-  const [allPages, dataset] = await Promise.all([loadAllPages(), getVehicleDataSet()]);
+  const [allPages, browse] = await Promise.all([loadAllPages(), getBrowseDataSet()]);
 
   const page = allPages.find((item) => item.active && item.slug === slug);
   if (!page) return undefined;
 
   const city =
-    dataset.cities.find((c) => c.id === page.cityId) ??
+    browse.cities.find((c) => c.id === page.cityId) ??
     staticCities.find((c) => c.id === page.cityId) ??
-    dataset.cities[0];
+    browse.cities[0];
+  if (!city) return undefined;
 
   function vehicleFor(modelId: string, variantId: string) {
-    const model = dataset.models.find((m) => m.id === modelId);
-    const brand = dataset.brands.find((b) => b.id === model?.brandId);
-    const variant = dataset.variants.find((v) => v.id === variantId);
-    if (!model || !brand || !variant || !city) return undefined;
-    // Pass the Supabase dataset so it finds DB models, not static seed fallback
-    return calculateOnRoadPriceFromData(
-      { brand: brand.slug, model: model.slug, variant: variant.slug, city: city.slug },
-      dataset,
-    );
+    const model = browse.models.find((m) => m.id === modelId);
+    const brand = browse.brands.find((b) => b.id === model?.brandId);
+    const variant = browse.variants.find((v) => v.id === variantId);
+    if (!model || !brand || !variant) return undefined;
+    return getOnRoadPriceData({ brand: brand.slug, model: model.slug, variant: variant.slug, city: city.slug });
   }
 
-  const vehicles = [
-    vehicleFor(page.vehicle1ModelId, page.vehicle1VariantId),
-    vehicleFor(page.vehicle2ModelId, page.vehicle2VariantId),
-    page.vehicle3ModelId && page.vehicle3VariantId
-      ? vehicleFor(page.vehicle3ModelId, page.vehicle3VariantId)
-      : undefined,
-  ].filter(isPricingResult);
+  const vehicles = (
+    await Promise.all([
+      vehicleFor(page.vehicle1ModelId, page.vehicle1VariantId),
+      vehicleFor(page.vehicle2ModelId, page.vehicle2VariantId),
+      page.vehicle3ModelId && page.vehicle3VariantId
+        ? vehicleFor(page.vehicle3ModelId, page.vehicle3VariantId)
+        : Promise.resolve(undefined),
+    ])
+  ).filter(isOnRoadPageData);
 
-  return { page, city, vehicles };
+  return { page, city, cities: browse.cities, vehicles };
 }
 
 export async function getHomepageComparisons() {
