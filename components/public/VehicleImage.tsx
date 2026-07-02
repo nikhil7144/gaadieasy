@@ -26,5 +26,5 @@ export function VehicleImage({ src, alt, className }: VehicleImageProps) {
   }
 
   // eslint-disable-next-line @next/next/no-img-element
-  return <img className={className} src={src} alt={alt} onError={() => setFailed(true)} />;
+  return <img className={className} src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
 }

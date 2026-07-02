@@ -10,6 +10,12 @@ export default function robots(): MetadataRoute.Robots {
         disallow: "/",
       },
       {
+        // Image-indexing crawlers hit every <img> on every page (full-resolution,
+        // hosted on Supabase Storage) — block them without blocking normal page crawling.
+        userAgent: ["Googlebot-Image", "Bingbot-Image", "AdsBot-Google-Image", "Yahoo! Slurp"],
+        disallow: "/",
+      },
+      {
         userAgent: "*",
         allow: "/",
         crawlDelay: 10,

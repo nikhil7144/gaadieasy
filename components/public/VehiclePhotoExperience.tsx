@@ -173,7 +173,7 @@ export function VehiclePhotoExperience({ media, title, backHref, initialColor, i
                 key={item.id}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="aspect-[4/3] w-full object-cover" src={item.url} alt={item.alt} />
+                <img className="aspect-[4/3] w-full object-cover" src={item.url} alt={item.alt} loading="lazy" />
                 <div className="p-2 text-xs font-bold text-slate-700">
                   {item.colorName ? `${item.colorName} - ` : ""}
                   {item.alt}

@@ -43,8 +43,9 @@ automobile-platform/
 │   ├── admin/                  # Platform admin (auth-gated layout)
 │   │   ├── layout.tsx          # Auth check → AdminShell or login
 │   │   ├── brands/             # Manage brands
-│   │   ├── models/             # Manage models
+│   │   ├── models/             # Manage models (includes JSON import)
 │   │   ├── variants/           # Manage variants + media upload
+│   │   ├── cities/             # Manage cities (name, slug, state, isMetro, rtoStateCode)
 │   │   ├── tax-rules/          # State tax rules
 │   │   ├── rto-charges/        # RTO charges per city
 │   │   ├── insurance/          # Insurance rules
@@ -59,11 +60,14 @@ automobile-platform/
 │   ├── adminuser/              # Admin user setup page
 │   └── api/
 │       ├── admin/              # Admin mutation endpoints (POST/PATCH/DELETE)
+│       │   └── cities/         # POST create city, PATCH update city
+│       │   └── model-import/   # POST bulk model+variants JSON import
 │       ├── dealer/             # Dealer portal endpoints
 │       └── public/             # Read-only public endpoints (used by client components)
 │
 ├── components/
 │   ├── admin/                  # Admin UI — all "Manager" components + AdminShell
+│   │   └── AdminCitiesManager.tsx   # City CRUD — list with state filter, add/edit form
 │   ├── dealer/                 # Dealer portal UI
 │   ├── public/                 # Public-facing interactive components
 │   └── shared/                 # SiteHeader, SiteFooter, Skeleton, etc.
@@ -72,15 +76,17 @@ automobile-platform/
 │   ├── repositories/
 │   │   └── vehicle-data.ts     # THE central data loader — fetches all 20 tables
 │   ├── services/
-│   │   ├── admin-catalog/      # All admin CRUD operations (variants, models, brands…)
+│   │   ├── admin-catalog/      # All admin CRUD operations (variants, models, brands, cities…)
+│   │   ├── on-road-price/      # 2-tier pricing page data — cache-first, full fallback
 │   │   ├── pricing/            # On-road price calculation engine
+│   │   ├── pricing-cache/      # vehicle_pricing_cache table R/W + invalidation
 │   │   ├── discovery/          # Tab/filter logic for vehicle browse
 │   │   ├── public-data/        # Shapes data for homepage/public API
 │   │   ├── comparisons/        # Comparison page DB reads
 │   │   ├── reviews/            # vehicle_reviews table
 │   │   ├── vehicle-stories/    # vehicle_stories + vehicle_story_updates
 │   │   ├── experiences/        # experiences table
-│   │   ├── media/              # vehicle_media queries
+│   │   ├── media/              # vehicle_media queries (direct query, NOT getVehicleDataSet)
 │   │   ├── leads/              # Lead creation + assignment
 │   │   ├── city-pages/         # City page reads
 │   │   ├── seo/                # SEO page reads
@@ -99,7 +105,7 @@ automobile-platform/
 │   │   ├── format.ts           # formatIndianPrice, formatShortPrice, slugify
 │   │   └── emi.ts              # EMI calculation
 │   ├── validations/
-│   │   ├── admin.ts            # Zod schemas for admin mutations
+│   │   ├── admin.ts            # Zod schemas for admin mutations (incl. citySchema)
 │   │   └── lead.ts             # Zod schema for lead submission
 │   └── data.ts                 # Static seed data (fallback when DB is empty)
 │
@@ -132,9 +138,14 @@ getVehicleDataSet()          ← React cache() — deduplicates within one reque
 
 **Critical rules:**
 - Wrapped in React `cache()` — NOT `unstable_cache`. This means it deduplicates within a request (generateMetadata + page body share one fetch) but does NOT cache across requests.
-- The dataset is ~2MB+ — `unstable_cache` was tried and silently failed (Next.js 2MB limit). Do not put this back in `unstable_cache`.
+- The dataset is ~7MB — `unstable_cache` was tried and silently failed (Next.js 2MB limit). Do not put this back in `unstable_cache`.
 - Falls back to `seedDataSet` (from `lib/data.ts`) when DB returns empty brands/models/variants/cities.
 - Uses service role key via `createSupabaseAdminClient()`.
+- **NEVER add `getVehicleDataSet()` calls to the on-road-price render path.** That page has a 2-tier cache specifically to avoid loading this 7MB dataset.
+
+### `getSlimCatalog` — lightweight variant for PricingExplorer
+
+Returns only brands/cities/models/variants — no pricing tables, no specifications JSON. Used by the PricingExplorer client component on the on-road-price page. Much smaller than full dataset.
 
 ### Two Supabase Clients — Never Confuse Them
 
@@ -159,6 +170,67 @@ These tables are queried directly, not through the central dataset:
 | `experiences` | `lib/services/experiences/index.ts` | User-written buying experiences |
 | `comparison_pages` | `lib/services/comparisons/` | Vehicle comparison pages |
 | `seo_pages` | `lib/services/seo/index.ts` | SEO landing pages |
+| `vehicle_media` | `lib/services/media/index.ts` | Direct query — NOT via getVehicleDataSet |
+| `vehicle_pricing_cache` | `lib/services/pricing-cache/index.ts` | Pre-computed on-road prices |
+
+---
+
+## Two-Tier Pricing Cache
+
+### Architecture
+
+On-road-price page (`lib/services/on-road-price/index.ts`) uses a 2-tier system to avoid loading the 7MB dataset on every render.
+
+```
+User visits /on-road-price?variant=x&city=y
+  ↓
+Tier 1: resolveVariantAndCity (slug→ID, 3 targeted queries)
+  ↓
+getCachedPricing(variantId, cityId)  ← single row from vehicle_pricing_cache
+  ↓
+Cache HIT → targeted queries only (~50KB total):
+  cities, vehicle_variants, vehicle_models, brands,
+  states, rto_offices, dealer_brand_mappings, dealers, offers
+  ↓
+Cache MISS → Tier 2:
+  getVehicleDataSet() (7MB) → calculateOnRoadPriceFromData()
+  → write result to vehicle_pricing_cache → return result
+  (next visitor gets Tier 1)
+```
+
+**Egress comparison:** ~50KB (Tier 1) vs ~7MB (Tier 2 / before cache).
+
+### `vehicle_pricing_cache` table
+
+One row per `(variant_id, city_id)`. Columns: `variant_id`, `city_id`, `ex_showroom`, `road_tax`, `registration_fee`, `insurance`, `smart_card_fee`, `number_plate_fee`, `hypothecation_fee`, `fastag_fee`, `handling_charges`, `offer_discount`, `on_road_total`, `computed_at`.
+
+30,650 rows backfilled (613 variants × 50 cities).
+
+### Cache invalidation
+
+| Event | Action |
+|---|---|
+| Variant created | `prefillVariantPricingCache` — pre-fills metro cities only |
+| Variant price updated | `invalidateCacheForVariant(variantId)` — deletes that variant's rows |
+| Variant deleted | `invalidateCacheForVariant(variantId)` |
+| Tax rule created/updated | `invalidateCacheForState(stateId)` — deletes all rows for that state |
+| New city added | Lazy Tier 2 fill — first user visit per variant triggers write-back |
+
+### Metro cities pre-fill
+
+`prefillVariantPricingCache` only pre-fills cities where `is_metro = true`. Non-metro cities warm on first user visit. Toggle `is_metro` in the `cities` table to add/remove a city from pre-fill.
+
+### Bulk import optimization
+
+`createModelWithVariants` (JSON import) passes `skipCachePrefill: true` to each `createVariant` call, then calls `prefillVariantsPricingCache(allCreatedVariants)` once at the end. This loads `getVehicleDataSet()` once for the entire import instead of once per variant (N×7MB → 1×7MB).
+
+### `lib/services/media/index.ts` — `getVehicleMediaForApi`
+
+Queries `vehicle_media` table directly — NOT via `getVehicleDataSet()`. This was a critical bug fix: the old implementation called `getVehicleDataSet()` just to filter `data.media`, pulling in all 20 tables as a side effect on every on-road-price page render.
+
+### Known regression: React `cache()` on `getOnRoadPriceData`
+
+Wrapping `getOnRoadPriceData` in React `cache()` caused Status 0 errors in one deployment. Do not wrap it. The double-call (generateMetadata + page component = 2× Tier 1 queries per render) is a known inefficiency but not a correctness issue.
 
 ---
 
@@ -167,7 +239,7 @@ These tables are queried directly, not through the central dataset:
 | Page | Data source | Notes |
 |---|---|---|
 | `/` (homepage) | `getPublicHomepageDataForApi()` + `getHomepageComparisons()` | Pulls from VehicleDataSet |
-| `/on-road-price` | `getVehicleDataSet()` + `getReviewsForModel()` | Driven by `?brand=&model=&variant=&city=` params |
+| `/on-road-price` | `getOnRoadPriceData()` (2-tier cache) + `getVehicleMediaForApi()` + `getSlimCatalog()` | Tier 1 targeted queries only when cache is warm |
 | `/discover` | `getVehicleDataSet()` via public API | Client-side filter with server data |
 | `/vehicle-updates` | `getVehicleStories({ type: "vehicle_story" })` | Separate from brand updates |
 | `/vehicle-updates/[brand]/[model]` | `getVehicleStories()` | Single story by slug |
@@ -197,6 +269,12 @@ These tables are queried directly, not through the central dataset:
 
 `isPlatformAdmin` checks: `user.app_metadata.role === "platform_admin"` (set in Supabase Auth admin panel).
 
+### AdminShell Sidebar (`components/admin/AdminShell.tsx`)
+
+Sidebar is `md:flex flex-col` with `overflow-y-auto flex-1` nav area — scrollable when nav items exceed viewport height. Logo/title pinned at top.
+
+Nav items (in order): Dashboard, Brands, Models, Variants, **Cities**, Tax rules, RTO charges, Insurance, Dealers, Offers, Leads, Homepage banners, City pages, SEO pages, Comparisons, Vehicle updates.
+
 ### Admin API Route Pattern
 
 Every admin API route follows this exact pattern:
@@ -209,21 +287,23 @@ export async function POST/PATCH/DELETE(request: Request) {
 
   // 2. Validate input with Zod
   const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return Response.json({ error: "...", issues: ... }, { status: 400 });
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    const path = first?.path.join(".") || "root";
+    const message = first ? `${path}: ${first.message}` : "Invalid payload";
+    return Response.json({ error: message, issues: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`) }, { status: 400 });
+  }
 
   // 3. Call service function
   try {
     return Response.json({ result: await serviceFunction(parsed.data) });
   } catch (error) {
-    console.error("[METHOD /api/admin/...] error:", JSON.stringify(error));
-    const message = error instanceof Error ? error.message
-      : (error !== null && typeof error === "object" && "message" in error)
-          ? String((error as { message: unknown }).message)
-          : JSON.stringify(error);
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : "..." }, { status: 500 });
   }
 }
 ```
+
+**Zod error format:** The `model-import` route returns `{ error: "path: message", issues: ["path: message", ...] }` so the UI can show all failures. `sendAdminJson` in `admin-form-utils.ts` appends issues as newlines to the thrown error.
 
 **Supabase errors are plain objects, not `instanceof Error`** — always check for `.message` property on objects.
 
@@ -241,7 +321,27 @@ deleteAdminJson(url, body)  // DELETE — body in DELETE request, parsed with re
 All use `sendAdminJson` which:
 1. Sends with `Content-Type: application/json`
 2. Parses response as JSON
-3. Throws `new Error(payload.error || \`HTTP \${response.status}: ...\`)` on non-ok — note `||` not `??` (empty string fallback matters)
+3. Throws error that includes `payload.issues` lines when present (newline-separated)
+4. Falls back to `HTTP ${status}` if no `payload.error`
+
+Error display for JSON import uses `importError.split("\n").map(...)` to render the first line bold and subsequent issue lines in monospace.
+
+---
+
+## Cities (`cities` table)
+
+**Columns:** `id`, `state_id`, `name`, `slug`, `default_rto_id`, `tier`, `is_metro`, `rto_state_code`
+
+**No `active` column** — the cities table does not have an active flag. Do not add it to insert/update queries.
+
+**`City` type** (`types/automobile.ts`):
+```ts
+{ id, stateId, name, slug, defaultRtoId, tier?, isMetro?, rtoStateCode? }
+```
+
+**`is_metro`:** Boolean flag. When `true`, this city is pre-filled in the pricing cache when a new variant is created. Toggle this to control which cities are warm on first render vs lazy-loaded.
+
+**Admin CRUD:** `createCity` / `updateCity` in `lib/services/admin-catalog/index.ts`. Schema: `citySchema` in `lib/validations/admin.ts`. API route: `app/api/admin/cities/route.ts`.
 
 ---
 
@@ -252,9 +352,12 @@ All use `sendAdminJson` which:
 All admin CRUD lives here. Key patterns:
 
 - Always uses `getAdminClient()` which calls `createSupabaseAdminClient()` and throws if null
-- Maps DB rows with `mapBrand`, `mapModel`, `mapVariant`, etc. (snake_case → camelCase)
+- Maps DB rows with `mapBrand`, `mapModel`, `mapVariant`, `mapCity`, etc. (snake_case → camelCase)
 - Calls `revalidatePath("/", "layout")` after mutations to bust ISR cache
 - **Delete operations** check FK blockers first, then clean up dependent tables before deleting the parent row
+
+**`createVariant` — `skipCachePrefill` flag:**
+Pass `skipCachePrefill: true` when creating variants in a bulk loop to avoid N×7MB egress. The caller is responsible for calling `prefillVariantsPricingCache(variants)` once at the end.
 
 **`deleteVariant` cascade order:**
 1. Count check on `vehicle_leads` and `comparison_pages` (block if linked)
@@ -290,7 +393,69 @@ Both use the same `vehicle_stories` table and `VehicleStory` type. Separated by 
 - `"vehicle_story"` → shows on `/vehicle-updates`
 - `"brand_update"` → shows on `/brand-updates`
 
-**These are separate URL namespaces and must NEVER be mixed.** The admin page creates both types but the `storyType` field controls which feed they appear in.
+**These are separate URL namespaces and must NEVER be mixed.**
+
+---
+
+## Model JSON Import (`/api/admin/model-import`)
+
+Endpoint: `POST /api/admin/model-import`
+
+Schema (`modelImportSchema` in `lib/validations/admin.ts`):
+```json
+{
+  "brandId": "UUID",
+  "categoryId": "UUID",
+  "model": {
+    "name": "string (min 2)",
+    "bodyType": "string",
+    "slug": "optional — auto-generated from name",
+    "launchLabel": "",
+    "tags": [],
+    "imageUrl": "",
+    "overview": "",
+    "pros": [],
+    "cons": [],
+    "faq": [{ "question": "", "answer": "" }],
+    "active": true,
+    "featured": false
+  },
+  "variants": [{
+    "name": "string",
+    "exShowroomPrice": 1000000,
+    "fuelType": "Petrol|Diesel|CNG|Hybrid|Electric",
+    "transmission": "Manual|Automatic|AMT|CVT|DCT",
+    "engineCapacity": "1462 cc  OR  45 kWh battery (EV)",
+    "engineCc": 1462,
+    "maxPowerPs": 103,
+    "mileage": "19.8 kmpl  OR  502 km range (EV)",
+    "seatingCapacity": 5,
+    "isDefault": false,
+    "displayOrder": 1,
+    "active": true,
+    "specifications": {
+      "engine": { "maxPower": "", "maxTorque": "", "cylinders": "", "driveType": "", "emissionNorm": "" },
+      "dimensions": { "length": "", "width": "", "height": "", "wheelbase": "", "bootSpace": "", "groundClearance": "" },
+      "safety": { "airbags": "", "abs": "", "esc": "", "camera": "", "sensors": "", "rating": "" },
+      "interior": { "upholstery": "", "dashboard": "", "infotainment": "", "speakers": "", "airConditioning": "", "seatFeatures": "" },
+      "exterior": { "headlamps": "", "wheels": "", "roofRails": "", "sunroof": "" },
+      "ev": { "batteryCapacity": "", "batteryHealth": "", "claimedRange": "", "realWorldRange": "", "chargerType": "", "chargingTime": "" },
+      "bike": { "brakeType": "", "suspensionType": "", "wheelSize": "", "seatHeight": "", "kerbWeight": "", "ridingModes": "" }
+    },
+    "specificationGroups": [{ "title": "", "description": "", "fields": [{ "label": "", "value": "" }] }]
+  }]
+}
+```
+
+**Vehicle type guidance:**
+- Car: include `engine`, `dimensions`, `safety`, `interior`, `exterior` spec groups
+- Bike: include `engine`, `dimensions`, `safety`, `bike` spec groups. Rename first group "Motor and performance" for EV bikes
+- Scooter: `transmission: "CVT"`, include `engine`, `dimensions`, `bike` spec groups
+- EV (any): `fuelType: "Electric"`, `transmission: "Automatic"`, add `ev` spec group, use battery size for `engineCapacity`, use range for `mileage`
+
+**`specifications` vs `specificationGroups`:** `specifications` is a nested object used for search/filtering. `specificationGroups` is the display structure shown on the variant detail page. Keep them in sync.
+
+**Egress:** One `getVehicleDataSet()` call (7MB) shared across all variants in the import — not per variant. Fixed in Jun 2026 via `skipCachePrefill` flag + bulk `prefillVariantsPricingCache`.
 
 ---
 
@@ -310,7 +475,7 @@ Key types and their DB table:
 | `VehicleSpecifications` | JSON column in `vehicle_variants.specifications` |
 | `SpecificationGroup` | JSON column in `vehicle_variants.specification_groups` |
 | `State` | `states` |
-| `City` | `cities` |
+| `City` | `cities` — NO `active` column in DB |
 | `StateTaxRule` | `state_tax_rules` |
 | `RtoCharge` | `rto_charges` |
 | `InsuranceRule` | `insurance_rules` |
@@ -370,6 +535,10 @@ Each admin section has one large client component (`AdminXxxManager.tsx`) that:
 - Shows errors inline (never swallows them)
 - Uses `adminFieldClass` from `admin-form-utils.ts` for consistent input styling
 
+### `VehicleColorGallery` (`components/public/VehicleColorGallery.tsx`)
+
+Shows color names only — no color dot swatches. The `colorHexMap` from variant specifications is still stored in DB and used by the admin variant editor, but is NOT passed to this component. Do not re-add the color dot.
+
 ### Style Conventions
 
 - Tailwind utility classes — no CSS modules, no styled-components
@@ -386,8 +555,10 @@ Each admin section has one large client component (`AdminXxxManager.tsx`) that:
 | What | How | TTL |
 |---|---|---|
 | `getVehicleDataSet` | React `cache()` | Per-request (no cross-request cache) |
+| `getSlimCatalog` | React `cache()` | Per-request |
 | `getReviewsForModel` | `unstable_cache` | 60 seconds |
 | `getVehicleStories` | `unstable_cache` | 60 seconds |
+| `vehicle_pricing_cache` | Supabase table rows | Until invalidated by variant/tax/rto change |
 | Admin pages | No cache — always fresh | — |
 | After any mutation | `revalidatePath("/", "layout")` | Immediate ISR bust |
 
@@ -425,6 +596,12 @@ Each admin section has one large client component (`AdminXxxManager.tsx`) that:
 
 8. **`vehicle_stories` is split by `storyType`** — `vehicle_story` = `/vehicle-updates`, `brand_update` = `/brand-updates`. Never show brand updates on vehicle-updates page.
 
-9. **`getVehicleDataSet` fetches 20 tables** — ~2MB response. Any new tables added to this dataset push toward the limit. Keep separate tables separate.
+9. **`getVehicleDataSet` is 7MB** — any new tables added to this dataset push egress. Keep new tables separate. The on-road-price page has a 2-tier cache to avoid loading this; never bypass it.
 
 10. **Admin auth requires `app_metadata.role = "platform_admin"`** — set via Supabase Dashboard Auth panel, not the public API.
+
+11. **`cities` table has NO `active` column** — do not add `active` to city insert/update queries. Learned after schema error in Jun 2026.
+
+12. **JSON import egress** — `createModelWithVariants` passes `skipCachePrefill: true` to all inner `createVariant` calls and does a single bulk prefill at the end. If you add another bulk-variant operation, follow the same pattern to avoid N×7MB egress.
+
+13. **React `cache()` on service functions** — wrapping `getOnRoadPriceData` in `cache()` caused Status 0 (stream abort) in production. `getVehicleDataSet` itself uses `cache()` safely. Do not wrap other top-level service functions in `cache()` without testing thoroughly.

@@ -86,7 +86,7 @@ export function VehicleGallery({ media, title }: VehicleGalleryProps) {
             {secondary.map((item) => (
               <button className="relative overflow-hidden rounded-lg bg-slate-900" onClick={() => openViewer(item.id)} type="button" key={item.id}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="h-full min-h-[150px] w-full object-cover transition duration-500 hover:scale-105" src={item.url} alt={item.alt} />
+                <img className="h-full min-h-[150px] w-full object-cover transition duration-500 hover:scale-105" src={item.url} alt={item.alt} loading="lazy" />
               </button>
             ))}
           </div>
@@ -204,7 +204,7 @@ export function VehicleGallery({ media, title }: VehicleGalleryProps) {
                       key={item.id}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img className="aspect-[4/3] w-full object-cover" src={item.url} alt={item.alt} />
+                      <img className="aspect-[4/3] w-full object-cover" src={item.url} alt={item.alt} loading="lazy" />
                       <div className="p-2 text-xs font-bold text-emerald-50">
                         {item.colorName ? `${item.colorName} - ` : ""}
                         {item.alt}

@@ -78,12 +78,12 @@ export function VehicleColorGallery({ colors, media, photoPageHref }: VehicleCol
             {photoPageHref ? (
               <Link href={withPhotoParams(photoPageHref, item, item.colorName ?? activeColor)} className="block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="aspect-[4/3] w-full object-cover transition duration-300 hover:scale-105" src={item.url} alt={item.alt} />
+                <img className="aspect-[4/3] w-full object-cover transition duration-300 hover:scale-105" src={item.url} alt={item.alt} loading="lazy" />
               </Link>
             ) : (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="aspect-[4/3] w-full object-cover" src={item.url} alt={item.alt} />
+                <img className="aspect-[4/3] w-full object-cover" src={item.url} alt={item.alt} loading="lazy" />
               </>
             )}
             <figcaption className="p-3 text-sm font-bold text-slate-700">{item.alt}</figcaption>
