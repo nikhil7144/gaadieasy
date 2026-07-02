@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { VehiclePhotoExperience } from "@/components/public/VehiclePhotoExperience";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { getVehicleMediaForApi } from "@/lib/services/media";
-import { calculateOnRoadPriceFromData } from "@/lib/services/pricing";
+import { getOnRoadPriceData } from "@/lib/services/on-road-price";
 
 export const metadata: Metadata = {
   title: "Vehicle Photos | Gaadieasy",
@@ -17,8 +17,10 @@ export default async function VehiclePhotosPage({
   searchParams: Promise<{ brand?: string; model?: string; variant?: string; city?: string; color?: string; photo?: string }>;
 }) {
   const params = await searchParams;
-  const data = await getVehicleDataSet();
-  const pricing = calculateOnRoadPriceFromData(params, data);
+  const [pricing, browseData] = await Promise.all([
+    getOnRoadPriceData(params),
+    getBrowseDataSet(),
+  ]);
   const media = await getVehicleMediaForApi(pricing.model.id, pricing.variant.id);
   const title = `${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name}`;
   const backParams = new URLSearchParams({
@@ -40,7 +42,7 @@ export default async function VehiclePhotosPage({
           initialPhotoId={params.photo}
         />
       </main>
-      <SiteFooter brandsOverride={data.brands} />
+      <SiteFooter brandsOverride={browseData.brands} />
     </div>
   );
 }

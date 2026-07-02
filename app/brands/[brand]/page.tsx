@@ -6,13 +6,13 @@ import { VehicleCompareModal } from "@/components/public/VehicleCompareModal";
 import { VehicleImage } from "@/components/public/VehicleImage";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { getVehicleStories } from "@/lib/services/vehicle-stories";
 import { formatShortPrice } from "@/lib/utils/format";
 
 export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
   const { brand: brandSlug } = await params;
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   const brand = data.brands.find((item) => item.slug === brandSlug && item.active);
 
   if (!brand) return { title: "Brand not found" };
@@ -71,7 +71,7 @@ function onRoadPriceHref({
 export default async function BrandModelsPage({ params }: { params: Promise<{ brand: string }> }) {
   const { brand: brandSlug } = await params;
   const [data, allStories] = await Promise.all([
-    getVehicleDataSet(),
+    getBrowseDataSet(),
     getVehicleStories({ activeOnly: true }).catch(() => []),
   ]);
   const brand = data.brands.find((item) => item.slug === brandSlug && item.active);

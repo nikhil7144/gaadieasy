@@ -1,8 +1,24 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getVehicleDataSet, type VehicleDataSet } from "@/lib/repositories/vehicle-data";
 import { batchCalculateWithCache, calculateOnRoadPriceFromData } from "@/lib/services/pricing";
 import { batchGetCachedPricing, getCachedPricing, setCachedPricing } from "@/lib/services/pricing-cache";
-import type { Brand, City, Dealer, Offer, PriceBreakdown, RtoOffice, State, VehicleModel, VehicleVariant } from "@/types/automobile";
+import type {
+  Brand,
+  City,
+  Dealer,
+  GstRule,
+  InsuranceRule,
+  Offer,
+  PriceBreakdown,
+  RegistrationFeeRule,
+  RtoCharge,
+  RtoOffice,
+  State,
+  StateTaxRule,
+  VehicleCategory,
+  VehicleModel,
+  VehicleVariant,
+} from "@/types/automobile";
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -87,6 +103,50 @@ function toDealer(r: R): Dealer {
     logoUrl: ostr(r, "logo_url"), cityId: str(r, "city_id"), area: str(r, "area"),
     contactPerson: str(r, "contact_person"), phone: str(r, "phone"), email: str(r, "email"),
     gstNumber: ostr(r, "gst_number"), active: bol(r, "active", true), verified: bol(r, "verified"), priority: num(r, "priority"),
+  };
+}
+
+function toCategory(r: R): VehicleCategory {
+  return { id: str(r, "id"), name: str(r, "name"), slug: str(r, "slug"), description: str(r, "description") };
+}
+
+function toTaxRule(r: R): StateTaxRule {
+  return {
+    id: str(r, "id"), stateId: str(r, "state_id"), categoryId: str(r, "category_id"),
+    fuelType: ostr(r, "fuel_type") as StateTaxRule["fuelType"],
+    minPrice: num(r, "min_price"), maxPrice: onum(r, "max_price"),
+    roadTaxPercent: num(r, "road_tax_percent"), fixedTaxAmount: num(r, "fixed_tax_amount"),
+    evExemptionPercent: num(r, "ev_exemption_percent"), luxuryCessPercent: num(r, "luxury_cess_percent"),
+    active: bol(r, "active", true),
+  };
+}
+
+function toRtoCharge(r: R): RtoCharge {
+  return {
+    id: str(r, "id"), stateId: str(r, "state_id"), cityId: str(r, "city_id"), rtoId: str(r, "rto_id"),
+    registrationFee: num(r, "registration_fee"), smartCardFee: num(r, "smart_card_fee"),
+    numberPlateFee: num(r, "number_plate_fee"), hypothecationFee: num(r, "hypothecation_fee"),
+    fastagFee: num(r, "fastag_fee"), handlingCharges: num(r, "handling_charges"), active: bol(r, "active", true),
+  };
+}
+
+function toInsuranceRule(r: R): InsuranceRule {
+  return {
+    id: str(r, "id"), categoryId: str(r, "category_id"), fuelType: ostr(r, "fuel_type") as InsuranceRule["fuelType"],
+    percentOfExShowroom: num(r, "percent_of_ex_showroom"), fixedAmount: num(r, "fixed_amount"), active: bol(r, "active", true),
+  };
+}
+
+function toGstRule(r: R): GstRule {
+  return { id: str(r, "id"), vehicleClass: str(r, "vehicle_class") as GstRule["vehicleClass"], gstPercent: num(r, "gst_percent"), active: bol(r, "active", true) };
+}
+
+function toRegistrationFeeRule(r: R): RegistrationFeeRule {
+  return {
+    id: str(r, "id"), vehicleClass: str(r, "vehicle_class") as RegistrationFeeRule["vehicleClass"],
+    registrationFee: num(r, "registration_fee"), smartCardFee: num(r, "smart_card_fee"),
+    numberPlateFee: num(r, "number_plate_fee"), hypothecationFee: num(r, "hypothecation_fee"),
+    fastagFee: num(r, "fastag_fee"), handlingCharges: num(r, "handling_charges"), active: bol(r, "active", true),
   };
 }
 
@@ -225,6 +285,86 @@ async function fetchOffers(supabase: Supa, brandId: string, modelId: string, cit
   return { offer, dealerOffers };
 }
 
+// ── Tier 1: Minimal dataset for cache-miss ────────────────────────────────────
+
+async function fetchMinimalPricingTables(supabase: Supa, categoryId: string, stateId: string, cityId: string) {
+  const [categoryRes, taxRes, rtoChargeRes, insuranceRes, gstRes, regFeeRes] = await Promise.all([
+    supabase.from("vehicle_categories").select("*").eq("id", categoryId).limit(1).maybeSingle(),
+    supabase.from("state_tax_rules").select("*").eq("state_id", stateId),
+    supabase.from("rto_charges").select("*").eq("city_id", cityId),
+    supabase.from("insurance_rules").select("*").eq("category_id", categoryId),
+    supabase.from("gst_rules").select("*"),
+    supabase.from("registration_fee_rules").select("*"),
+  ]);
+
+  return {
+    category: categoryRes.data ? toCategory(categoryRes.data as R) : undefined,
+    taxRules: (taxRes.data ?? []).map((r) => toTaxRule(r as R)),
+    rtoCharges: (rtoChargeRes.data ?? []).map((r) => toRtoCharge(r as R)),
+    insuranceRules: (insuranceRes.data ?? []).map((r) => toInsuranceRule(r as R)),
+    gstRules: (gstRes.data ?? []).map((r) => toGstRule(r as R)),
+    registrationFeeRules: (regFeeRes.data ?? []).map((r) => toRegistrationFeeRule(r as R)),
+  };
+}
+
+async function computeMinimalPricing(
+  supabase: Supa,
+  ctx: {
+    variant: VehicleVariant; model: VehicleModel; brand: Brand; city: City; state: State;
+    rto?: RtoOffice; dealer?: Dealer; offersData: { offer?: Offer; dealerOffers: Offer[] }; siblings: VehicleVariant[];
+  },
+  params: { brand?: string; model?: string; variant?: string; city?: string },
+): Promise<OnRoadPageData> {
+  const { variant, model, brand, city, state, rto, dealer, offersData, siblings } = ctx;
+
+  const tables = await fetchMinimalPricingTables(supabase, model.categoryId, state.id, city.id);
+  if (!tables.category) return tier2(params); // data integrity issue — bail to full fetch rather than mis-price
+
+  const data: VehicleDataSet = {
+    categories: [tables.category],
+    brands: [brand],
+    models: [model],
+    variants: siblings,
+    media: [],
+    states: [state],
+    cities: [city],
+    rtoOffices: rto ? [rto] : [],
+    taxRules: tables.taxRules,
+    rtoCharges: tables.rtoCharges,
+    insuranceRules: tables.insuranceRules,
+    gstRules: tables.gstRules,
+    registrationFeeRules: tables.registrationFeeRules,
+    dealerBusinesses: [],
+    dealers: [],
+    dealerUsers: [],
+    dealerBrandMappings: [],
+    offers: [],
+    heroPromotions: [],
+    cityPages: [],
+  };
+
+  const pricing = calculateOnRoadPriceFromData(
+    { brand: brand.slug, model: model.slug, variant: variant.slug, city: city.slug },
+    data,
+  );
+  setCachedPricing(variant.id, city.id, pricing.breakdown).catch(() => {});
+
+  const variantPricesRaw = await batchCalculateWithCache(
+    siblings.map((v) => ({ brand: brand.slug, model: model.slug, variant: v.slug, city: city.slug, variantId: v.id })),
+    city.id,
+    data,
+  );
+
+  return {
+    brand, model, variant, city, state, rto, dealer,
+    offer: offersData.offer,
+    dealerOffers: offersData.dealerOffers,
+    breakdown: pricing.breakdown,
+    modelVariants: siblings,
+    variantPrices: variantPricesRaw.map((r) => ({ variant: r.variant, breakdown: r.breakdown })),
+  };
+}
+
 // ── Tier 2: Full dataset fallback ─────────────────────────────────────────────
 
 async function tier2(params: { brand?: string; model?: string; variant?: string; city?: string }): Promise<OnRoadPageData> {
@@ -292,7 +432,9 @@ export async function getOnRoadPriceData(params: {
     fetchOffers(supabase, brand.id, model.id, city.id),
   ]);
 
-  if (!cachedBreakdown) return tier2(params);
+  if (!cachedBreakdown) {
+    return computeMinimalPricing(supabase, { variant, model, brand, city, state, rto, dealer, offersData, siblings }, params);
+  }
 
   // Round 3: sibling prices from cache
   const siblingPriceMap = await batchGetCachedPricing(siblings.map((s) => s.id), city.id);

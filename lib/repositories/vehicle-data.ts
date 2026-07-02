@@ -247,7 +247,7 @@ function mapMedia(row: DbRow): VehicleMedia {
   };
 }
 
-function mapState(row: DbRow): State {
+export function mapState(row: DbRow): State {
   return { id: stringValue(row, "id"), name: stringValue(row, "name"), code: stringValue(row, "code") };
 }
 
@@ -264,7 +264,7 @@ function mapCity(row: DbRow): City {
   };
 }
 
-function mapCityPage(row: DbRow): CityPage {
+export function mapCityPage(row: DbRow): CityPage {
   return {
     id: stringValue(row, "id"),
     cityId: stringValue(row, "city_id"),
@@ -287,7 +287,7 @@ function mapCityPage(row: DbRow): CityPage {
   };
 }
 
-function mapRtoOffice(row: DbRow): RtoOffice {
+export function mapRtoOffice(row: DbRow): RtoOffice {
   return {
     id: stringValue(row, "id"),
     stateId: stringValue(row, "state_id"),
@@ -297,7 +297,7 @@ function mapRtoOffice(row: DbRow): RtoOffice {
   };
 }
 
-function mapTaxRule(row: DbRow): StateTaxRule {
+export function mapTaxRule(row: DbRow): StateTaxRule {
   return {
     id: stringValue(row, "id"),
     stateId: stringValue(row, "state_id"),
@@ -313,7 +313,7 @@ function mapTaxRule(row: DbRow): StateTaxRule {
   };
 }
 
-function mapRtoCharge(row: DbRow): RtoCharge {
+export function mapRtoCharge(row: DbRow): RtoCharge {
   return {
     id: stringValue(row, "id"),
     stateId: stringValue(row, "state_id"),
@@ -329,7 +329,7 @@ function mapRtoCharge(row: DbRow): RtoCharge {
   };
 }
 
-function mapInsuranceRule(row: DbRow): InsuranceRule {
+export function mapInsuranceRule(row: DbRow): InsuranceRule {
   return {
     id: stringValue(row, "id"),
     categoryId: stringValue(row, "category_id"),
@@ -340,7 +340,7 @@ function mapInsuranceRule(row: DbRow): InsuranceRule {
   };
 }
 
-function mapGstRule(row: DbRow): GstRule {
+export function mapGstRule(row: DbRow): GstRule {
   return {
     id: stringValue(row, "id"),
     vehicleClass: stringValue(row, "vehicle_class") as GstRule["vehicleClass"],
@@ -349,7 +349,7 @@ function mapGstRule(row: DbRow): GstRule {
   };
 }
 
-function mapRegistrationFeeRule(row: DbRow): RegistrationFeeRule {
+export function mapRegistrationFeeRule(row: DbRow): RegistrationFeeRule {
   return {
     id: stringValue(row, "id"),
     vehicleClass: stringValue(row, "vehicle_class") as RegistrationFeeRule["vehicleClass"],
@@ -363,7 +363,7 @@ function mapRegistrationFeeRule(row: DbRow): RegistrationFeeRule {
   };
 }
 
-function mapDealer(row: DbRow): Dealer {
+export function mapDealer(row: DbRow): Dealer {
   return {
     id: stringValue(row, "id"),
     dealerBusinessId: optionalString(row, "dealer_business_id"),
@@ -408,7 +408,7 @@ function mapDealerUser(row: DbRow): DealerUser {
   };
 }
 
-function mapDealerBrandMapping(row: DbRow): DealerBrandMapping {
+export function mapDealerBrandMapping(row: DbRow): DealerBrandMapping {
   return {
     id: stringValue(row, "id"),
     dealerId: stringValue(row, "dealer_id"),
@@ -418,7 +418,7 @@ function mapDealerBrandMapping(row: DbRow): DealerBrandMapping {
   };
 }
 
-function mapOffer(row: DbRow): Offer {
+export function mapOffer(row: DbRow): Offer {
   return {
     id: stringValue(row, "id"),
     title: stringValue(row, "title"),
@@ -549,3 +549,52 @@ async function fetchSlimCatalog(): Promise<SlimCatalog> {
 }
 
 export const getSlimCatalog = cache(fetchSlimCatalog);
+
+export type BrowseDataSet = {
+  categories: VehicleCategory[];
+  brands: Brand[];
+  models: VehicleModel[];
+  variants: VehicleVariant[];
+  media: VehicleMedia[];
+  cities: City[];
+  heroPromotions: HeroPromotion[];
+};
+
+async function fetchBrowseDataSet(): Promise<BrowseDataSet> {
+  const [categories, brands, models, variants, media, cities, heroPromotions] = await Promise.all([
+    readTable("vehicle_categories"),
+    readTable("brands"),
+    readTable("vehicle_models"),
+    readTable("vehicle_variants"),
+    readTable("vehicle_media"),
+    readTable("cities"),
+    readTable("hero_promotions"),
+  ]);
+
+  if (!brands?.length || !models?.length || !variants?.length || !cities?.length) {
+    return {
+      categories: seedCategories,
+      brands: seedBrands,
+      models: seedModels,
+      variants: seedVariants,
+      media: seedVehicleMedia,
+      cities: seedCities,
+      heroPromotions: seedHeroPromotions,
+    };
+  }
+
+  return {
+    categories: categories?.map(mapCategory) ?? seedCategories,
+    brands: brands.map(mapBrand),
+    models: models.map(mapModel),
+    variants: variants.map(mapVariant),
+    media: media?.map(mapMedia) ?? [],
+    cities: cities.map(mapCity),
+    heroPromotions: heroPromotions?.map(mapHeroPromotion) ?? seedHeroPromotions,
+  };
+}
+
+// Narrower than getVehicleDataSet — only the 7 tables browse/listing pages actually
+// touch (categories, brands, models, variants, media, cities, heroPromotions). Used by
+// homepage, /discover, and /brands/[brand] to avoid pulling all 20 tables per pageview.
+export const getBrowseDataSet = cache(fetchBrowseDataSet);

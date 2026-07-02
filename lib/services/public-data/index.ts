@@ -9,7 +9,7 @@ import {
   states,
   variants,
 } from "@/lib/data";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrowseDataSet, getVehicleDataSet } from "@/lib/repositories/vehicle-data";
 import type { VehicleVariant } from "@/types/automobile";
 
 function sortVariants(list: VehicleVariant[]): VehicleVariant[] {
@@ -63,7 +63,7 @@ export function getPublicHomepageData() {
 }
 
 export async function getPublicHomepageDataForApi() {
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   const featuredModels = data.models.filter((model) => model.active && model.featured);
   const activeBrands = data.brands.filter((brand) => brand.active);
   const activeModels = (featuredModels.length ? featuredModels : data.models.filter((model) => model.active)).map((model) => {
@@ -107,7 +107,7 @@ export function getPublicDiscoveryData() {
 }
 
 export async function getPublicDiscoveryDataForApi() {
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   const activeBrands = data.brands.filter((brand) => brand.active);
   const activeModels = data.models.filter((model) => model.active);
 

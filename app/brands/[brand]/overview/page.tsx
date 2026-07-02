@@ -5,12 +5,12 @@ import { BrandLogo } from "@/components/public/BrandLogo";
 import { MarkdownBody } from "@/components/shared/MarkdownBody";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
-import { getVehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { getVehicleStories } from "@/lib/services/vehicle-stories";
 
 export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
   const { brand: brandSlug } = await params;
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   const brand = data.brands.find((b) => b.slug === brandSlug && b.active);
   if (!brand) return { title: "Brand not found" };
 
@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ brand: st
 
 export default async function BrandOverviewPage({ params }: { params: Promise<{ brand: string }> }) {
   const { brand: brandSlug } = await params;
-  const data = await getVehicleDataSet();
+  const data = await getBrowseDataSet();
   const brand = data.brands.find((b) => b.slug === brandSlug && b.active);
   if (!brand) notFound();
 
