@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import {
   brands,
   categories,
@@ -65,9 +64,12 @@ export function getPublicHomepageData() {
 
 export async function getPublicHomepageDataForApi() {
   const data = await getBrowseDataSet();
-  const featuredModels = data.models.filter((model) => model.active && model.featured);
   const activeBrands = data.brands.filter((brand) => brand.active);
-  const activeModels = (featuredModels.length ? featuredModels : data.models.filter((model) => model.active)).map((model) => {
+  // Do NOT restrict to featured-only here — "featured" is used for sorting/badging within
+  // each discovery type, not as a global filter. Type-specific filtering happens downstream
+  // in getDiscoveryDatasetForType(); a global featured-only cut here would empty out any
+  // category with zero featured picks of its own, even when real models exist for it.
+  const activeModels = data.models.filter((model) => model.active).map((model) => {
     const primaryMedia = data.media
       .filter((item) => item.active && item.modelId === model.id)
       .sort((a, b) => a.displayOrder - b.displayOrder)[0];
@@ -90,15 +92,6 @@ export async function getPublicHomepageDataForApi() {
     heroPromotions: data.heroPromotions.filter((promotion) => promotion.active),
   };
 }
-
-// Homepage content isn't per-visitor (ex-showroom prices only, same featured/newly-launched
-// models for everyone) — cache the fetch so most pageviews serve from cache instead of hitting
-// Supabase. revalidatePath("/", "layout") (already called on every catalog mutation) busts this.
-export const getCachedPublicHomepageData = unstable_cache(
-  getPublicHomepageDataForApi,
-  ["homepage-data"],
-  { revalidate: 300 },
-);
 
 export function getPublicDiscoveryData() {
   const activeBrands = brands.filter((brand) => brand.active);
