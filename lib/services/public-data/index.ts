@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import {
   brands,
   categories,
@@ -89,6 +90,15 @@ export async function getPublicHomepageDataForApi() {
     heroPromotions: data.heroPromotions.filter((promotion) => promotion.active),
   };
 }
+
+// Homepage content isn't per-visitor (ex-showroom prices only, same featured/newly-launched
+// models for everyone) — cache the fetch so most pageviews serve from cache instead of hitting
+// Supabase. revalidatePath("/", "layout") (already called on every catalog mutation) busts this.
+export const getCachedPublicHomepageData = unstable_cache(
+  getPublicHomepageDataForApi,
+  ["homepage-data"],
+  { revalidate: 300 },
+);
 
 export function getPublicDiscoveryData() {
   const activeBrands = brands.filter((brand) => brand.active);

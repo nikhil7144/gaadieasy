@@ -7,9 +7,9 @@ import { HomeVehicleDiscovery, HomepageQuickFilterSections } from "@/components/
 import { PricingExplorer } from "@/components/public/PricingExplorer";
 import { VehicleCompareModal } from "@/components/public/VehicleCompareModal";
 import { VehicleImage } from "@/components/public/VehicleImage";
-import { getHomepageComparisons } from "@/lib/services/comparisons";
+import { getCachedHomepageComparisons } from "@/lib/services/comparisons";
 import { getDiscoveryDatasetForType, getDiscoveryTab } from "@/lib/services/discovery";
-import { getPublicHomepageDataForApi } from "@/lib/services/public-data";
+import { getCachedPublicHomepageData } from "@/lib/services/public-data";
 import { formatShortPrice } from "@/lib/utils/format";
 import type { Brand, VehicleModel, VehicleVariant } from "@/types/automobile";
 
@@ -45,9 +45,9 @@ export default async function Home({
 }) {
   const params = await searchParams;
   const selectedType = getDiscoveryTab(params.type).key;
-  const data = await getPublicHomepageDataForApi();
+  const data = await getCachedPublicHomepageData();
   const selectedData = getDiscoveryDatasetForType(data, selectedType);
-  const homepageComparisons = await getHomepageComparisons();
+  const homepageComparisons = await getCachedHomepageComparisons();
   const selectedModels = selectedData.models;
   const selectedBrands = selectedData.brands;
   const selectedBrandSlugs = new Set(selectedBrands.map((brand) => brand.slug));

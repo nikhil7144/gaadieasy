@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { comparisonPages as staticPages, cities as staticCities } from "@/lib/data";
 import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { getComparisonPagesFromDb } from "@/lib/services/comparisons/db";
@@ -59,6 +60,14 @@ export async function getHomepageComparisons() {
   const results = await Promise.all(active.map((p) => getComparisonPage(p.slug)));
   return results.filter((c): c is NonNullable<typeof c> => Boolean(c));
 }
+
+// Same content for every visitor — cache it. revalidatePath("/", "layout") on catalog
+// mutations busts this alongside the homepage data cache.
+export const getCachedHomepageComparisons = unstable_cache(
+  getHomepageComparisons,
+  ["homepage-comparisons"],
+  { revalidate: 300 },
+);
 
 export async function getFooterComparisons() {
   const allPages = await loadAllPages();
