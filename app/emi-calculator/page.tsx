@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/shared/SiteHeader";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { EmiCalculator } from "@/components/public/EmiCalculator";
 import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
-import { getOnRoadPriceData } from "@/lib/services/on-road-price";
+import type { City } from "@/types/automobile";
 
 export const metadata: Metadata = {
   title: "Car EMI Calculator — Monthly Payment, Interest & Schedule | Gaadieasy",
@@ -28,29 +28,27 @@ export default async function EmiCalculatorPage({ searchParams }: Props) {
   const price  = params.price ? Math.max(0, parseInt(params.price, 10)) || 1_000_000 : 1_000_000;
   const name   = params.name ?? undefined;
 
-  let variants: { id: string; name: string; onRoadPrice: number }[] = [];
+  let variants: { id: string; slug: string; name: string; exShowroomPrice: number }[] = [];
   let defaultVariantId: string | undefined;
+  let cities: City[] = [];
 
-  if (params.brand && params.model && params.city) {
+  if (params.brand && params.model) {
     try {
       const data  = await getBrowseDataSet();
       const brand = data.brands.find((b) => b.slug === params.brand);
       const model = data.models.find((m) => m.slug === params.model && m.brandId === brand?.id);
+      cities = data.cities;
 
       if (model) {
         const modelVariants = data.variants
           .filter((v) => v.modelId === model.id && v.active)
           .sort((a, b) => a.exShowroomPrice - b.exShowroomPrice);
 
-        const priced = await Promise.all(
-          modelVariants.map((v) =>
-            getOnRoadPriceData({ brand: params.brand, model: params.model, variant: v.slug, city: params.city }),
-          ),
-        );
-        variants = modelVariants.map((v, index) => ({
+        variants = modelVariants.map((v) => ({
           id: v.id,
+          slug: v.slug,
           name: v.name,
-          onRoadPrice: priced[index].breakdown.totalOnRoadPrice,
+          exShowroomPrice: v.exShowroomPrice,
         }));
 
         const matched = modelVariants.find((v) => v.slug === params.variant);
@@ -61,7 +59,7 @@ export default async function EmiCalculatorPage({ searchParams }: Props) {
     }
   }
 
-  const effectivePrice = variants.find((v) => v.id === defaultVariantId)?.onRoadPrice ?? price;
+  const effectivePrice = variants.find((v) => v.id === defaultVariantId)?.exShowroomPrice ?? price;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -79,6 +77,10 @@ export default async function EmiCalculatorPage({ searchParams }: Props) {
           vehicleName={name}
           variants={variants}
           defaultVariantId={defaultVariantId}
+          cities={cities}
+          initialCitySlug={params.city}
+          brandSlug={params.brand}
+          modelSlug={params.model}
         />
       </main>
       <SiteFooter />

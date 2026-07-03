@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { ChevronDown, ChevronUp, TrendingDown, TrendingUp, Calendar, IndianRupee, Car } from "lucide-react";
+import { ChevronDown, ChevronUp, TrendingDown, TrendingUp, Calendar, IndianRupee, Car, Calculator } from "lucide-react";
 import { calcEmi as calcEmiUtil } from "@/lib/utils/emi";
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
+import type { City } from "@/types/automobile";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -15,7 +16,7 @@ type YearRow  = { year: number; principal: number; interest: number; total: numb
 
 // ─── types ─────────────────────────────────────────────────────────────────── (continued)
 
-export type EmiVariantOption = { id: string; name: string; onRoadPrice: number };
+export type EmiVariantOption = { id: string; slug: string; name: string; exShowroomPrice: number };
 
 // ─── math ────────────────────────────────────────────────────────────────────
 
@@ -122,11 +123,19 @@ export function EmiCalculator({
   vehicleName,
   variants = [],
   defaultVariantId,
+  cities = [],
+  initialCitySlug,
+  brandSlug,
+  modelSlug,
 }: {
   defaultVehiclePrice?: number;
   vehicleName?: string;
   variants?: EmiVariantOption[];
   defaultVariantId?: string;
+  cities?: City[];
+  initialCitySlug?: string;
+  brandSlug?: string;
+  modelSlug?: string;
 }) {
   const [selectedVariantId, setSelectedVariantId] = useState(defaultVariantId ?? variants[0]?.id ?? "");
   const [vehiclePrice, setVehiclePrice]   = useState(defaultVehiclePrice);
@@ -135,13 +144,51 @@ export function EmiCalculator({
   const [tenure,       setTenure]         = useState(60);
   const [showSchedule, setShowSchedule]   = useState(false);
   const [mounted,      setMounted]        = useState(false);
+  const [citySlug,     setCitySlug]       = useState(initialCitySlug ?? cities[0]?.slug ?? "");
+  const [onRoadPrice,  setOnRoadPrice]    = useState<number | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+
+  const canPriceOnRoad = Boolean(brandSlug && modelSlug && citySlug);
+
+  async function fetchOnRoadPrice(variantId: string, city: string) {
+    const v = variants.find((item) => item.id === variantId);
+    if (!v || !brandSlug || !modelSlug || !city) return;
+
+    setPricingLoading(true);
+    try {
+      const params = new URLSearchParams({ brand: brandSlug, model: modelSlug, variant: v.slug, city });
+      const response = await fetch(`/api/public/pricing?${params.toString()}`);
+      const data = (await response.json()) as { pricing?: { breakdown?: { totalOnRoadPrice?: number } } };
+      const total = data.pricing?.breakdown?.totalOnRoadPrice;
+      if (typeof total === "number") {
+        setOnRoadPrice(total);
+        setVehiclePrice(total);
+        setDownPayment(Math.round(total * 0.2));
+      }
+    } catch {
+      // silently keep showing the ex-showroom estimate
+    } finally {
+      setPricingLoading(false);
+    }
+  }
 
   function selectVariant(id: string) {
     const v = variants.find((item) => item.id === id);
     if (!v) return;
     setSelectedVariantId(id);
-    setVehiclePrice(v.onRoadPrice);
-    setDownPayment(Math.round(v.onRoadPrice * 0.2));
+    setVehiclePrice(v.exShowroomPrice);
+    setDownPayment(Math.round(v.exShowroomPrice * 0.2));
+    setOnRoadPrice(null);
+    if (onRoadPrice !== null) {
+      fetchOnRoadPrice(id, citySlug);
+    }
+  }
+
+  function changeCity(nextCitySlug: string) {
+    setCitySlug(nextCitySlug);
+    if (onRoadPrice !== null) {
+      fetchOnRoadPrice(selectedVariantId, nextCitySlug);
+    }
   }
 
   useEffect(() => { setMounted(true); }, []);
@@ -186,7 +233,7 @@ export function EmiCalculator({
           >
             {variants.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.name} — ₹{v.onRoadPrice.toLocaleString("en-IN")} on-road
+                {v.name} — ₹{v.exShowroomPrice.toLocaleString("en-IN")} ex-showroom
               </option>
             ))}
           </select>
@@ -195,6 +242,42 @@ export function EmiCalculator({
 
       {vehicleName ? (
         <p className="text-sm font-bold text-slate-500">Calculating for <strong className="text-slate-950">{vehicleName}</strong></p>
+      ) : null}
+
+      {/* on-road pricing — deferred until the user asks for it */}
+      {brandSlug && modelSlug && selectedVariantId ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-end gap-3">
+            {cities.length > 0 ? (
+              <label className="flex-1 min-w-[180px]">
+                <span className="block text-sm font-black text-slate-700">City</span>
+                <select
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-950 focus:border-emerald-400 focus:outline-none"
+                  value={citySlug}
+                  onChange={(e) => changeCity(e.target.value)}
+                >
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.slug}>{c.name}</option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              onClick={() => fetchOnRoadPrice(selectedVariantId, citySlug)}
+              disabled={!canPriceOnRoad || pricingLoading}
+            >
+              <Calculator size={15} />
+              {pricingLoading ? "Calculating…" : "Calculate exact on-road EMI"}
+            </button>
+          </div>
+          <p className="mt-3 text-xs font-semibold text-slate-500">
+            {onRoadPrice !== null
+              ? "Showing on-road price with taxes, RTO and insurance included."
+              : "Sliders below use the ex-showroom price — get the exact on-road figure above."}
+          </p>
+        </div>
       ) : null}
 
       {/* ── sliders ── */}
