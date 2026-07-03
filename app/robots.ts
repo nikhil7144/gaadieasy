@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
-        userAgent: ["AhrefsBot", "SemrushBot", "MJ12bot", "DotBot", "BLEXBot", "serpstatbot", "PetalBot", "BaiduSpider", "YandexBot", "Majestic", "RogerBot"],
+        userAgent: ["AhrefsBot", "SemrushBot", "MJ12bot", "DotBot", "BLEXBot", "serpstatbot", "PetalBot", "BaiduSpider", "YandexBot", "Majestic", "RogerBot", "Amazonbot"],
         disallow: "/",
       },
       {

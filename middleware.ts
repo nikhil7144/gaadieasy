@@ -7,6 +7,7 @@ const BLOCKED_BOTS = [
   "serpstatbot", "ahrefsbot", "semrushbot", "mj12bot", "dotbot",
   "blexbot", "petalbot", "baiduspider", "yandexbot", "majestic",
   "rogerbot", "exabot", "seznambot", "uptimerobot", "pingdom", "statuscake",
+  "amazonbot",
 ];
 
 function isBlockedBot(ua: string): boolean {
