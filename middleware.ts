@@ -15,8 +15,12 @@ function isBlockedBot(ua: string): boolean {
 }
 
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
-// 120 requests per minute per IP for public traffic
-const LIMIT = 120;
+// Requests per minute per IP for public (anonymous) traffic. Raised from 120 --
+// that was tripping on a handful of clicks in a few seconds, because a single
+// IP is shared across many users behind mobile-carrier NAT/corporate
+// proxies, and one page load can already fire several API calls (cart count,
+// search, form submits) on top of the page navigation itself.
+const LIMIT = 300;
 const WINDOW = "1 m";
 
 let ratelimit: Ratelimit | null = null;
@@ -46,8 +50,20 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const ua = (req.headers.get("user-agent") ?? "").toLowerCase();
 
-  // Admin routes: skip all public-traffic checks — auth is handled by requirePlatformAdmin()
-  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
+  // Authenticated dashboard areas: skip public-traffic rate limiting -- each
+  // already has its own app-level auth guard (requirePlatformAdmin(),
+  // requireSellerContext()/getSellerAccessContext(), getDealerAccessContext()),
+  // so IP-based limiting adds no security value here and only punishes a real
+  // logged-in seller/dealer/admin clicking through several dashboard actions
+  // (save settings, upload a doc, etc.) in quick succession.
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api/admin") ||
+    pathname.startsWith("/seller") ||
+    pathname.startsWith("/api/seller") ||
+    pathname.startsWith("/dealer") ||
+    pathname.startsWith("/api/dealer")
+  ) {
     return NextResponse.next();
   }
 
@@ -100,6 +116,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon|robots|sitemap|.*\\.(?:ico|png|jpg|jpeg|svg|webp|css|js|woff2?)).*)",
+    "/((?!_next/static|_next/image|favicon|robots|sitemap|.*\\.(?:ico|png|jpg|jpeg|gif|avif|svg|webp|css|js|woff2?|ttf|otf)).*)",
   ],
 };

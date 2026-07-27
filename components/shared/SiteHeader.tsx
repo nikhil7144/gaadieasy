@@ -41,6 +41,12 @@ export function SiteHeader({ scrollable = false, activeType }: { scrollable?: bo
             <Link className="font-black text-emerald-700 transition hover:text-emerald-800" href="/gaadigear">
               GaadiGear
             </Link>
+            <Link
+              className="rounded-full border border-lime-300 bg-lime-50 px-3 py-1 text-xs font-black text-slate-950 transition hover:bg-lime-300"
+              href="/gaadigear/sell"
+            >
+              Sell on GaadiGear
+            </Link>
             <Link className="transition hover:text-slate-950" href="/experiences">
               Experiences
             </Link>
@@ -122,6 +128,13 @@ export function SiteHeader({ scrollable = false, activeType }: { scrollable?: bo
                 onClick={() => setMenuOpen(false)}
               >
                 GaadiGear
+              </Link>
+              <Link
+                className="text-sm font-black text-slate-950 transition hover:text-emerald-800"
+                href="/gaadigear/sell"
+                onClick={() => setMenuOpen(false)}
+              >
+                Sell on GaadiGear
               </Link>
               <Link
                 className="text-sm font-bold text-slate-600 transition hover:text-slate-950"

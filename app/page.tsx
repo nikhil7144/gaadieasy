@@ -160,6 +160,21 @@ export default async function Home({
           </div>
         </section>
 
+        <section className="border-b border-lime-200 bg-lime-50">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+            <p className="text-sm font-bold text-slate-700">
+              Sell accessories, parts &amp; riding gear on <span className="font-black text-emerald-700">GaadiGear</span> —
+              placed right on the vehicle pages buyers are already browsing.
+            </p>
+            <a
+              className="shrink-0 rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800"
+              href="/gaadigear/sell"
+            >
+              Become a seller →
+            </a>
+          </div>
+        </section>
+
         <div id="vehicle-home">
           <HomeVehicleDiscovery
             categories={data.categories}

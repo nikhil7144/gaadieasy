@@ -56,6 +56,17 @@ export async function SiteFooter({
             ))}
           </div>
         </div>
+        <div>
+          <h3 className="text-sm font-bold text-lime-300">GaadiGear</h3>
+          <div className="mt-3 space-y-2 text-sm text-slate-300">
+            <Link className="block hover:text-lime-300" href="/gaadigear">
+              Shop accessories &amp; gear
+            </Link>
+            <Link className="block hover:text-lime-300" href="/gaadigear/sell">
+              Sell on GaadiGear
+            </Link>
+          </div>
+        </div>
       </div>
     </footer>
   );

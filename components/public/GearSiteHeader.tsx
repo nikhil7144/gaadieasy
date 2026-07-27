@@ -3,9 +3,46 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Menu, Search, ShoppingCart, Store, User, X } from "lucide-react";
+import {
+  Backpack,
+  Bike,
+  ChevronDown,
+  ClipboardCheck,
+  HardHat,
+  Menu,
+  Plug,
+  Search,
+  ShoppingCart,
+  Sofa,
+  Sparkles,
+  SprayCan,
+  Store,
+  Tag,
+  User,
+  Wrench,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 
 type Category = { id: string; name: string; slug: string; level: number; parentId?: string };
+
+// Keyed by slug (stable, unlike display name) -- falls back to a generic tag
+// icon for any category an admin adds later without an explicit mapping.
+const CATEGORY_ICON: Record<string, LucideIcon> = {
+  parts: Wrench,
+  "interior-comfort": Sofa,
+  "exterior-styling": Sparkles,
+  "bike-accessories": Bike,
+  "riding-gear": HardHat,
+  "riding-travel-accessories": Backpack,
+  "electronics-charging": Plug,
+  "fleet-compliance": ClipboardCheck,
+  "care-maintenance": SprayCan,
+};
+
+function categoryIcon(slug: string): LucideIcon {
+  return CATEGORY_ICON[slug] ?? Tag;
+}
 
 function GearSearchForm({ initialQuery = "", className = "" }: { initialQuery?: string; className?: string }) {
   const router = useRouter();
@@ -96,18 +133,19 @@ export function GearSiteHeader({
           {l1.map((c) => {
             const isActive = activeCategorySlug === c.slug;
             const children = l2ByParent.get(c.id) ?? [];
+            const Icon = categoryIcon(c.slug);
             return (
               <div className="group relative shrink-0" key={c.id}>
                 <Link
-                  className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-black transition ${
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black transition ${
                     isActive
                       ? "border-lime-400 bg-lime-300 text-slate-950"
                       : "border-slate-200 bg-white text-slate-600 group-hover:border-lime-300 group-hover:bg-lime-300 group-hover:text-slate-950"
                   }`}
                   href={`/gaadigear/products?category=${c.slug}`}
                 >
+                  <Icon size={14} strokeWidth={2} />
                   {c.name}
-                  {children.length > 0 && <ChevronDown size={12} />}
                 </Link>
 
                 {children.length > 0 && (
