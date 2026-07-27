@@ -9,29 +9,33 @@ export async function POST(request: Request) {
   const guard = await requirePlatformAdmin();
   if (guard.response) return guard.response;
 
-  const supabase = createSupabaseAdminClient();
-  if (!supabase) return Response.json({ error: "Supabase service role is not configured." }, { status: 500 });
+  try {
+    const supabase = createSupabaseAdminClient();
+    if (!supabase) return Response.json({ error: "Supabase service role is not configured." }, { status: 500 });
 
-  const formData = await request.formData();
-  const file = formData.get("file");
-  const brandSlug = cleanPathPart(String(formData.get("brandSlug") ?? "brand"));
+    const formData = await request.formData();
+    const file = formData.get("file");
+    const brandSlug = cleanPathPart(String(formData.get("brandSlug") ?? "brand"));
 
-  if (!(file instanceof File)) {
-    return Response.json({ error: "Logo file is required." }, { status: 400 });
+    if (!(file instanceof File)) {
+      return Response.json({ error: "Logo file is required." }, { status: 400 });
+    }
+
+    const path = `${brandSlug}/${Date.now()}-${cleanPathPart(file.name)}`;
+    const { error } = await supabase.storage.from("brand-logos").upload(path, file, {
+      cacheControl: "31536000",
+      upsert: false,
+      contentType: file.type,
+    });
+
+    if (error) {
+      return Response.json({ error: error.message }, { status: 500 });
+    }
+
+    const { data } = supabase.storage.from("brand-logos").getPublicUrl(path);
+
+    return Response.json({ url: data.publicUrl }, { status: 201 });
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : "Upload failed" }, { status: 500 });
   }
-
-  const path = `${brandSlug}/${Date.now()}-${cleanPathPart(file.name)}`;
-  const { error } = await supabase.storage.from("brand-logos").upload(path, file, {
-    cacheControl: "31536000",
-    upsert: false,
-    contentType: file.type,
-  });
-
-  if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
-
-  const { data } = supabase.storage.from("brand-logos").getPublicUrl(path);
-
-  return Response.json({ url: data.publicUrl }, { status: 201 });
 }

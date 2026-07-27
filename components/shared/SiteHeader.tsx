@@ -38,6 +38,9 @@ export function SiteHeader({ scrollable = false, activeType }: { scrollable?: bo
 
           {/* Desktop nav links */}
           <nav className="hidden shrink-0 items-center gap-6 text-sm font-medium text-slate-600 lg:flex">
+            <Link className="font-black text-emerald-700 transition hover:text-emerald-800" href="/gaadigear">
+              GaadiGear
+            </Link>
             <Link className="transition hover:text-slate-950" href="/experiences">
               Experiences
             </Link>
@@ -113,6 +116,13 @@ export function SiteHeader({ scrollable = false, activeType }: { scrollable?: bo
               })}
             </div>
             <div className="mt-4 flex gap-5 border-t border-slate-100 pb-1 pt-3">
+              <Link
+                className="text-sm font-black text-emerald-700 transition hover:text-emerald-800"
+                href="/gaadigear"
+                onClick={() => setMenuOpen(false)}
+              >
+                GaadiGear
+              </Link>
               <Link
                 className="text-sm font-bold text-slate-600 transition hover:text-slate-950"
                 href="/experiences"

@@ -18,6 +18,12 @@ const nav = [
   ["SEO pages", "/admin/seo-pages"],
   ["Comparisons", "/admin/comparisons"],
   ["Vehicle updates", "/admin/vehicle-updates"],
+  ["GaadiGear · Categories", "/admin/gaadigear/categories"],
+  ["GaadiGear · Collections", "/admin/gaadigear/collections"],
+  ["GaadiGear · Sellers", "/admin/gaadigear/sellers"],
+  ["GaadiGear · Products", "/admin/gaadigear/products"],
+  ["GaadiGear · Refunds", "/admin/gaadigear/refunds"],
+  ["GaadiGear · Payouts", "/admin/gaadigear/payouts"],
 ];
 
 export function AdminShell({ children, userEmail }: { children: React.ReactNode; userEmail?: string }) {

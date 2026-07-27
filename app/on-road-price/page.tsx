@@ -10,6 +10,7 @@ import { VehicleSpecifications } from "@/components/public/VehicleSpecifications
 import { VariantsPriceTable } from "@/components/public/VariantsPriceTable";
 import { EmiPreview } from "@/components/public/EmiPreview";
 import { VehiclePageNav } from "@/components/public/VehiclePageNav";
+import { RecommendedGearWidget } from "@/components/public/RecommendedGearWidget";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { getVehicleMediaForApi } from "@/lib/services/media";
@@ -318,6 +319,7 @@ export default async function OnRoadPricePage({
                 ))}
               </div>
             </div>
+            <RecommendedGearWidget modelId={pricing.model.id} modelName={pricing.model.name} />
             <div id="specs">
               <VehicleSpecifications
                 specifications={pricing.variant.specifications}

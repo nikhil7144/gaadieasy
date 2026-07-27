@@ -466,3 +466,265 @@ export type VehicleStoryMedia = {
   active: boolean;
   createdAt: string;
 };
+
+// --- GaadiGear ---
+
+export type VehicleType = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+export type GearCategory = {
+  id: string;
+  parentId?: string;
+  name: string;
+  slug: string;
+  level: number;
+  applicableVehicleTypes: string[];
+  sortOrder: number;
+  isActive: boolean;
+  imageUrl?: string;
+};
+
+export type GearCollectionType = "manual" | "dynamic" | "brand" | "category" | "vehicle";
+export type GearCollectionDisplayStyle = "carousel" | "grid" | "banner" | "hero" | "featured";
+
+export type GearCollection = {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  type: GearCollectionType;
+  bannerImage?: string;
+  icon?: string;
+  priority: number;
+  isActive: boolean;
+  maxProducts: number;
+  conditions: Record<string, unknown>;
+  startAt?: string;
+  endAt?: string;
+  productIds: string[]; // manual/brand/category: admin-chosen, ordered
+};
+
+export type GearCollectionProductCard = {
+  productId: string;
+  title: string;
+  slug: string;
+  price: number;
+  mrp: number;
+  startingFrom: boolean;
+  variantCount: number;
+  ratingAvg: number;
+  thumbnailUrl?: string;
+  fitsSummary: string;
+};
+
+export type GearHomepageSection = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  collectionId?: string;
+  displayStyle: GearCollectionDisplayStyle;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+export type GearHeroBanner = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl?: string;
+  ctaLabel: string;
+  ctaHref: string;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+export type SellerStatus = "onboarding" | "active" | "suspended";
+export type SellerKycStatus = "pending_review" | "verified" | "rejected";
+
+export type Seller = {
+  id: string;
+  businessName: string;
+  brandName?: string;
+  businessType?: string;
+  gstin?: string;
+  pan?: string;
+  kycStatus: SellerKycStatus;
+  kycRejectionReason?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  about?: string;
+  status: SellerStatus;
+  commissionPct: number;
+  createdAt: string;
+  interestedCategoryIds?: string[];
+  emailVerifiedAt?: string;
+};
+
+export type SellerUserRole = "seller_owner" | "seller_staff";
+
+export type SellerUser = {
+  id: string;
+  userId: string;
+  sellerId: string;
+  role: SellerUserRole;
+  active: boolean;
+  createdAt?: string;
+};
+
+export type GearBrand = {
+  id: string;
+  sellerId?: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  isOem: boolean;
+  active: boolean;
+};
+
+export type GearProductVariant = {
+  id: string;
+  productId: string;
+  size?: string;
+  color?: string;
+  mrp: number;
+  sellingPrice: number;
+  stockQty: number;
+  skuSuffix?: string;
+  images: string[];
+};
+
+export type SellerShippingSettingsRecord = {
+  sellerId: string;
+  shipsPanIndia: boolean;
+  excludedStates: string[];
+  excludedPincodes: string[];
+  feeType: "flat" | "free" | "threshold";
+  flatFee: number;
+  freeShippingAbove?: number;
+  standardDeliveryDays: number;
+  codAvailable: boolean;
+};
+
+export type SellerKycDocument = {
+  id: string;
+  sellerId: string;
+  docType: string;
+  fileUrl: string;
+  uploadedAt: string;
+};
+
+export type SellerBankDetails = {
+  sellerId: string;
+  accountHolder?: string;
+  ifsc?: string;
+  upiId?: string;
+  payoutCycle: string;
+};
+
+export type GearProductStatus = "draft" | "pending_review" | "live" | "rejected" | "paused";
+
+export type GearCompatibilityType = "global" | "vehicle_type" | "segment" | "brand" | "model" | "variant";
+
+export type GearProductCompatibilityRow = {
+  id?: string;
+  compatibilityType: GearCompatibilityType;
+  vehicleTypeId?: string;
+  segment?: string;
+  vehicleBrandId?: string;
+  vehicleModelId?: string;
+  vehicleVariantId?: string;
+};
+
+export type GearProduct = {
+  id: string;
+  sellerId: string;
+  sellerName?: string;
+  brandId?: string;
+  brandName?: string;
+  categoryId: string;
+  categoryName?: string;
+  title: string;
+  slug: string;
+  description?: string;
+  // Derived from variants (there is no product-level price anymore): mrp/
+  // sellingPrice are the cheapest variant's, stockQty is the sum across all
+  // variants -- every product has >= 1 variant, price lives there exclusively.
+  mrp: number;
+  sellingPrice: number;
+  hasMultipleVariants: boolean; // true => callers should show "Starting from"
+  gstRate: number;
+  hsnCode?: string;
+  stockQty: number;
+  sku?: string;
+  images: string[];
+  attributes: Record<string, unknown>;
+  usageTags: string[];
+  status: GearProductStatus;
+  rejectionReason?: string;
+  ratingAvg: number;
+  ratingCount: number;
+  createdAt: string;
+  updatedAt: string;
+  compatibility?: GearProductCompatibilityRow[];
+};
+
+export type GearCartItem = {
+  id: string;
+  productId: string;
+  variantId?: string;
+  qty: number;
+  title: string;
+  slug: string;
+  sellerId: string;
+  sellerName?: string;
+  unitPrice: number;
+  gstRate: number;
+  thumbnailUrl?: string;
+  variantLabel?: string;
+  lineTotal: number;
+};
+
+export type GearCartSellerGroup = {
+  sellerId: string;
+  sellerName?: string;
+  items: GearCartItem[];
+  itemsSubtotal: number;
+  shippingFee: number;
+  deliverable: boolean;
+  serviceabilityNote?: string;
+};
+
+export type GearCart = {
+  id: string;
+  buyerId?: string;
+  items: GearCartItem[];
+  itemsSubtotal: number;
+};
+
+export type GearOrderShipmentSummary = {
+  id: string;
+  sellerId: string;
+  sellerName?: string;
+  itemsSubtotal: number;
+  shippingFee: number;
+  gstAmount: number;
+  shipmentStatus: string;
+  items: GearCartItem[];
+};
+
+export type GearOrderSummary = {
+  id: string;
+  buyerId?: string;
+  status: string;
+  paymentStatus: string;
+  itemsSubtotal: number;
+  shippingTotal: number;
+  grandTotal: number;
+  createdAt: string;
+  shipments: GearOrderShipmentSummary[];
+};
