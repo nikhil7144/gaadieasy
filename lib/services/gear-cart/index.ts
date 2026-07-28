@@ -189,7 +189,9 @@ export async function getCart(): Promise<GearCart> {
   const supabase = getAdminClient();
   const { data, error } = await supabase
     .from("gear_cart_items")
-    .select("*, gear_products(title, slug, seller_id, gst_rate, images, sellers(business_name)), gear_product_variants(size, color, selling_price)")
+    .select(
+      "*, gear_products(title, slug, seller_id, category_id, gst_rate, images, sellers(business_name)), gear_product_variants(size, color, selling_price)",
+    )
     .eq("cart_id", cartId);
 
   if (error) throw error;
@@ -208,6 +210,7 @@ export async function getCart(): Promise<GearCart> {
       id: String(row.id),
       productId: String(row.product_id),
       variantId: row.variant_id ? String(row.variant_id) : undefined,
+      categoryId: product.category_id ? String(product.category_id) : undefined,
       qty,
       title: String(product.title),
       slug: String(product.slug),

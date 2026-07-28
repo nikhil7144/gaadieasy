@@ -60,6 +60,7 @@ function mapGearCategory(row: DbRow): GearCategory {
     sortOrder: Number(row.sort_order ?? 0),
     isActive: Boolean(row.is_active),
     imageUrl: typeof row.image_url === "string" ? row.image_url : undefined,
+    commissionPct: Number(row.commission_pct ?? 7),
   };
 }
 
@@ -84,6 +85,7 @@ export async function createGearCategory(input: {
   sortOrder?: number;
   isActive?: boolean;
   imageUrl?: string;
+  commissionPct?: number;
 }) {
   const supabase = getAdminClient();
   const { data, error } = await supabase
@@ -97,6 +99,7 @@ export async function createGearCategory(input: {
       sort_order: input.sortOrder ?? 0,
       is_active: input.isActive ?? true,
       image_url: optionalText(input.imageUrl),
+      commission_pct: input.commissionPct ?? 7,
     })
     .select("*")
     .single();
@@ -116,6 +119,7 @@ export async function updateGearCategory(input: {
   sortOrder?: number;
   isActive?: boolean;
   imageUrl?: string;
+  commissionPct?: number;
 }) {
   const supabase = getAdminClient();
   const patch: DbRow = {};
@@ -128,6 +132,7 @@ export async function updateGearCategory(input: {
   if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder;
   if (input.isActive !== undefined) patch.is_active = input.isActive;
   if (input.imageUrl !== undefined) patch.image_url = optionalText(input.imageUrl);
+  if (input.commissionPct !== undefined) patch.commission_pct = input.commissionPct;
 
   const { data, error } = await supabase.from("gear_categories").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;

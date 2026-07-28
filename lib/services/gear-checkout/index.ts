@@ -110,6 +110,24 @@ function gstAmountForLine(unitPrice: number, qty: number, gstRate: number): numb
   return (unitPrice * qty * gstRate) / (100 + gstRate);
 }
 
+// Commission is per-product, not a single flat rate per shipment: a flat fee
+// for low-value items, then a percentage (of the pre-GST unit price) above
+// that threshold, at a rate set per category (default 7%, admin-editable on
+// gear_categories.commission_pct) -- replaces the old flat commission_pct on
+// sellers, which is no longer read here.
+const GEAR_COMMISSION_FLAT_FEE = 25;
+const GEAR_COMMISSION_THRESHOLD = 700;
+const GEAR_COMMISSION_DEFAULT_PCT = 7;
+
+function commissionForItem(item: GearCartSellerGroup["items"][number], commissionPctByCategory: Map<string, number>): number {
+  if (item.unitPrice <= GEAR_COMMISSION_THRESHOLD) {
+    return GEAR_COMMISSION_FLAT_FEE * item.qty;
+  }
+  const pct = item.categoryId ? (commissionPctByCategory.get(item.categoryId) ?? GEAR_COMMISSION_DEFAULT_PCT) : GEAR_COMMISSION_DEFAULT_PCT;
+  const baseUnitPrice = item.unitPrice - gstAmountForLine(item.unitPrice, 1, item.gstRate);
+  return ((baseUnitPrice * pct) / 100) * item.qty;
+}
+
 export async function createOrderFromCart(shippingAddress: ShippingAddress): Promise<GearOrderSummary> {
   const supabase = getAdminClient();
   const buyerId = await getCurrentBuyerId();
@@ -173,9 +191,13 @@ async function createShipmentForSellerGroup(orderId: string, group: GearCartSell
   const supabase = getAdminClient();
   const gstAmount = group.items.reduce((sum, item) => sum + gstAmountForLine(item.unitPrice, item.qty, item.gstRate), 0);
 
-  const { data: seller } = await supabase.from("sellers").select("commission_pct").eq("id", group.sellerId).maybeSingle();
-  const commissionPct = seller ? Number((seller as DbRow).commission_pct ?? 10) : 10;
-  const commissionAmount = ((group.itemsSubtotal - gstAmount) * commissionPct) / 100;
+  const categoryIds = Array.from(new Set(group.items.map((item) => item.categoryId).filter((id): id is string => Boolean(id))));
+  const { data: categoryRows } = categoryIds.length
+    ? await supabase.from("gear_categories").select("id, commission_pct").in("id", categoryIds)
+    : { data: [] };
+  const commissionPctByCategory = new Map(((categoryRows ?? []) as DbRow[]).map((r) => [String(r.id), Number(r.commission_pct ?? GEAR_COMMISSION_DEFAULT_PCT)]));
+
+  const commissionAmount = group.items.reduce((sum, item) => sum + commissionForItem(item, commissionPctByCategory), 0);
   const sellerPayoutAmount = group.itemsSubtotal - commissionAmount + group.shippingFee;
 
   const { data: shipmentRow, error: shipmentError } = await supabase

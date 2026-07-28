@@ -485,6 +485,7 @@ export type GearCategory = {
   sortOrder: number;
   isActive: boolean;
   imageUrl?: string;
+  commissionPct: number;
 };
 
 export type GearCollectionType = "manual" | "dynamic" | "brand" | "category" | "vehicle";
@@ -677,6 +678,7 @@ export type GearCartItem = {
   id: string;
   productId: string;
   variantId?: string;
+  categoryId?: string;
   qty: number;
   title: string;
   slug: string;

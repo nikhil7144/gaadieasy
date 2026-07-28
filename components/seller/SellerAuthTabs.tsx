@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { MapPin, RefreshCw, Wallet } from "lucide-react";
-import { BrandLockup } from "@/components/shared/BrandLockup";
+import { GearBrandLockup } from "@/components/shared/GearBrandLockup";
 import { SellerLoginForm } from "@/components/seller/SellerLoginForm";
 import { SellerSignupWizard } from "@/components/seller/SellerSignupWizard";
 import type { GearCategory } from "@/types/automobile";
@@ -30,7 +30,7 @@ export function SellerAuthTabs({
     <div className="grid min-h-screen md:grid-cols-[1.05fr_1fr]">
       <section className="relative flex flex-col justify-center overflow-hidden bg-gradient-to-br from-lime-50 via-white to-emerald-50 px-8 py-12 sm:px-14">
         <div className="relative mx-auto w-full max-w-md">
-          <BrandLockup href="/" size="header" />
+          <GearBrandLockup size="header" />
           <p className="mt-6 inline-flex rounded-full bg-lime-300 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-950">
             GaadiGear for sellers
           </p>

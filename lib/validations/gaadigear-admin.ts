@@ -9,6 +9,7 @@ export const gearCategorySchema = z.object({
   sortOrder: z.coerce.number().int().default(0),
   isActive: z.boolean().default(true),
   imageUrl: z.string().optional().or(z.literal("")),
+  commissionPct: z.coerce.number().min(0).max(100).default(7),
 });
 
 export const gearCollectionSchema = z.object({

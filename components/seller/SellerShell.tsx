@@ -13,7 +13,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
-import { BrandLockup } from "@/components/shared/BrandLockup";
+import { GearBrandLockup } from "@/components/shared/GearBrandLockup";
 
 const nav = [
   { label: "Overview", href: "/seller", icon: LayoutDashboard },
@@ -46,9 +46,9 @@ export function SellerShell({
       >
         <div className={`shrink-0 border-b border-white/10 p-3 ${collapsed ? "px-2" : ""}`}>
           {collapsed ? (
-            <div className="grid h-8 w-8 place-items-center rounded-md bg-[#3ecf8e] text-xs font-black text-black">GE</div>
+            <div className="grid h-8 w-8 place-items-center rounded-md bg-[#3ecf8e] text-xs font-black text-black">GG</div>
           ) : (
-            <BrandLockup href="/" size="sidebar" />
+            <GearBrandLockup size="sidebar" />
           )}
           {!collapsed && (
             <>
@@ -93,7 +93,7 @@ export function SellerShell({
       </aside>
       <div className={collapsed ? "md:pl-12" : "md:pl-[220px]"}>
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-black/[0.08] bg-white/90 px-4 py-3 backdrop-blur md:hidden">
-          <BrandLockup href="/" size="sidebar" />
+          <GearBrandLockup size="sidebar" />
           <AdminSignOutButton />
         </header>
         <header className="hidden items-center justify-end border-b border-black/[0.08] bg-white px-4 py-3 md:flex">

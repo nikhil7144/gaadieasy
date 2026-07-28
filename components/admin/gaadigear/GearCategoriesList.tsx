@@ -26,6 +26,7 @@ type FormState = {
   sortOrder: number;
   isActive: boolean;
   imageUrl: string;
+  commissionPct: number;
 };
 
 const emptyForm: FormState = {
@@ -37,6 +38,7 @@ const emptyForm: FormState = {
   sortOrder: 0,
   isActive: true,
   imageUrl: "",
+  commissionPct: 7,
 };
 
 export function GearCategoriesList({ categories, vehicleTypes }: { categories: GearCategory[]; vehicleTypes: VehicleType[] }) {
@@ -92,6 +94,7 @@ export function GearCategoriesList({ categories, vehicleTypes }: { categories: G
       sortOrder: category.sortOrder,
       isActive: category.isActive,
       imageUrl: category.imageUrl ?? "",
+      commissionPct: category.commissionPct,
     });
   }
 
@@ -109,6 +112,7 @@ export function GearCategoriesList({ categories, vehicleTypes }: { categories: G
         sortOrder: form.sortOrder,
         isActive: form.isActive,
         imageUrl: form.imageUrl || undefined,
+        commissionPct: form.commissionPct,
       };
       if (form.id) {
         await patchAdminJson("/api/admin/gaadigear/categories", { id: form.id, ...payload });
@@ -201,6 +205,18 @@ export function GearCategoriesList({ categories, vehicleTypes }: { categories: G
               Active
             </label>
             <div>
+              <p className="mb-1 text-xs font-bold text-slate-500">Commission % (applied above ₹700 unit price)</p>
+              <input
+                className={adminFieldClass}
+                min={0}
+                max={100}
+                onChange={(e) => setForm({ ...form, commissionPct: Number(e.target.value) || 0 })}
+                step="0.1"
+                type="number"
+                value={form.commissionPct}
+              />
+            </div>
+            <div>
               <p className="mb-1.5 text-xs font-bold text-slate-500">Category image (optional — shown as a tile on the homepage)</p>
               <div className="flex items-center gap-2">
                 <button
@@ -272,6 +288,7 @@ export function GearCategoriesList({ categories, vehicleTypes }: { categories: G
                 <div className="w-56 truncate text-xs text-slate-500">
                   {c.applicableVehicleTypes.map((id) => vehicleTypeName.get(id)).filter(Boolean).join(", ") || "—"}
                 </div>
+                <div className="w-16 shrink-0 text-xs font-bold text-slate-600">{c.commissionPct}%</div>
                 <div className="flex w-24 items-center gap-1.5">
                   <span className={`h-1.5 w-1.5 rounded-full ${c.isActive ? "bg-emerald-500" : "bg-slate-300"}`} />
                   <span className="text-xs text-slate-600">{c.isActive ? "Active" : "Inactive"}</span>
