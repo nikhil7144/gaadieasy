@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormField } from "@/components/seller/FormField";
 import { storePendingBusinessName } from "@/components/seller/SellerOAuthCompleteHandler";
+import { describeApiError } from "@/lib/utils/api-error";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { GearCategory } from "@/types/automobile";
 
@@ -20,14 +21,14 @@ async function sendJson(url: string, method: "POST" | "PATCH", body: unknown) {
     body: JSON.stringify(body),
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+  if (!response.ok) throw new Error(describeApiError(payload, `HTTP ${response.status}`));
   return payload;
 }
 
 async function getJson(url: string) {
   const response = await fetch(url);
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+  if (!response.ok) throw new Error(describeApiError(payload, `HTTP ${response.status}`));
   return payload;
 }
 
@@ -278,10 +279,10 @@ export function SellerSignupWizard({ l1Categories }: { l1Categories: GearCategor
       {step === "email" && !awaitingVerification && (
         <div className="space-y-3">
           <h1 className="text-2xl font-black text-slate-950">Create your seller account</h1>
-          <FormField label="Business name (required)">
+          <FormField label="Business name" required>
             <input className={fieldClass} onChange={(e) => setBusinessName(e.target.value)} placeholder="e.g. Revx Riding Gear" value={businessName} />
           </FormField>
-          <FormField label="Email (required)">
+          <FormField label="Email" required>
             <input className={fieldClass} onChange={(e) => setEmail(e.target.value)} placeholder="rahul@revxgear.com" type="email" value={email} />
           </FormField>
           <button
@@ -321,7 +322,7 @@ export function SellerSignupWizard({ l1Categories }: { l1Categories: GearCategor
           </p>
           {changingEmail ? (
             <div className="space-y-2 text-left">
-              <FormField label="New email">
+              <FormField label="New email" required>
                 <input className={fieldClass} onChange={(e) => setNewEmail(e.target.value)} type="email" value={newEmail} />
               </FormField>
               <div className="flex gap-3">
@@ -359,7 +360,7 @@ export function SellerSignupWizard({ l1Categories }: { l1Categories: GearCategor
           <p className="text-sm text-slate-500">
             {businessName} — <span className="font-bold text-slate-700">{email}</span>
           </p>
-          <FormField label="Password (required)">
+          <FormField label="Password" required>
             <input
               className={fieldClass}
               onChange={(e) => setPassword(e.target.value)}
@@ -382,10 +383,10 @@ export function SellerSignupWizard({ l1Categories }: { l1Categories: GearCategor
       {step === "business" && (
         <div className="space-y-3">
           <h1 className="text-2xl font-black text-slate-950">Business details</h1>
-          <FormField label="Storefront / brand name (optional)">
+          <FormField label="Storefront / brand name">
             <input className={fieldClass} onChange={(e) => setBrandName(e.target.value)} placeholder="e.g. RevX" value={brandName} />
           </FormField>
-          <FormField label="Business type">
+          <FormField label="Business type" required>
             <select className={fieldClass} onChange={(e) => setBusinessType(e.target.value)} value={businessType}>
               <option value="individual">Individual</option>
               <option value="proprietorship">Proprietorship</option>
@@ -393,11 +394,11 @@ export function SellerSignupWizard({ l1Categories }: { l1Categories: GearCategor
               <option value="pvt_ltd">Private Limited</option>
             </select>
           </FormField>
-          <FormField label="GSTIN (optional)">
+          <FormField label="GSTIN">
             <input className={fieldClass} onChange={(e) => setGstin(e.target.value.toUpperCase())} placeholder="e.g. 22AAAAA0000A1Z5" value={gstin} />
             {gstinError && <p className="mt-1 text-xs font-bold text-red-600">{gstinError}</p>}
           </FormField>
-          <FormField label="PAN (required)">
+          <FormField label="PAN" required>
             <input className={fieldClass} onChange={(e) => setPan(e.target.value.toUpperCase())} placeholder="e.g. ABCDE1234F" value={pan} />
             {panError && <p className="mt-1 text-xs font-bold text-red-600">{panError}</p>}
           </FormField>

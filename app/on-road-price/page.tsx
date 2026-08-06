@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { CityPriceSelector } from "@/components/public/CityPriceSelector";
 import { LeadForm } from "@/components/public/LeadForm";
 import { PriceBreakdown } from "@/components/public/PriceBreakdown";
@@ -385,6 +386,12 @@ export default async function OnRoadPricePage({
               ) : (
                 <p className="mt-3 text-sm text-slate-600">Dealer mapping is pending for this brand and city.</p>
               )}
+              <Link
+                className="mt-3 inline-flex items-center gap-1 text-sm font-black text-emerald-700 hover:underline"
+                href={`/dealers?brand=${pricing.brand.slug}`}
+              >
+                Browse all verified {pricing.brand.name} dealers →
+              </Link>
               {pricing.dealerOffers.length ? (
                 <div className="mt-4 space-y-3">
                   {pricing.dealerOffers.map((offer) => (

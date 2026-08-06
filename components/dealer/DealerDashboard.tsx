@@ -44,6 +44,20 @@ export async function DealerDashboard() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+        {context.business.verificationStatus === "pending" && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+            Your business is under review — typically approved within 1-2 business days. You can still manage your
+            showroom details, offers, and leads in the meantime.
+          </div>
+        )}
+        {context.business.verificationStatus === "rejected" && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+            Your business application was not approved.
+            {context.business.rejectionReason && <p className="mt-1 font-normal">{context.business.rejectionReason}</p>}
+            <p className="mt-1 font-normal">Please contact support to request another review.</p>
+          </div>
+        )}
+
         <section className="grid gap-3 md:grid-cols-3">
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs font-black uppercase text-emerald-700">Lead visibility</p>

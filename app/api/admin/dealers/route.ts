@@ -1,13 +1,16 @@
 import { requirePlatformAdmin } from "@/lib/auth/require-admin";
 import {
+  approveDealerBusiness,
   createDealer,
   createDealerBrandMapping,
   createDealerBusiness,
   createDealerBusinessLogin,
+  rejectDealerBusiness,
 } from "@/lib/services/admin-catalog";
 import {
   dealerBrandMappingSchema,
   dealerBusinessLoginSchema,
+  dealerBusinessModerationSchema,
   dealerBusinessSchema,
   dealerSchema,
 } from "@/lib/validations/admin";
@@ -50,5 +53,15 @@ export async function PATCH(request: Request) {
   const guard = await requirePlatformAdmin();
   if (guard.response) return guard.response;
 
-  return Response.json({ dealer: await request.json() });
+  const parsed = dealerBusinessModerationSchema.safeParse(await request.json());
+  if (!parsed.success) return Response.json({ error: "Invalid dealer business request", issues: parsed.error.flatten() }, { status: 400 });
+
+  try {
+    if (parsed.data.action === "approve") {
+      return Response.json({ business: await approveDealerBusiness(parsed.data.id) });
+    }
+    return Response.json({ business: await rejectDealerBusiness(parsed.data.id, parsed.data.reason) });
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : "Unable to update dealer business" }, { status: 500 });
+  }
 }

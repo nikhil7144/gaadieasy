@@ -392,6 +392,8 @@ function mapDealerBusiness(row: DbRow): DealerBusiness {
     email: optionalString(row, "email"),
     active: booleanValue(row, "active", true),
     verified: booleanValue(row, "verified"),
+    verificationStatus: (row.verification_status as DealerBusiness["verificationStatus"]) ?? "pending",
+    rejectionReason: optionalString(row, "rejection_reason"),
     createdAt: optionalString(row, "created_at"),
   };
 }

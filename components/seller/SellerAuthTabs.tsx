@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { MapPin, RefreshCw, Wallet } from "lucide-react";
+import { AuthFormSkeleton } from "@/components/shared/AuthFormSkeleton";
 import { GearBrandLockup } from "@/components/shared/GearBrandLockup";
 import { SellerLoginForm } from "@/components/seller/SellerLoginForm";
 import { SellerSignupWizard } from "@/components/seller/SellerSignupWizard";
@@ -85,11 +86,11 @@ export function SellerAuthTabs({
           </div>
 
           {tab === "login" ? (
-            <Suspense fallback={null}>
+            <Suspense fallback={<AuthFormSkeleton />}>
               <SellerLoginForm />
             </Suspense>
           ) : (
-            <Suspense fallback={null}>
+            <Suspense fallback={<AuthFormSkeleton />}>
               <SellerSignupWizard l1Categories={l1Categories} />
             </Suspense>
           )}

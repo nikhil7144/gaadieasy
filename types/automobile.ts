@@ -281,6 +281,8 @@ export type Dealer = {
   priority: number;
 };
 
+export type DealerVerificationStatus = "pending" | "verified" | "rejected";
+
 export type DealerBusiness = {
   id: string;
   name: string;
@@ -290,6 +292,8 @@ export type DealerBusiness = {
   email?: string;
   active: boolean;
   verified: boolean;
+  verificationStatus: DealerVerificationStatus;
+  rejectionReason?: string;
   createdAt?: string;
 };
 

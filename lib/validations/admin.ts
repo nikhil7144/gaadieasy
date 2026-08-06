@@ -228,6 +228,11 @@ export const dealerShowroomLoginSchema = z.object({
   password: z.string().min(8),
 });
 
+export const dealerBusinessModerationSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("approve"), id: z.string().uuid() }),
+  z.object({ action: z.literal("reject"), id: z.string().uuid(), reason: z.string().min(3) }),
+]);
+
 export const taxRuleSchema = z.object({
   stateId: z.string().uuid(),
   categoryId: z.string().uuid(),

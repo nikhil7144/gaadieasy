@@ -143,6 +143,8 @@ function mapDealerBusiness(row: DbRow): DealerBusiness {
     email: typeof row.email === "string" ? row.email : undefined,
     active: Boolean(row.active),
     verified: Boolean(row.verified),
+    verificationStatus: (row.verification_status as DealerBusiness["verificationStatus"]) ?? "pending",
+    rejectionReason: typeof row.rejection_reason === "string" ? row.rejection_reason : undefined,
     createdAt: typeof row.created_at === "string" ? row.created_at : undefined,
   };
 }
@@ -687,6 +689,45 @@ export async function createDealerShowroomLogin(input: {
   revalidatePath("/admin");
   revalidatePath("/admin/dealers");
   return mapDealerUser(data as DbRow);
+}
+
+// --- Dealer self-signup verification queue ---
+// Mirrors approveSeller/rejectSeller (lib/services/gear-admin/index.ts) --
+// a self-signed-up business starts 'pending' and is invisible to the public
+// /dealers directory until approved here. Admin-created businesses are
+// backfilled to 'verified' by the migration, so this only matters for the
+// new self-signup path.
+
+export async function approveDealerBusiness(id: string) {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("dealer_businesses")
+    .update({ verification_status: "verified", verified: true, rejection_reason: null })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  revalidatePath("/admin/dealers");
+  revalidatePath("/admin/dealers/businesses");
+  revalidatePath("/dealers");
+  return mapDealerBusiness(data as DbRow);
+}
+
+export async function rejectDealerBusiness(id: string, reason: string) {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("dealer_businesses")
+    .update({ verification_status: "rejected", verified: false, rejection_reason: reason })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  revalidatePath("/admin/dealers");
+  revalidatePath("/admin/dealers/businesses");
+  revalidatePath("/dealers");
+  return mapDealerBusiness(data as DbRow);
 }
 
 export async function createModel(input: {

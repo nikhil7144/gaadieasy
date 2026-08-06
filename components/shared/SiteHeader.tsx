@@ -56,6 +56,9 @@ export function SiteHeader({ scrollable = false, activeType }: { scrollable?: bo
             <Link className="transition hover:text-slate-950" href="/city/bangalore">
               City pages
             </Link>
+            <Link className="transition hover:text-slate-950" href="/dealers">
+              Find a Dealer
+            </Link>
           </nav>
 
           {/* Mobile hamburger */}
@@ -156,6 +159,13 @@ export function SiteHeader({ scrollable = false, activeType }: { scrollable?: bo
                 onClick={() => setMenuOpen(false)}
               >
                 City pages
+              </Link>
+              <Link
+                className="text-sm font-bold text-slate-600 transition hover:text-slate-950"
+                href="/dealers"
+                onClick={() => setMenuOpen(false)}
+              >
+                Find a Dealer
               </Link>
             </div>
           </div>

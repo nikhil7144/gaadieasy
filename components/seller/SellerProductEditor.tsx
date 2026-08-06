@@ -7,12 +7,13 @@ import { ArrowLeft } from "lucide-react";
 import { FormField } from "@/components/seller/FormField";
 import { SellerProductVariantsEditor } from "@/components/seller/SellerProductVariantsEditor";
 import { fieldClass, ghostButtonClass, primaryButtonClass } from "@/components/seller/dashboardStyles";
+import { describeApiError } from "@/lib/utils/api-error";
 import type { Brand, GearCategory, GearProduct, VehicleModel, VehicleType, VehicleVariant } from "@/types/automobile";
 
 async function sendJson(url: string, method: "POST" | "PATCH", body: unknown) {
   const response = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+  if (!response.ok) throw new Error(describeApiError(payload, `HTTP ${response.status}`));
   return payload;
 }
 
@@ -235,6 +236,12 @@ export function SellerProductEditor({
   const compatReady = validateCompatibility(form) === null;
   const reviewReady = basicReady && photosReady && compatReady;
 
+  const publishBlockedReasons = [
+    !basicReady && (form.id ? "title and category are required" : "title, category, and the default variant's MRP and selling price are required"),
+    !photosReady && "add at least one photo",
+    !compatReady && "choose what this fits under Compatibility",
+  ].filter((reason): reason is string => Boolean(reason));
+
   const steps: { key: StepKey; label: string; dot: Dot }[] = [
     { key: "basic", label: "Basic details", dot: basicReady ? "green" : "amber" },
     { key: "photos", label: "Photos", dot: photosReady ? "green" : "amber" },
@@ -405,7 +412,13 @@ export function SellerProductEditor({
             {saving ? "Saving…" : "Save"}
           </button>
           {form.id && (product?.status === "draft" || product?.status === "rejected" || product?.status === "pending_review") && (
-            <button className={primaryButtonClass} disabled={saving || !reviewReady} onClick={publish} type="button">
+            <button
+              className={primaryButtonClass}
+              disabled={saving || !reviewReady}
+              onClick={publish}
+              title={reviewReady ? undefined : `Before you can publish: ${publishBlockedReasons.join("; ")}.`}
+              type="button"
+            >
               Publish
             </button>
           )}
@@ -512,7 +525,12 @@ export function SellerProductEditor({
                   <div className="relative h-16 w-16 overflow-hidden rounded-md border border-black/[0.08]" key={url}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img alt="Product" className="h-full w-full object-cover" src={url} />
-                    <button className="absolute right-0 top-0 bg-[#ef4444] px-1 text-xs font-bold text-white" onClick={() => removeImage(url)} type="button">
+                    <button
+                      aria-label="Remove photo"
+                      className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-[#ef4444] text-sm font-bold text-white shadow-sm ring-1 ring-white/70 transition hover:bg-[#dc2626]"
+                      onClick={() => removeImage(url)}
+                      type="button"
+                    >
                       ×
                     </button>
                   </div>

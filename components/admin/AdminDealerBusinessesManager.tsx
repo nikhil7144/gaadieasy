@@ -1,15 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Plus, UserPlus } from "lucide-react";
-import { adminFieldClass, postAdminJson } from "@/components/admin/admin-form-utils";
+import { adminFieldClass, patchAdminJson, postAdminJson } from "@/components/admin/admin-form-utils";
 import { DealerAdminSubnav, dealerStatusPill } from "@/components/admin/dealer-admin-shared";
 import { slugify } from "@/lib/utils/format";
-import type { DealerBusiness } from "@/types/automobile";
+import type { DealerBusiness, DealerVerificationStatus } from "@/types/automobile";
 
 type Props = {
   businesses: DealerBusiness[];
+};
+
+const verificationPill: Record<DealerVerificationStatus, string> = {
+  pending: "bg-amber-50 text-amber-700",
+  verified: "bg-lime-100 text-lime-900",
+  rejected: "bg-red-50 text-red-700",
 };
 
 export function AdminDealerBusinessesManager({ businesses }: Props) {
@@ -25,9 +31,51 @@ export function AdminDealerBusinessesManager({ businesses }: Props) {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
+  const [statusFilter, setStatusFilter] = useState<"all" | DealerVerificationStatus>("pending");
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [moderating, setModerating] = useState<string | null>(null);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState("");
+
+  const filteredBusinesses = useMemo(
+    () => (statusFilter === "all" ? businesses : businesses.filter((b) => b.verificationStatus === statusFilter)),
+    [businesses, statusFilter],
+  );
+
+  async function approve(id: string) {
+    setModerating(id);
+    setError("");
+    try {
+      await patchAdminJson("/api/admin/dealers", { action: "approve", id });
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to approve dealer business");
+    } finally {
+      setModerating(null);
+    }
+  }
+
+  async function reject(id: string) {
+    if (rejectReason.trim().length < 3) {
+      setError("Enter a rejection reason (at least 3 characters).");
+      return;
+    }
+    setModerating(id);
+    setError("");
+    try {
+      await patchAdminJson("/api/admin/dealers", { action: "reject", id, reason: rejectReason.trim() });
+      setRejectingId(null);
+      setRejectReason("");
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to reject dealer business");
+    } finally {
+      setModerating(null);
+    }
+  }
 
   async function saveBusiness(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,32 +156,90 @@ export function AdminDealerBusinessesManager({ businesses }: Props) {
 
       <section className="grid gap-6 xl:grid-cols-[1.25fr_0.95fr]">
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-start gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-lime-300 text-slate-950">
-              <Building2 size={20} />
-            </span>
-            <div>
-              <p className="text-xs font-black uppercase text-emerald-700">List</p>
-              <h2 className="text-xl font-black text-slate-950">Business list</h2>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-lime-300 text-slate-950">
+                <Building2 size={20} />
+              </span>
+              <div>
+                <p className="text-xs font-black uppercase text-emerald-700">List</p>
+                <h2 className="text-xl font-black text-slate-950">Business list</h2>
+              </div>
             </div>
+            <select className={adminFieldClass} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} value={statusFilter}>
+              <option value="pending">Pending review</option>
+              <option value="verified">Verified</option>
+              <option value="rejected">Rejected</option>
+              <option value="all">All statuses</option>
+            </select>
           </div>
 
           <div className="mt-4 grid gap-3">
-            {businesses.length ? businesses.map((business) => (
+            {filteredBusinesses.length ? filteredBusinesses.map((business) => (
               <div className="rounded-lg border border-slate-200 p-3" key={business.id}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <div className="font-black text-slate-950">{business.name}</div>
                     <div className="text-xs font-bold text-slate-500">/{business.slug}</div>
                   </div>
-                  {dealerStatusPill(business.active, business.verified)}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {dealerStatusPill(business.active, business.verified)}
+                    <span className={`rounded-full px-2 py-1 text-[11px] font-black ${verificationPill[business.verificationStatus]}`}>
+                      {business.verificationStatus}
+                    </span>
+                  </div>
                 </div>
                 <div className="mt-2 text-sm font-semibold text-slate-500">
                   {business.phone || "No phone"} / {business.email || "No email"}
                 </div>
+                {business.verificationStatus === "rejected" && business.rejectionReason && (
+                  <p className="mt-2 rounded-md bg-red-50 px-2 py-1.5 text-xs font-bold text-red-700">{business.rejectionReason}</p>
+                )}
+
+                {business.verificationStatus !== "verified" && (
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <button
+                      className="text-xs font-bold text-emerald-700 hover:underline disabled:opacity-50"
+                      disabled={moderating === business.id}
+                      onClick={() => approve(business.id)}
+                      type="button"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="text-xs font-bold text-red-600 hover:underline"
+                      onClick={() => setRejectingId(rejectingId === business.id ? null : business.id)}
+                      type="button"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+
+                {rejectingId === business.id && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <input
+                      className={`${adminFieldClass} w-64`}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Rejection reason"
+                      value={rejectReason}
+                    />
+                    <button
+                      className="text-xs font-bold text-red-600 hover:underline disabled:opacity-50"
+                      disabled={moderating === business.id || rejectReason.trim().length < 3}
+                      onClick={() => reject(business.id)}
+                      type="button"
+                    >
+                      Confirm reject
+                    </button>
+                    <button className="text-xs font-bold text-slate-500 hover:underline" onClick={() => setRejectingId(null)} type="button">
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
             )) : (
-              <div className="rounded-lg bg-slate-50 p-3 text-sm font-bold text-slate-500">No dealer business created yet.</div>
+              <div className="rounded-lg bg-slate-50 p-3 text-sm font-bold text-slate-500">No dealer business matches this filter.</div>
             )}
           </div>
         </div>

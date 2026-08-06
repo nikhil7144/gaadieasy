@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FormField } from "@/components/seller/FormField";
 import { fieldClass } from "@/components/seller/dashboardStyles";
+import { describeApiError } from "@/lib/utils/api-error";
 import type { GearProductVariant } from "@/types/automobile";
 
 async function sendJson(url: string, method: "GET" | "POST", body?: unknown) {
@@ -12,7 +13,7 @@ async function sendJson(url: string, method: "GET" | "POST", body?: unknown) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+  if (!response.ok) throw new Error(describeApiError(payload, `HTTP ${response.status}`));
   return payload;
 }
 

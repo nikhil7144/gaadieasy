@@ -65,6 +65,9 @@ export async function SiteFooter({
             <Link className="block hover:text-lime-300" href="/gaadigear/sell">
               Sell on GaadiGear
             </Link>
+            <Link className="block hover:text-lime-300" href="/dealers">
+              Find a verified dealer
+            </Link>
           </div>
         </div>
       </div>

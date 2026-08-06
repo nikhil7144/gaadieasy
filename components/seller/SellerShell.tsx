@@ -7,10 +7,12 @@ import {
   ChevronsLeft,
   ChevronsRight,
   LayoutDashboard,
+  Menu,
   Package,
   Settings,
   ShoppingCart,
   Wallet,
+  X,
 } from "lucide-react";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { GearBrandLockup } from "@/components/shared/GearBrandLockup";
@@ -36,6 +38,7 @@ export function SellerShell({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isActive = (href: string) => (href === "/seller" ? pathname === "/seller" : pathname.startsWith(href));
 
@@ -92,9 +95,46 @@ export function SellerShell({
         </div>
       </aside>
       <div className={collapsed ? "md:pl-12" : "md:pl-[220px]"}>
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-black/[0.08] bg-white/90 px-4 py-3 backdrop-blur md:hidden">
-          <GearBrandLockup size="sidebar" />
-          <AdminSignOutButton />
+        <header className="sticky top-0 z-20 border-b border-black/[0.08] bg-white/90 backdrop-blur md:hidden">
+          <div className="flex items-center justify-between px-4 py-3">
+            <GearBrandLockup size="sidebar" />
+            <div className="flex items-center gap-1">
+              <AdminSignOutButton />
+              <button
+                aria-expanded={mobileNavOpen}
+                aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
+                className="rounded-md p-2 text-[#1c1c1c] transition hover:bg-black/5"
+                onClick={() => setMobileNavOpen((open) => !open)}
+                type="button"
+              >
+                {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
+          </div>
+          <nav
+            className={`overflow-hidden border-t border-black/[0.08] bg-white transition-all duration-150 ease-in-out ${
+              mobileNavOpen ? "max-h-96 opacity-100" : "max-h-0 border-t-0 opacity-0"
+            }`}
+          >
+            <div className="space-y-0.5 px-3 py-2">
+              {nav.map(({ label, href, icon: Icon }) => {
+                const active = isActive(href);
+                return (
+                  <Link
+                    className={`flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-sm font-bold transition ${
+                      active ? "bg-[#3ecf8e]/10 text-[#0f9d63]" : "text-[#52525b] hover:bg-black/5"
+                    }`}
+                    href={href}
+                    key={href}
+                    onClick={() => setMobileNavOpen(false)}
+                  >
+                    <Icon className="shrink-0" size={17} strokeWidth={1.75} />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
         </header>
         <header className="hidden items-center justify-end border-b border-black/[0.08] bg-white px-4 py-3 md:flex">
           <AdminSignOutButton />

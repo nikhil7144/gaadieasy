@@ -16,6 +16,9 @@ export default function DealerLoginPage() {
             Master dealer users can monitor all branch leads and offers. Showroom users work only on their mapped
             outlet leads.
           </p>
+          <Link href="/dealer/signup" className="mt-6 inline-block text-sm font-bold text-lime-300 hover:underline">
+            New dealer? Register your business →
+          </Link>
         </section>
         <DealerLoginForm />
       </div>
