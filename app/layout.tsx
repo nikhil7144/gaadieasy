@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Pontano_Sans } from "next/font/google";
+import { SiteAnalytics } from "@/components/shared/SiteAnalytics";
 import "./globals.css";
 
 const pontanoSans = Pontano_Sans({
@@ -44,7 +46,12 @@ export default function RootLayout({
       lang="en"
       className={`${pontanoSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Suspense fallback={null}>
+          <SiteAnalytics />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }

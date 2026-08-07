@@ -3,6 +3,7 @@ import { BrandLockup } from "@/components/shared/BrandLockup";
 
 const nav = [
   ["Dashboard", "/admin"],
+  ["Analytics", "/admin/analytics"],
   ["Brands", "/admin/brands"],
   ["Models", "/admin/models"],
   ["Variants", "/admin/variants"],

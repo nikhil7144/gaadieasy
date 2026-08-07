@@ -734,3 +734,37 @@ export type GearOrderSummary = {
   createdAt: string;
   shipments: GearOrderShipmentSummary[];
 };
+
+export type AnalyticsPageview = {
+  id: string;
+  visitorId: string;
+  sessionId: string;
+  path: string;
+  referrer?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  createdAt: string;
+};
+
+export type AnalyticsSession = {
+  sessionId: string;
+  visitorId: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  landingPath: string;
+  pageCount: number;
+  startedAt: string;
+  lastSeenAt: string;
+};
+
+export type AnalyticsCampaignSummary = {
+  utmSource: string;
+  utmCampaign: string;
+  sessionCount: number;
+  pageviewCount: number;
+  topLandingPath: string;
+};
