@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminFieldClass, patchAdminJson } from "@/components/admin/admin-form-utils";
-import type { Seller, SellerStatus } from "@/types/automobile";
+import type { Seller, SellerKycDocument, SellerStatus } from "@/types/automobile";
 
 const statusDot: Record<SellerStatus, string> = {
   onboarding: "bg-amber-500",
@@ -11,7 +11,20 @@ const statusDot: Record<SellerStatus, string> = {
   suspended: "bg-red-500",
 };
 
-export function GearSellersList({ sellers }: { sellers: Seller[] }) {
+const docTypeLabel: Record<string, string> = {
+  gst_certificate: "GST certificate",
+  pan_card: "PAN card",
+  cancelled_cheque: "Cancelled cheque",
+  address_proof: "Address proof",
+};
+
+export function GearSellersList({
+  sellers,
+  kycDocumentsBySeller,
+}: {
+  sellers: Seller[];
+  kycDocumentsBySeller: Record<string, SellerKycDocument[]>;
+}) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | SellerStatus>("all");
@@ -19,6 +32,7 @@ export function GearSellersList({ sellers }: { sellers: Seller[] }) {
   const [reason, setReason] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     return sellers
@@ -85,6 +99,13 @@ export function GearSellersList({ sellers }: { sellers: Seller[] }) {
                 </div>
                 <div className="w-32 text-xs text-slate-500">kyc: {s.kycStatus}</div>
                 <div className="flex w-40 shrink-0 justify-end gap-3">
+                  <button
+                    className="text-xs font-bold text-slate-500 hover:underline"
+                    onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                    type="button"
+                  >
+                    {expandedId === s.id ? "Hide details" : "View details"}
+                  </button>
                   {s.status !== "active" && (
                     <button
                       className="text-xs font-bold text-emerald-700 hover:underline disabled:opacity-50"
@@ -116,6 +137,53 @@ export function GearSellersList({ sellers }: { sellers: Seller[] }) {
                   )}
                 </div>
               </div>
+
+              {expandedId === s.id && (
+                <div className="mt-2 grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 pl-1 sm:grid-cols-2">
+                  <dl className="space-y-1 text-xs">
+                    <div className="flex gap-2">
+                      <dt className="w-28 shrink-0 font-bold text-slate-500">Storefront</dt>
+                      <dd className="text-slate-800">{s.brandName ?? "—"}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-28 shrink-0 font-bold text-slate-500">Business type</dt>
+                      <dd className="text-slate-800">{s.businessType ?? "—"}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-28 shrink-0 font-bold text-slate-500">PAN</dt>
+                      <dd className="text-slate-800">{s.pan ?? "—"}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-28 shrink-0 font-bold text-slate-500">GSTIN</dt>
+                      <dd className="text-slate-800">{s.gstin ?? "—"}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-28 shrink-0 font-bold text-slate-500">Phone</dt>
+                      <dd className="text-slate-800">{s.contactPhone ?? "—"}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-28 shrink-0 font-bold text-slate-500">Email verified</dt>
+                      <dd className="text-slate-800">{s.emailVerifiedAt ? "Yes" : "No"}</dd>
+                    </div>
+                  </dl>
+                  <div className="text-xs">
+                    <p className="font-bold text-slate-500">KYC documents</p>
+                    {kycDocumentsBySeller[s.id]?.length ? (
+                      <ul className="mt-1 space-y-1">
+                        {kycDocumentsBySeller[s.id].map((doc) => (
+                          <li key={doc.id}>
+                            <a className="font-bold text-emerald-700 hover:underline" href={doc.fileUrl} rel="noopener noreferrer" target="_blank">
+                              {docTypeLabel[doc.docType] ?? doc.docType} ↗
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 font-bold text-red-600">No documents uploaded yet.</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {rejectingId === s.id && (
                 <div className="mt-2 flex flex-wrap items-center gap-2 pl-1">

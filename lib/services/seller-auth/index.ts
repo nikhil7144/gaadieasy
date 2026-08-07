@@ -444,6 +444,29 @@ export async function getSellerKycDocuments(sellerId: string): Promise<SellerKyc
   return ((data ?? []) as DbRow[]).map(mapSellerKycDocument);
 }
 
+// One grouped query instead of one-per-seller -- used by the admin sellers
+// list, which needs every listed seller's documents up front so an admin can
+// review KYC proof before approving, not just the seller's own settings page.
+export async function getSellerKycDocumentsForSellers(sellerIds: string[]): Promise<Record<string, SellerKycDocument[]>> {
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase service role is not configured.");
+  if (sellerIds.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from("seller_kyc_documents")
+    .select("*")
+    .in("seller_id", sellerIds)
+    .order("uploaded_at", { ascending: false });
+  if (error) throw error;
+
+  const grouped: Record<string, SellerKycDocument[]> = {};
+  for (const row of (data ?? []) as DbRow[]) {
+    const doc = mapSellerKycDocument(row);
+    (grouped[doc.sellerId] ??= []).push(doc);
+  }
+  return grouped;
+}
+
 function mapSellerBankDetails(sellerId: string, row: DbRow): SellerBankDetails {
   return {
     sellerId,
