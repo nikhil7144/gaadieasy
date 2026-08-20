@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import {
   brands as seedBrands,
   categories as seedCategories,
@@ -20,6 +21,7 @@ import {
   vehicleMedia as seedVehicleMedia,
 } from "@/lib/data";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { deriveCompareSummary } from "@/lib/services/variant-summary";
 import type {
   Brand,
   City,
@@ -40,6 +42,7 @@ import type {
   VehicleCategory,
   VehicleMedia,
   VehicleModel,
+  VariantCompareSummary,
   VehicleVariant,
 } from "@/types/automobile";
 
@@ -67,6 +70,59 @@ export type VehicleDataSet = {
 };
 
 type DbRow = Record<string, unknown>;
+
+// compare_summary defaults to '{}' in the migration, so a row that has been migrated but
+// not yet backfilled arrives as an empty object rather than a well-formed summary.
+// Normalising here guarantees highlights/features are always arrays — callers do
+// `summary?.highlights.length`, which would throw on a bare {}.
+function toCompareSummary(row: DbRow): VariantCompareSummary {
+  const raw = jsonObject<Partial<VariantCompareSummary>>(row, "compare_summary", {});
+  return {
+    ...raw,
+    highlights: Array.isArray(raw.highlights) ? raw.highlights : [],
+    features: Array.isArray(raw.features) ? raw.features : [],
+  };
+}
+
+// Seed variants are full VehicleVariants; browse fallbacks need the derived shape.
+const seedBrowseVariants: BrowseVariant[] = seedVariants.map((variant) => {
+  const { specifications, specificationGroups, ...rest } = variant;
+  void specificationGroups;
+  return { ...rest, compareSummary: variant.compareSummary ?? deriveCompareSummary(specifications) };
+});
+
+// The two spec blobs are the catalog's weight: ~2 KB/row for specification_groups and
+// ~1.2 KB for specifications, against ~700 B for every other column combined. Neither is
+// read by a listing or browse surface — only /on-road-price's spec table and the admin
+// variant editor need them — so browse queries take the precomputed compare_summary
+// (~200 B) instead. That is what takes vehicle_variants from 1.86 MB to ~0.27 MB on the
+// wire, and getBrowseDataSet() from 2.19 MB to ~0.55 MB.
+//
+// compare_summary is derived from specifications by deriveCompareSummary() on every
+// variant write; see supabase/migrations/20260820000100_variant_compare_summary.sql.
+//
+// mapBrowseVariant() must read exactly what BROWSE_VARIANT_COLUMNS selects — keep in sync.
+export const BROWSE_VARIANT_COLUMNS =
+  "id, model_id, name, slug, ex_showroom_price, fuel_type, transmission, engine_capacity, engine_cc, max_power_ps, payload_capacity_kg, mileage, seating_capacity, is_default, display_order, active, compare_summary";
+
+// The same set as BROWSE_VARIANT_COLUMNS but pre-migration: raw specifications instead of
+// the derived compare_summary. Spelled out as a literal rather than derived at runtime
+// because supabase-js parses the column string at the type level. Keep in sync above.
+const LEGACY_BROWSE_VARIANT_COLUMNS =
+  "id, model_id, name, slug, ex_showroom_price, fuel_type, transmission, engine_capacity, engine_cc, max_power_ps, payload_capacity_kg, mileage, seating_capacity, is_default, display_order, active, specifications";
+
+// A variant carrying the compact compare_summary in place of the two full spec blobs.
+// Distinct from VehicleVariant on purpose: it makes the compiler reject any browse-surface
+// code that reaches for `.specifications` or `.specificationGroups` rather than silently
+// handing back the seed variant's specs or an empty array.
+export type BrowseVariant = Omit<VehicleVariant, "specifications" | "specificationGroups">;
+
+// A dataset whose variants are browse-grade. Every consumer that only prices, sorts or
+// lists vehicles should accept this rather than VehicleDataSet — a full VehicleDataSet
+// is assignable to it, so widening a parameter to PricingDataSet never breaks a caller,
+// while keeping VehicleDataSet itself honest for the admin/detail surfaces that do read
+// specificationGroups.
+export type PricingDataSet = Omit<VehicleDataSet, "variants"> & { variants: BrowseVariant[] };
 
 const seedDataSet: VehicleDataSet = {
   categories: seedCategories,
@@ -210,7 +266,7 @@ function mapHeroPromotion(row: DbRow): HeroPromotion {
   };
 }
 
-function mapVariant(row: DbRow): VehicleVariant {
+function mapBrowseVariant(row: DbRow): BrowseVariant {
   return {
     id: stringValue(row, "id"),
     modelId: stringValue(row, "model_id"),
@@ -225,11 +281,18 @@ function mapVariant(row: DbRow): VehicleVariant {
     payloadCapacityKg: optionalNumber(row, "payload_capacity_kg"),
     mileage: stringValue(row, "mileage"),
     seatingCapacity: numberValue(row, "seating_capacity"),
-    specifications: jsonObject(row, "specifications", seedVariants[0]?.specifications),
-    specificationGroups: jsonArray(row, "specification_groups"),
+    compareSummary: toCompareSummary(row),
     isDefault: booleanValue(row, "is_default"),
     displayOrder: numberValue(row, "display_order"),
     active: booleanValue(row, "active", true),
+  };
+}
+
+function mapVariant(row: DbRow): VehicleVariant {
+  return {
+    ...mapBrowseVariant(row),
+    specifications: jsonObject(row, "specifications", seedVariants[0]?.specifications),
+    specificationGroups: jsonArray(row, "specification_groups"),
   };
 }
 
@@ -524,8 +587,30 @@ export type SlimCatalog = {
   brands: Brand[];
   cities: City[];
   models: VehicleModel[];
-  variants: VehicleVariant[];
+  variants: BrowseVariant[];
 };
+
+// Selecting compare_summary before its migration has run returns PostgREST 42703 and a
+// null body, which would sink fetchBrowseDataSet() into its seed-data guard and quietly
+// serve 5 seed vehicles instead of the real catalog. Rather than depend on deploy
+// ordering, fall back to the pre-migration column set and derive the summary in-app —
+// same output, old payload size, self-healing the moment the migration lands.
+async function readBrowseVariants(): Promise<DbRow[] | undefined> {
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) return undefined;
+
+  const { data, error } = await supabase.from("vehicle_variants").select(BROWSE_VARIANT_COLUMNS);
+  if (!error && data) return data as DbRow[];
+
+  const legacy = await supabase.from("vehicle_variants").select(LEGACY_BROWSE_VARIANT_COLUMNS);
+  if (legacy.error || !legacy.data) return undefined;
+
+  console.warn("[vehicle-data] compare_summary unavailable — deriving in-app. Run the migration + npm run backfill:compare-summary.");
+  return (legacy.data as DbRow[]).map((row) => ({
+    ...row,
+    compare_summary: deriveCompareSummary(row.specifications as VehicleVariant["specifications"]),
+  }));
+}
 
 async function fetchSlimCatalog(): Promise<SlimCatalog> {
   const supabase = createSupabaseAdminClient();
@@ -534,51 +619,97 @@ async function fetchSlimCatalog(): Promise<SlimCatalog> {
     readTable("brands"),
     readTable("cities"),
     readTable("vehicle_models"),
-    // Exclude specifications + specification_groups — large JSON columns not needed for listings
-    supabase
-      ? supabase.from("vehicle_variants").select(
-          "id, model_id, name, slug, ex_showroom_price, fuel_type, transmission, engine_capacity, engine_cc, max_power_ps, payload_capacity_kg, mileage, seating_capacity, is_default, display_order, active",
-        )
-      : Promise.resolve({ data: null }),
+    readBrowseVariants(),
   ]);
 
   return {
     brands: brands?.map(mapBrand) ?? seedBrands,
     cities: cities?.map(mapCity) ?? seedCities,
     models: models?.map(mapModel) ?? seedModels,
-    variants: (variantsRes.data as DbRow[] | null)?.map(mapVariant) ?? seedVariants,
+    variants: variantsRes?.map(mapBrowseVariant) ?? seedBrowseVariants,
   };
 }
 
-export const getSlimCatalog = cache(fetchSlimCatalog);
+// Tag every catalog-derived cache entry so a single revalidateTag(CATALOG_TAG) after an
+// admin write refreshes all of them at once. See lib/services/catalog-cache.ts.
+export const CATALOG_TAG = "vehicle-catalog";
+
+// Two layers, deliberately: unstable_cache persists the result ACROSS requests (this is
+// what stops every crawler hit from becoming a Supabase read), React cache() dedupes
+// WITHIN one request (generateMetadata + page both calling it costs one lookup).
+//
+// CATALOG_TTL is only a backstop against a missed invalidation hook — correctness comes
+// from revalidateCatalog() on every write. It is deliberately long: time-based expiry is
+// pure cost with no benefit when tag invalidation is wired up, and at a 1-hour TTL the
+// catalog + on-road-price entries alone re-fetch ~4 GB/month against a 5 GB quota.
+export const CATALOG_TTL = 21600; // 6 hours
+export const getSlimCatalog = cache(
+  unstable_cache(fetchSlimCatalog, ["slim-catalog"], { revalidate: CATALOG_TTL, tags: [CATALOG_TAG] }),
+);
+
+// Brand list only. /photos and /emi-calculator were each pulling the entire browse
+// dataset to render a footer brand list; this is the same data at ~50 KB instead of 1.35 MB.
+async function fetchBrandList(): Promise<Brand[]> {
+  const brands = await readTable("brands");
+  return brands?.map(mapBrand) ?? seedBrands;
+}
+
+export const getBrandList = cache(
+  unstable_cache(fetchBrandList, ["brand-list"], { revalidate: CATALOG_TTL, tags: [CATALOG_TAG] }),
+);
+
+// Pricing-grade variants: browse columns PLUS the raw specifications blob, because
+// inferVehicleTaxKind() classifies a vehicle by inspecting specs.bike / specs.commercial
+// and the stringified spec text. Dropping specifications here would silently change tax
+// kind — and therefore the price — on any surface that prices from a catalog-wide list.
+// Only /city/[slug] needs this; every other browse surface uses compare_summary.
+async function fetchPricingVariants(): Promise<VehicleVariant[]> {
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) return seedVariants;
+  const { data } = await supabase
+    .from("vehicle_variants")
+    .select(`${BROWSE_VARIANT_COLUMNS}, specifications`);
+  return (data as DbRow[] | null)?.map((row) => ({
+    ...mapBrowseVariant(row),
+    specifications: jsonObject(row, "specifications", seedVariants[0]?.specifications),
+    specificationGroups: [],
+  })) ?? seedVariants;
+}
+
+export const getPricingVariants = cache(
+  unstable_cache(fetchPricingVariants, ["pricing-variants"], { revalidate: CATALOG_TTL, tags: [CATALOG_TAG] }),
+);
 
 export type BrowseDataSet = {
   categories: VehicleCategory[];
   brands: Brand[];
   models: VehicleModel[];
-  variants: VehicleVariant[];
+  variants: BrowseVariant[];
   media: VehicleMedia[];
   cities: City[];
   heroPromotions: HeroPromotion[];
 };
 
 async function fetchBrowseDataSet(): Promise<BrowseDataSet> {
-  const [categories, brands, models, variants, media, cities, heroPromotions] = await Promise.all([
+  const supabase = createSupabaseAdminClient();
+
+  const [categories, brands, models, variantsRes, media, cities, heroPromotions] = await Promise.all([
     readTable("vehicle_categories"),
     readTable("brands"),
     readTable("vehicle_models"),
-    readTable("vehicle_variants"),
+    readBrowseVariants(),
     readTable("vehicle_media"),
     readTable("cities"),
     readTable("hero_promotions"),
   ]);
+  const variants = variantsRes;
 
   if (!brands?.length || !models?.length || !variants?.length || !cities?.length) {
     return {
       categories: seedCategories,
       brands: seedBrands,
       models: seedModels,
-      variants: seedVariants,
+      variants: seedBrowseVariants,
       media: seedVehicleMedia,
       cities: seedCities,
       heroPromotions: seedHeroPromotions,
@@ -589,7 +720,7 @@ async function fetchBrowseDataSet(): Promise<BrowseDataSet> {
     categories: categories?.map(mapCategory) ?? seedCategories,
     brands: brands.map(mapBrand),
     models: models.map(mapModel),
-    variants: variants.map(mapVariant),
+    variants: variants.map(mapBrowseVariant),
     media: media?.map(mapMedia) ?? [],
     cities: cities.map(mapCity),
     heroPromotions: heroPromotions?.map(mapHeroPromotion) ?? seedHeroPromotions,
@@ -599,4 +730,6 @@ async function fetchBrowseDataSet(): Promise<BrowseDataSet> {
 // Narrower than getVehicleDataSet — only the 7 tables browse/listing pages actually
 // touch (categories, brands, models, variants, media, cities, heroPromotions). Used by
 // homepage, /discover, and /brands/[brand] to avoid pulling all 20 tables per pageview.
-export const getBrowseDataSet = cache(fetchBrowseDataSet);
+export const getBrowseDataSet = cache(
+  unstable_cache(fetchBrowseDataSet, ["browse-data-set"], { revalidate: CATALOG_TTL, tags: [CATALOG_TAG] }),
+);

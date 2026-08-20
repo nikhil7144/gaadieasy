@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { adminFieldClass, patchAdminJson } from "@/components/admin/admin-form-utils";
-import type { Brand, GearProduct, GearProductVariant, VehicleModel, VehicleType, VehicleVariant } from "@/types/automobile";
+import type { Brand, GearProduct, GearProductVariant, VehicleModel, VehicleType } from "@/types/automobile";
+import type { BrowseVariant } from "@/lib/repositories/vehicle-data";
 
 const statusDot: Record<GearProduct["status"], string> = {
   draft: "bg-slate-300",
@@ -28,7 +29,7 @@ export function GearProductDetailView({
   vehicleTypes: VehicleType[];
   brands: Brand[];
   models: VehicleModel[];
-  vehicleVariants: VehicleVariant[];
+  vehicleVariants: BrowseVariant[];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);

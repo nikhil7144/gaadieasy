@@ -4,6 +4,14 @@ import { ComparisonPricing } from "@/components/public/ComparisonPricing";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { getComparisonPage } from "@/lib/services/comparisons";
+import { getComparisonPagesFromDb } from "@/lib/services/comparisons/db";
+
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const pages = await getComparisonPagesFromDb().catch(() => []);
+  return pages.filter((page) => page.active).map((page) => ({ slug: page.slug }));
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

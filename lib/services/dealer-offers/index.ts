@@ -1,3 +1,4 @@
+import { revalidateCatalog } from "@/lib/services/catalog-cache";
 import { getDealerAccessContext, type DealerAccessContext } from "@/lib/services/dealer-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Offer } from "@/types/automobile";
@@ -120,6 +121,9 @@ export async function createDealerOffer(input: DealerOfferInput, context?: Deale
 
   const { data, error } = await supabase.from("offers").insert(payload).select("*").single();
   if (error || !data) throw new Error(error?.message ?? "Unable to create offer");
+
+  // Dealer offers feed the on-road price breakdown, which is tag-cached.
+  revalidateCatalog();
 
   return mapOffer(data as DbRow);
 }

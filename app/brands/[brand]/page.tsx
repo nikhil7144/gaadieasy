@@ -6,9 +6,19 @@ import { VehicleCompareModal } from "@/components/public/VehicleCompareModal";
 import { VehicleImage } from "@/components/public/VehicleImage";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
-import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrandList, getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { getVehicleStories } from "@/lib/services/vehicle-stories";
 import { formatShortPrice } from "@/lib/utils/format";
+
+// Prerender every active brand at build time so crawler sweeps hit static HTML instead
+// of a live render. dynamicParams stays on (default), so a brand added after the build
+// still renders on demand and is picked up by the next revalidation.
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const brands = await getBrandList();
+  return brands.filter((brand) => brand.active).map((brand) => ({ brand: brand.slug }));
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
   const { brand: brandSlug } = await params;

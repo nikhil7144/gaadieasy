@@ -6,7 +6,17 @@ import { MarkdownBody } from "@/components/shared/MarkdownBody";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
-import { getVehicleStoryBySlug, getVehicleStoryUpdates } from "@/lib/services/vehicle-stories";
+import { getVehicleStories, getVehicleStoryBySlug, getVehicleStoryUpdates } from "@/lib/services/vehicle-stories";
+
+export const revalidate = 3600;
+
+// Brand-only stories (no modelId) — the same split the sitemap uses.
+export async function generateStaticParams() {
+  const stories = await getVehicleStories({ activeOnly: true }).catch(() => []);
+  return stories
+    .filter((story) => !story.modelId)
+    .map((story) => ({ brand: story.brandSlug, slug: story.slug.slice(story.brandSlug.length + 1) }));
+}
 
 type Props = { params: Promise<{ brand: string; slug: string }> };
 

@@ -63,6 +63,10 @@ export type VehicleVariant = {
   seatingCapacity: number;
   specifications: VehicleSpecifications;
   specificationGroups: SpecificationGroup[];
+  // Optional so hand-written seed fixtures stay valid, and so the app degrades safely if
+  // this deploy lands before the compare_summary migration/backfill has run: browse
+  // surfaces render "-" for spec rows rather than crashing.
+  compareSummary?: VariantCompareSummary;
   isDefault?: boolean;
   displayOrder?: number;
   active: boolean;
@@ -148,6 +152,31 @@ export type VehicleSpecifications = {
   features: string[];
   highlights: string[];
   [key: string]: unknown;
+};
+
+// The handful of spec-derived values that browse/listing surfaces actually render:
+// the compare table's four rows plus highlights/features, and the commercial strings
+// that discovery's search index folds in. Precomputed per variant so the full
+// `specifications` blob (~1.2 KB/row) never has to be shipped to a browse surface.
+// Derived by deriveCompareSummary() in lib/services/variant-summary.ts.
+export type VariantCompareSummary = {
+  payload?: string;
+  // Wider key list than `payload`, matching VehicleDiscoverClient.getPayloadKg().
+  // Kept raw (e.g. "1.2 ton") so the client can still apply its ton->kg conversion.
+  loadCapacity?: string;
+  battery?: string;
+  // `power` follows VehicleCompareModal's resolution order (engine.power first);
+  // `maxPower` follows VehicleDiscoverClient's (engine.maxPower first). They are kept
+  // separate because a variant can carry both with different values, and collapsing
+  // them would silently change one surface's output.
+  power?: string;
+  maxPower?: string;
+  safety?: string;
+  highlights: string[];
+  features: string[];
+  // Space-joined commercial-section string values — discovery's modelSearchText()
+  // folds these into its search text.
+  commercialText?: string;
 };
 
 export type State = {

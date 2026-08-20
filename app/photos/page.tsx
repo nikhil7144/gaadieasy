@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { VehiclePhotoExperience } from "@/components/public/VehiclePhotoExperience";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
-import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrandList } from "@/lib/repositories/vehicle-data";
 import { getVehicleMediaForApi } from "@/lib/services/media";
 import { getOnRoadPriceData } from "@/lib/services/on-road-price";
 
@@ -17,9 +17,9 @@ export default async function VehiclePhotosPage({
   searchParams: Promise<{ brand?: string; model?: string; variant?: string; city?: string; color?: string; photo?: string }>;
 }) {
   const params = await searchParams;
-  const [pricing, browseData] = await Promise.all([
+  const [pricing, brands] = await Promise.all([
     getOnRoadPriceData(params),
-    getBrowseDataSet(),
+    getBrandList(),
   ]);
   const media = await getVehicleMediaForApi(pricing.model.id, pricing.variant.id);
   const title = `${pricing.brand.name} ${pricing.model.name} ${pricing.variant.name}`;
@@ -42,7 +42,7 @@ export default async function VehiclePhotosPage({
           initialPhotoId={params.photo}
         />
       </main>
-      <SiteFooter brandsOverride={browseData.brands} />
+      <SiteFooter brandsOverride={brands} />
     </div>
   );
 }

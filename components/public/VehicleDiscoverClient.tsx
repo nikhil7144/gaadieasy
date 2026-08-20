@@ -217,47 +217,24 @@ function getEngineCc(model: DiscoveryModel) {
 }
 
 function getPower(model: DiscoveryModel) {
-  const variant = getPrimaryVariant(model);
-  const engine = variant?.specifications?.engine as Record<string, unknown> | undefined;
-  const bike = variant?.specifications?.bike as Record<string, unknown> | undefined;
-  const commercial = variant?.specifications?.commercial as Record<string, unknown> | undefined;
-
-  const candidates = [
-    typeof engine?.maxPower === "string" ? engine.maxPower : undefined,
-    typeof bike?.power === "string" ? bike.power : undefined,
-    typeof commercial?.power === "string" ? commercial.power : undefined,
-  ];
-
-  for (const candidate of candidates) {
-    const match = candidate?.replaceAll(",", "").match(/\d+(\.\d+)?/);
-    if (match) return Number(match[0]);
-  }
-
-  return undefined;
+  // compareSummary.maxPower already resolves engine.maxPower -> bike.power -> commercial.power
+  // server-side; see deriveCompareSummary().
+  const candidate = getPrimaryVariant(model)?.compareSummary?.maxPower;
+  const match = candidate?.replaceAll(",", "").match(/\d+(\.\d+)?/);
+  return match ? Number(match[0]) : undefined;
 }
 
 function getPayloadKg(model: DiscoveryModel) {
-  const commercial = getPrimaryVariant(model)?.specifications?.commercial as Record<string, unknown> | undefined;
-  if (!commercial) return undefined;
+  // compareSummary.loadCapacity resolves the commercial payload/loading-capacity keys
+  // server-side; the ton -> kg conversion stays here because the raw string is preserved.
+  const candidate = getPrimaryVariant(model)?.compareSummary?.loadCapacity;
+  if (typeof candidate !== "string") return undefined;
 
-  const candidates = [
-    commercial.payload,
-    commercial.payloadCapacity,
-    commercial.loadingCapacity,
-    commercial.loadCapacity,
-    commercial.cargoCapacity,
-  ];
+  const match = candidate.replaceAll(",", "").match(/\d+(\.\d+)?/);
+  if (!match) return undefined;
 
-  for (const candidate of candidates) {
-    if (typeof candidate !== "string") continue;
-    const match = candidate.replaceAll(",", "").match(/\d+(\.\d+)?/);
-    if (!match) continue;
-    const value = Number(match[0]);
-    if (candidate.toLowerCase().includes("ton")) return value * 1000;
-    return value;
-  }
-
-  return undefined;
+  const value = Number(match[0]);
+  return candidate.toLowerCase().includes("ton") ? value * 1000 : value;
 }
 
 function rangeSectionsForType(type: DiscoveryType): RangeSection[] {

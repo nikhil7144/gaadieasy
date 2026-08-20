@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Brand, City, VehicleModel, VehicleVariant } from "@/types/automobile";
+import type { Brand, City, VehicleModel } from "@/types/automobile";
+import type { BrowseVariant } from "@/lib/repositories/vehicle-data";
 import { formatShortPrice } from "@/lib/utils/format";
 
 export function PricingExplorer({
@@ -17,7 +18,7 @@ export function PricingExplorer({
   brands: Brand[];
   cities: City[];
   models: VehicleModel[];
-  variants: VehicleVariant[];
+  variants: BrowseVariant[];
   categoryIds?: string[];
   initialBrandId?: string;
   initialModelId?: string;

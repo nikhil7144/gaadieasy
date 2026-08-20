@@ -10,9 +10,10 @@ import {
   variants,
 } from "@/lib/data";
 import { getBrowseDataSet, getVehicleDataSet } from "@/lib/repositories/vehicle-data";
-import type { VehicleVariant } from "@/types/automobile";
+import type { BrowseVariant } from "@/lib/repositories/vehicle-data";
+import type {  } from "@/types/automobile";
 
-function sortVariants(list: VehicleVariant[]): VehicleVariant[] {
+function sortVariants(list: BrowseVariant[]): BrowseVariant[] {
   return [...list].sort((a, b) => {
     if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
     return (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.exShowroomPrice - b.exShowroomPrice;

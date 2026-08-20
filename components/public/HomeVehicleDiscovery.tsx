@@ -7,12 +7,13 @@ import { BrandLogo } from "@/components/public/BrandLogo";
 import { VehicleCompareModal } from "@/components/public/VehicleCompareModal";
 import { VehicleImage } from "@/components/public/VehicleImage";
 import { filterDiscoveryModels, getDiscoveryTab, matchesDiscoveryFilter, modelBelongsToDiscoveryType } from "@/lib/services/discovery";
-import type { Brand, City, HeroPromotion, VehicleCategory, VehicleModel, VehicleVariant } from "@/types/automobile";
+import type { Brand, City, HeroPromotion, VehicleCategory, VehicleModel } from "@/types/automobile";
+import type { BrowseVariant } from "@/lib/repositories/vehicle-data";
 import { formatShortPrice } from "@/lib/utils/format";
 
 type HomeModel = VehicleModel & {
   brand?: Brand;
-  variants: VehicleVariant[];
+  variants: BrowseVariant[];
 };
 
 type HomeVehicleDiscoveryProps = {
@@ -1568,7 +1569,7 @@ export function HomepageQuickFilterSections({
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {section.models.map((model) => {
                 const variant = model.variants.find((v) => v.isDefault) ?? model.variants[0];
-                const spec = variant?.specifications;
+                const spec = variant?.compareSummary;
                 return (
                   <a
                     className="overflow-hidden rounded-lg bg-slate-50 ring-1 ring-slate-100 transition hover:-translate-y-1 hover:shadow-md"
@@ -1609,7 +1610,7 @@ export function HomepageQuickFilterSections({
                             <p className="line-clamp-2 text-xs leading-5 text-slate-600">{spec.highlights.slice(0, 2).join(" - ")}</p>
                           ) : null}
                           <div className="flex flex-wrap gap-1">
-                            {spec?.features.slice(0, 3).map((feature) => (
+                            {spec?.features.slice(0, 3).map((feature: string) => (
                               <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-800" key={feature}>
                                 {feature}
                               </span>

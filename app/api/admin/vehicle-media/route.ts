@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import { revalidateCatalog } from "@/lib/services/catalog-cache";
 import { requirePlatformAdmin } from "@/lib/auth/require-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -72,6 +73,8 @@ export async function POST(request: Request) {
     revalidatePath("/");
     revalidatePath("/on-road-price");
     revalidatePath("/admin/variants");
+    // vehicle_media is part of BrowseDataSet — clear the tagged catalog entries too.
+    revalidateCatalog();
 
     return Response.json({ media: data }, { status: 201 });
   } catch (error) {

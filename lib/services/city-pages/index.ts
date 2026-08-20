@@ -1,6 +1,10 @@
+import { unstable_cache } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
+  CATALOG_TAG,
+  CATALOG_TTL,
   getBrowseDataSet,
+  getPricingVariants,
   mapCityPage,
   mapDealer,
   mapDealerBrandMapping,
@@ -15,7 +19,8 @@ import {
   type VehicleDataSet,
 } from "@/lib/repositories/vehicle-data";
 import { calculateOnRoadPriceFromData } from "@/lib/services/pricing";
-import type { Brand, PricingResult, VehicleCategory, VehicleModel } from "@/types/automobile";
+import type { Brand, PricingResult, VehicleCategory, VehicleModel, VehicleVariant } from "@/types/automobile";
+
 
 export type CityModelCard = {
   brand: Brand;
@@ -75,6 +80,19 @@ async function fetchCityPricingTables(supabase: Supa, stateId: string, cityId: s
   };
 }
 
+// Slug list for generateStaticParams — one narrow column instead of the whole
+// city_pages table, and cached so repeated builds/ISR passes don't re-query.
+export const getActiveCityPageSlugs = unstable_cache(
+  async (): Promise<string[]> => {
+    const supabase = createSupabaseAdminClient();
+    if (!supabase) return [];
+    const { data } = await supabase.from("city_pages").select("slug").eq("active", true);
+    return (data ?? []).map((row) => String((row as { slug: unknown }).slug));
+  },
+  ["active-city-page-slugs"],
+  { revalidate: CATALOG_TTL, tags: [CATALOG_TAG] },
+);
+
 export async function getCityPageView(slug: string) {
   const supabase = createSupabaseAdminClient();
   if (!supabase) return null;
@@ -88,7 +106,13 @@ export async function getCityPageView(slug: string) {
   const featuredBrandSet = new Set(cityPage.featuredBrandIds);
   const activeModels = browse.models.filter((model) => model.active);
   const activeBrands = browse.brands.filter((brand) => brand.active);
-  const activeVariants = browse.variants.filter((variant) => variant.active);
+  // This synthetic dataset drives calculateOnRoadPriceFromData, whose inferVehicleTaxKind()
+  // classifies a vehicle from specs.bike / specs.commercial and the stringified spec text.
+  // Browse variants carry only compare_summary, so pricing from them would silently
+  // misclassify tax kind — hence the pricing-grade loader here. specificationGroups stays
+  // empty because nothing in the pricing path reads it.
+  const pricingVariants = await getPricingVariants();
+  const activeVariants: VehicleVariant[] = pricingVariants.filter((variant) => variant.active);
 
   const data: VehicleDataSet = {
     categories: browse.categories,

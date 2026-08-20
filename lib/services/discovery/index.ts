@@ -1,4 +1,5 @@
-import type { Brand, City, VehicleCategory, VehicleModel, VehicleVariant } from "@/types/automobile";
+import type { Brand, City, VehicleCategory, VehicleModel } from "@/types/automobile";
+import type { BrowseVariant } from "@/lib/repositories/vehicle-data";
 
 export type DiscoveryType =
   | "cars"
@@ -29,14 +30,14 @@ export type DiscoveryTab = {
 export type DiscoveryModel = VehicleModel & {
   brand?: Brand;
   category?: VehicleCategory;
-  variants: VehicleVariant[];
+  variants: BrowseVariant[];
 };
 
 export type DiscoveryDataSet = {
   categories: VehicleCategory[];
   brands: Brand[];
   models: DiscoveryModel[];
-  variants: VehicleVariant[];
+  variants: BrowseVariant[];
   cities?: City[];
 };
 
@@ -388,8 +389,9 @@ export function getDiscoveryDatasetForType(data: DiscoveryDataSet, value?: strin
 
 export function modelSearchText(model: DiscoveryModel) {
   const variant = model.variants.find((item) => item.active && item.isDefault) ?? model.variants.find((item) => item.active) ?? model.variants[0];
-  const specs = variant?.specifications;
-  const commercial = specs && "commercial" in specs ? (specs.commercial as Record<string, unknown>) : {};
+  // compareSummary carries the spec-derived search tokens (commercial strings, features,
+  // highlights) so the full specifications blob never has to reach a browse surface.
+  const summary = variant?.compareSummary;
 
   return [
     model.name,
@@ -403,9 +405,9 @@ export function modelSearchText(model: DiscoveryModel) {
     variant?.engineCapacity,
     variant?.mileage,
     variant?.seatingCapacity ? `${variant.seatingCapacity} seater` : undefined,
-    ...Object.values(commercial ?? {}).filter((value): value is string => typeof value === "string"),
-    ...(variant?.specifications.features ?? []),
-    ...(variant?.specifications.highlights ?? []),
+    summary?.commercialText,
+    ...(summary?.features ?? []),
+    ...(summary?.highlights ?? []),
   ]
     .filter(Boolean)
     .join(" ")

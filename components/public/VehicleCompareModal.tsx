@@ -5,12 +5,13 @@ import { createPortal } from "react-dom";
 import { GitCompareArrows, Loader2, X } from "lucide-react";
 import { VehicleImage } from "@/components/public/VehicleImage";
 import { formatIndianPrice, formatShortPrice } from "@/lib/utils/format";
-import type { Brand, City, PriceBreakdown, VehicleCategory, VehicleModel, VehicleVariant } from "@/types/automobile";
+import type { Brand, City, PriceBreakdown, VehicleCategory, VehicleModel } from "@/types/automobile";
+import type { BrowseVariant } from "@/lib/repositories/vehicle-data";
 
 export type ComparableModel = VehicleModel & {
   brand?: Brand;
   category?: VehicleCategory;
-  variants: VehicleVariant[];
+  variants: BrowseVariant[];
 };
 
 type SelectionState = {
@@ -58,21 +59,14 @@ function firstValue(values: string[]) {
   return values.length ? values.join(" / ") : "-";
 }
 
-function getSpecValue(variant: VehicleVariant | undefined, paths: Array<[string, string]>) {
-  if (!variant) return "-";
-
-  for (const [section, key] of paths) {
-    const group = variant.specifications?.[section];
-    if (group && typeof group === "object" && !Array.isArray(group)) {
-      const value = (group as Record<string, unknown>)[key];
-      if (typeof value === "string" && value.trim()) return value;
-    }
-  }
-
-  return "-";
+// The four spec rows this table renders are precomputed per variant into compareSummary
+// (see deriveCompareSummary), so the full specifications blob never ships to the client.
+function summaryValue(variant: BrowseVariant | undefined, field: "payload" | "battery" | "power" | "safety") {
+  const value = variant?.compareSummary?.[field];
+  return typeof value === "string" && value.trim() ? value : "-";
 }
 
-function selectionLabel(model?: ComparableModel, variant?: VehicleVariant) {
+function selectionLabel(model?: ComparableModel, variant?: BrowseVariant) {
   return [model?.brand?.name, model?.name, variant?.name].filter(Boolean).join(" ");
 }
 
@@ -162,7 +156,7 @@ export function VehicleCompareModal({ models, brands, cities, initialModelId, ci
     }
   }
 
-  function renderSelector(side: "left" | "right", selection: SelectionState, model?: ComparableModel, variant?: VehicleVariant) {
+  function renderSelector(side: "left" | "right", selection: SelectionState, model?: ComparableModel, variant?: BrowseVariant) {
     const modelOptions = modelsForBrand(selection.brandId);
     return (
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -232,17 +226,17 @@ export function VehicleCompareModal({ models, brands, cities, initialModelId, ci
       title: "Capacity",
       rows: [
         ["Seating", leftVariant ? `${leftVariant.seatingCapacity} seats` : "-", rightVariant ? `${rightVariant.seatingCapacity} seats` : "-"],
-        ["Payload", getSpecValue(leftVariant, [["commercial", "payload"], ["commercial", "payloadCapacity"]]), getSpecValue(rightVariant, [["commercial", "payload"], ["commercial", "payloadCapacity"]])],
-        ["Battery", getSpecValue(leftVariant, [["ev", "batteryCapacity"], ["ev", "battery"]]), getSpecValue(rightVariant, [["ev", "batteryCapacity"], ["ev", "battery"]])],
-        ["Power", getSpecValue(leftVariant, [["engine", "power"], ["bike", "power"], ["commercial", "power"]]), getSpecValue(rightVariant, [["engine", "power"], ["bike", "power"], ["commercial", "power"]])],
+        ["Payload", summaryValue(leftVariant, "payload"), summaryValue(rightVariant, "payload")],
+        ["Battery", summaryValue(leftVariant, "battery"), summaryValue(rightVariant, "battery")],
+        ["Power", summaryValue(leftVariant, "power"), summaryValue(rightVariant, "power")],
       ],
     },
     {
       title: "Features",
       rows: [
-        ["Highlights", firstValue(uniqueValues(leftVariant?.specifications?.highlights ?? []).slice(0, 3)), firstValue(uniqueValues(rightVariant?.specifications?.highlights ?? []).slice(0, 3))],
-        ["Top features", firstValue(uniqueValues(leftVariant?.specifications?.features ?? []).slice(0, 4)), firstValue(uniqueValues(rightVariant?.specifications?.features ?? []).slice(0, 4))],
-        ["Safety", getSpecValue(leftVariant, [["safety", "rating"], ["safety", "airbags"], ["safety", "abs"]]), getSpecValue(rightVariant, [["safety", "rating"], ["safety", "airbags"], ["safety", "abs"]])],
+        ["Highlights", firstValue(uniqueValues(leftVariant?.compareSummary?.highlights ?? []).slice(0, 3)), firstValue(uniqueValues(rightVariant?.compareSummary?.highlights ?? []).slice(0, 3))],
+        ["Top features", firstValue(uniqueValues(leftVariant?.compareSummary?.features ?? []).slice(0, 4)), firstValue(uniqueValues(rightVariant?.compareSummary?.features ?? []).slice(0, 4))],
+        ["Safety", summaryValue(leftVariant, "safety"), summaryValue(rightVariant, "safety")],
       ],
     },
   ];

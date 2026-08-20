@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import { revalidateCatalog } from "@/lib/services/catalog-cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Offer } from "@/types/automobile";
 
@@ -85,6 +86,7 @@ export async function updateAdminOffer(input: {
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/offers");
+  revalidateCatalog();
   revalidatePath("/dealer");
 
   return mapOffer(data as DbRow);

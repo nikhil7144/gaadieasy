@@ -4,7 +4,7 @@ import Link from "next/link";
 import { MarkdownBody } from "@/components/shared/MarkdownBody";
 import { SiteHeader } from "@/components/shared/SiteHeader";
 import { SiteFooter } from "@/components/shared/SiteFooter";
-import { getVehicleStoryBySlug, getVehicleStoryMedia, getVehicleStoryUpdates } from "@/lib/services/vehicle-stories";
+import { getVehicleStories, getVehicleStoryBySlug, getVehicleStoryMedia, getVehicleStoryUpdates } from "@/lib/services/vehicle-stories";
 import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { formatShortPrice } from "@/lib/utils/format";
 import type { VehicleStory } from "@/types/automobile";
@@ -15,6 +15,17 @@ const STATUS_CONFIG: Record<VehicleStory["launchStatus"], { label: string; class
   updated: { label: "Updated", className: "bg-blue-100 text-blue-800" },
   discontinued: { label: "Discontinued", className: "bg-slate-100 text-slate-600" },
 };
+
+export const revalidate = 3600;
+
+// Model stories only (modelId set); brand-only stories live under /brand-updates.
+// story.slug is "{brandSlug}-{path}" and the route segment is the path portion.
+export async function generateStaticParams() {
+  const stories = await getVehicleStories({ activeOnly: true }).catch(() => []);
+  return stories
+    .filter((story) => story.modelId)
+    .map((story) => ({ brand: story.brandSlug, model: story.slug.slice(story.brandSlug.length + 1) }));
+}
 
 type Props = { params: Promise<{ brand: string; model: string }> };
 

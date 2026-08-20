@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BrandLogo } from "@/components/public/BrandLogo";
-import { getCityPageView, type CityModelCard } from "@/lib/services/city-pages";
+import { getActiveCityPageSlugs, getCityPageView, type CityModelCard } from "@/lib/services/city-pages";
 import { formatShortPrice } from "@/lib/utils/format";
 
 type CityPageRouteProps = {
@@ -45,6 +45,13 @@ function ModelCard({ card, citySlug }: { card: CityModelCard; citySlug: string }
       </div>
     </Link>
   );
+}
+
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const slugs = await getActiveCityPageSlugs().catch(() => []);
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: CityPageRouteProps): Promise<Metadata> {

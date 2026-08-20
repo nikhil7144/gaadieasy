@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getVehicleDataSet, type VehicleDataSet } from "@/lib/repositories/vehicle-data";
+import { unstable_cache } from "next/cache";
+import { BROWSE_VARIANT_COLUMNS, CATALOG_TAG, getVehicleDataSet, type BrowseVariant, type VehicleDataSet } from "@/lib/repositories/vehicle-data";
 import { batchCalculateWithCache, calculateOnRoadPriceFromData } from "@/lib/services/pricing";
 import { batchGetCachedPricing, getCachedPricing, setCachedPricing } from "@/lib/services/pricing-cache";
 import type {
@@ -33,8 +34,8 @@ export type OnRoadPageData = {
   offer?: Offer;
   dealerOffers: Offer[];
   breakdown: PriceBreakdown;
-  modelVariants: VehicleVariant[];
-  variantPrices: Array<{ variant: VehicleVariant; breakdown: PriceBreakdown }>;
+  modelVariants: BrowseVariant[];
+  variantPrices: Array<{ variant: BrowseVariant; breakdown: PriceBreakdown }>;
 };
 
 // ── Row helpers ───────────────────────────────────────────────────────────────
@@ -227,10 +228,13 @@ async function fetchRto(supabase: Supa, cityId: string, defaultRtoId: string) {
   return data ? toRto(data as R) : undefined;
 }
 
+// The variants price table renders id/name/slug/fuelType/transmission plus a count —
+// never specifications or specification_groups. select("*") here was 12.3 KB of a
+// 22.9 KB Tier-1 request; the slim column list makes it 1.3 KB.
 async function fetchSiblings(supabase: Supa, modelId: string) {
   const { data } = await supabase
     .from("vehicle_variants")
-    .select("*")
+    .select(BROWSE_VARIANT_COLUMNS)
     .eq("model_id", modelId)
     .eq("active", true)
     .order("display_order", { ascending: true })
@@ -408,7 +412,39 @@ async function tier2(params: { brand?: string; model?: string; variant?: string;
 
 // ── Main entry point ──────────────────────────────────────────────────────────
 
+// /on-road-price reads searchParams, so the *route* is inherently dynamic and can never
+// be prerendered. The *data* still can be: a given brand+model+variant+city always
+// resolves to the same result until an admin edits the catalog or a pricing rule. The
+// sitemap advertises ~345 of these combinations, so this turns the crawler's repeated
+// sweeps into ~345 cache entries of ~12 KB instead of ~345 × N live Supabase reads.
+//
+// Positional string args (not the params object) so the cache key is stable regardless
+// of query-string ordering or extra unrelated params on the URL.
+const getCachedOnRoadPriceData = unstable_cache(
+  (brand: string, model: string, variant: string, city: string) =>
+    resolveOnRoadPriceData({ brand, model, variant, city }),
+  ["on-road-price"],
+  // 24h, not the 6h used for the catalog: there are ~345 of these entries against one
+  // catalog entry, so TTL expiry here dominates total egress. Every price input
+  // (variant, tax rule, rto charge, insurance rule, offer) invalidates by tag on write.
+  { revalidate: 86400, tags: [CATALOG_TAG] },
+);
+
 export async function getOnRoadPriceData(params: {
+  brand?: string;
+  model?: string;
+  variant?: string;
+  city?: string;
+}): Promise<OnRoadPageData> {
+  // Only the fully-qualified canonical shape is cacheable — a partial query resolves
+  // against defaults that depend on live catalog ordering, so it goes straight through.
+  if (params.brand && params.model && params.variant && params.city) {
+    return getCachedOnRoadPriceData(params.brand, params.model, params.variant, params.city);
+  }
+  return resolveOnRoadPriceData(params);
+}
+
+async function resolveOnRoadPriceData(params: {
   brand?: string;
   model?: string;
   variant?: string;

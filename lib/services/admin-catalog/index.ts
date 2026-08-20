@@ -1,4 +1,6 @@
 import { revalidatePath } from "next/cache";
+import { revalidateCatalog } from "@/lib/services/catalog-cache";
+import { deriveCompareSummary } from "@/lib/services/variant-summary";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { invalidateCacheForVariant, invalidateCacheForState } from "@/lib/services/pricing-cache";
 import { slugify } from "@/lib/utils/format";
@@ -436,6 +438,7 @@ export async function createBrand(input: {
 
   if (error) throw error;
   revalidatePath("/", "layout");
+  revalidateCatalog();
   return mapBrand(data as DbRow);
 }
 
@@ -469,6 +472,7 @@ export async function updateBrand(input: {
   const { data, error } = await supabase.from("brands").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;
   revalidatePath("/", "layout");
+  revalidateCatalog();
   return mapBrand(data as DbRow);
 }
 
@@ -505,6 +509,7 @@ export async function deleteBrand(id: string) {
   if (error) throw error;
 
   revalidatePath("/", "layout");
+  revalidateCatalog();
 
   return { id };
 }
@@ -776,6 +781,7 @@ export async function createModel(input: {
 
   if (error) throw error;
   revalidatePath("/", "layout");
+  revalidateCatalog();
   return mapModel(data as DbRow);
 }
 
@@ -804,6 +810,7 @@ export async function updateModel(input: Partial<Parameters<typeof createModel>[
   const { data, error } = await supabase.from("vehicle_models").update(patch).eq("id", input.id).select("*").single();
   if (error) throw error;
   revalidatePath("/", "layout");
+  revalidateCatalog();
   return mapModel(data as DbRow);
 }
 
@@ -898,6 +905,7 @@ export async function deleteModel(id: string) {
   if (error) throw error;
 
   revalidatePath("/", "layout");
+  revalidateCatalog();
 
   return { id, deletedVariants: variantIds.length, deletedMedia: mediaRows?.length ?? 0 };
 }
@@ -942,6 +950,8 @@ export async function createVariant(input: {
       mileage: input.mileage,
       seating_capacity: input.seatingCapacity,
       specifications: input.specifications,
+      // Derived column — browse surfaces read this instead of the full specifications blob.
+      compare_summary: deriveCompareSummary(input.specifications as VehicleVariant["specifications"]),
       specification_groups: input.specificationGroups,
       is_default: input.isDefault ?? false,
       display_order: input.displayOrder ?? 0,
@@ -956,6 +966,7 @@ export async function createVariant(input: {
     prefillVariantPricingCache(savedVariant).catch(() => {});
   }
   revalidatePath("/", "layout");
+  revalidateCatalog();
   return savedVariant;
 }
 
@@ -1019,7 +1030,12 @@ export async function updateVariant(input: Partial<Parameters<typeof createVaria
   if (input.payloadCapacityKg !== undefined) patch.payload_capacity_kg = input.payloadCapacityKg ?? null;
   if (input.mileage !== undefined) patch.mileage = input.mileage;
   if (input.seatingCapacity !== undefined) patch.seating_capacity = input.seatingCapacity;
-  if (input.specifications !== undefined) patch.specifications = input.specifications;
+  if (input.specifications !== undefined) {
+    patch.specifications = input.specifications;
+    // Keep the derived column in lockstep — a stale compare_summary silently shows old
+    // values on every browse surface while /on-road-price shows the new ones.
+    patch.compare_summary = deriveCompareSummary(input.specifications as VehicleVariant["specifications"]);
+  }
   if (input.specificationGroups !== undefined) patch.specification_groups = input.specificationGroups;
   if (input.isDefault !== undefined) patch.is_default = input.isDefault;
   if (input.displayOrder !== undefined) patch.display_order = input.displayOrder;
@@ -1031,6 +1047,7 @@ export async function updateVariant(input: Partial<Parameters<typeof createVaria
     invalidateCacheForVariant(input.id).catch(() => {});
   }
   revalidatePath("/", "layout");
+  revalidateCatalog();
   return mapVariant(data as DbRow);
 }
 
@@ -1081,6 +1098,7 @@ export async function deleteVariant(id: string) {
   invalidateCacheForVariant(id).catch(() => {});
   revalidatePath("/admin/variants");
   revalidatePath("/", "layout");
+  revalidateCatalog();
 
   return { id };
 }
@@ -1208,6 +1226,7 @@ export async function createModelWithVariants(input: {
   prefillVariantsPricingCache(createdVariants).catch(() => {});
 
   revalidatePath("/", "layout");
+  revalidateCatalog();
 
   return { model, variants: createdVariants };
 }
@@ -1262,6 +1281,7 @@ export async function createHomepageBanner(input: {
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/homepage-banners");
+  revalidateCatalog();
   return mapHeroPromotion(data as DbRow);
 }
 
@@ -1313,6 +1333,7 @@ export async function updateHomepageBanner(input: {
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/homepage-banners");
+  revalidateCatalog();
   return mapHeroPromotion(data as DbRow);
 }
 
@@ -1464,6 +1485,7 @@ export async function createTaxRule(input: {
   invalidateCacheForState(input.stateId).catch(() => {});
   revalidatePath("/admin");
   revalidatePath("/admin/tax-rules");
+  revalidateCatalog();
   return mapTaxRule(data as DbRow);
 }
 
@@ -1499,6 +1521,7 @@ export async function updateTaxRule(input: {
   invalidateCacheForState(stateId).catch(() => {});
   revalidatePath("/admin");
   revalidatePath("/admin/tax-rules");
+  revalidateCatalog();
   return mapTaxRule(data as DbRow);
 }
 
@@ -1535,6 +1558,7 @@ export async function createRtoCharge(input: {
   if (error) throw error;
   revalidatePath("/admin");
   revalidatePath("/admin/rto-charges");
+  revalidateCatalog();
   return mapRtoCharge(data as DbRow);
 }
 
@@ -1568,6 +1592,7 @@ export async function updateRtoCharge(input: {
   if (error) throw error;
   revalidatePath("/admin");
   revalidatePath("/admin/rto-charges");
+  revalidateCatalog();
   return mapRtoCharge(data as DbRow);
 }
 
@@ -1604,6 +1629,7 @@ export async function createInsuranceRule(input: {
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
   revalidatePath("/admin/insurance");
+  revalidateCatalog();
   return mapInsuranceRule(data as DbRow);
 }
 
@@ -1627,6 +1653,7 @@ export async function updateInsuranceRule(input: {
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
   revalidatePath("/admin/insurance");
+  revalidateCatalog();
   return mapInsuranceRule(data as DbRow);
 }
 
@@ -1670,6 +1697,7 @@ export async function createCity(input: {
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
   revalidatePath("/admin/cities");
+  revalidateCatalog();
   return mapCity(data as DbRow);
 }
 
@@ -1697,5 +1725,6 @@ export async function updateCity(input: {
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
   revalidatePath("/admin/cities");
+  revalidateCatalog();
   return mapCity(data as DbRow);
 }

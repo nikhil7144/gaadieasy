@@ -5,8 +5,16 @@ import { BrandLogo } from "@/components/public/BrandLogo";
 import { MarkdownBody } from "@/components/shared/MarkdownBody";
 import { SiteFooter } from "@/components/shared/SiteFooter";
 import { SiteHeader } from "@/components/shared/SiteHeader";
-import { getBrowseDataSet } from "@/lib/repositories/vehicle-data";
+import { getBrandList, getBrowseDataSet } from "@/lib/repositories/vehicle-data";
 import { getVehicleStories } from "@/lib/services/vehicle-stories";
+
+export const revalidate = 3600;
+
+// Only brands that actually have overview copy — the others 404 / redirect anyway.
+export async function generateStaticParams() {
+  const brands = await getBrandList();
+  return brands.filter((brand) => brand.active && brand.overview).map((brand) => ({ brand: brand.slug }));
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
   const { brand: brandSlug } = await params;

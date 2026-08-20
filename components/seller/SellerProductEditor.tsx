@@ -8,7 +8,8 @@ import { FormField } from "@/components/seller/FormField";
 import { SellerProductVariantsEditor } from "@/components/seller/SellerProductVariantsEditor";
 import { fieldClass, ghostButtonClass, primaryButtonClass } from "@/components/seller/dashboardStyles";
 import { describeApiError } from "@/lib/utils/api-error";
-import type { Brand, GearCategory, GearProduct, VehicleModel, VehicleType, VehicleVariant } from "@/types/automobile";
+import type { Brand, GearCategory, GearProduct, VehicleModel, VehicleType } from "@/types/automobile";
+import type { BrowseVariant } from "@/lib/repositories/vehicle-data";
 
 async function sendJson(url: string, method: "POST" | "PATCH", body: unknown) {
   const response = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -195,7 +196,7 @@ export function SellerProductEditor({
   vehicleTypes: VehicleType[];
   brands: Brand[];
   models: VehicleModel[];
-  variants: VehicleVariant[];
+  variants: BrowseVariant[];
   initialVariantCount: number;
 }) {
   const router = useRouter();

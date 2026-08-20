@@ -11,7 +11,8 @@ import { getHomepageComparisons } from "@/lib/services/comparisons";
 import { getDiscoveryDatasetForType, getDiscoveryTab } from "@/lib/services/discovery";
 import { getPublicHomepageDataForApi } from "@/lib/services/public-data";
 import { formatShortPrice } from "@/lib/utils/format";
-import type { Brand, VehicleModel, VehicleVariant } from "@/types/automobile";
+import type { Brand, VehicleModel } from "@/types/automobile";
+import type { BrowseVariant } from "@/lib/repositories/vehicle-data";
 
 export const metadata: Metadata = {
   title: "On-Road Vehicle Price Calculator",
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
 
 type HomeModel = VehicleModel & {
   brand?: Brand;
-  variants?: VehicleVariant[];
+  variants?: BrowseVariant[];
 };
 
 function modelPriceHref(model?: HomeModel, citySlug = "bangalore") {
